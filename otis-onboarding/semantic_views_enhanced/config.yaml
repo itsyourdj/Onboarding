@@ -1,5 +1,5 @@
 vde: false
-name: service-analytics-semantic-enhanced
+name: service-analytics-enhanced
 display_name: Service Analytics Semantic (Enhanced)
 description: Enhanced semantic data product for OTIS service analytics with additional governed trend metrics and stronger data quality controls.
 discoverable: true

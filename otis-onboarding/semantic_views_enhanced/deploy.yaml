@@ -1,6 +1,6 @@
 version: v1alpha
 type: vulcan
-name: service-analytics-semantic-enhanced
+name: service-analytics-enhanced
 tags:
   - snowflake-analytics
   - service-analytics

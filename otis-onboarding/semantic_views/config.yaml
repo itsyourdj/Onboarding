@@ -32,20 +32,20 @@ model_defaults:
 notification_targets:
   - type: teams_webhook
     url: "https://default2e22bdde3ec243f5bf9278e9f35a44.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/22/workflows/a88e39da590d45d1aa6e81e1065c4bc6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ibNbTg8uogoRKZ41JOqgCgZQF4jjxOlX1edGhzj6DVw"
-    notifyOn:
+    notify_on:
       - apply_start
       - apply_end
-      - apply_failure
       - run_start
       - run_end
-      - run_failure
-      - audit_failure
-      - dq_start
-      - dq_end
       - migration_start
       - migration_end
+      - apply_failure
+      - run_failure
+      - audit_failure
       - migration_failure
       - plan_change
+      - dq_start
+      - dq_end
 
 users:
   - username: manishagrawaltmdcio

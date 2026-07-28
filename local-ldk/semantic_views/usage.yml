@@ -1,0 +1,28 @@
+good_for:
+  - title: Service portfolio visibility by unit and account
+    details: Use for portfolio analysis across units, buildings, customers, and contracts, including product mix, geography, and in-service footprint.
+  - title: Reliability and field-performance monitoring
+    details: Use callbacks, open orders, mechanic notes, and technician-workforce mapping to track repeat issues, response patterns, and field execution outcomes.
+  - title: Compliance and maintenance program tracking
+    details: Use maintenance procedures, MCP compliance, and service contract compliance to monitor scheduled vs completed visits and identify missed maintenance risk.
+not_for:
+  - title: General ledger or financial close reporting
+    details: Not intended for statutory accounting, invoice-level reconciliation, or revenue recognition; use finance-owned reporting products for official numbers.
+  - title: Real-time dispatch and live operations control
+    details: Not intended for minute-by-minute dispatch decisions or live SLA monitoring because this product is modeled for curated analytical consumption.
+caveats:
+  - title: MDM masters are canonical for core entities
+    severity: low
+    details: Customer, contract, building, and unit master datasets are treated as golden sources and flow directly from MDM-aligned production domains.
+  - title: Transformations cast raw VARCHAR-heavy staging data
+    severity: low
+    details: Source staging inputs arrive with broad string typing, so this workflow applies explicit type casting and cleanup before publishing analytical tables.
+  - title: Some referential issues are preserved by design
+    severity: medium
+    details: Orphan-key and upstream relationship inconsistencies are not force-fixed in transformation models and can surface until resolved in semantic modeling or source systems.
+  - title: Fact joins should route through model hierarchy
+    severity: low
+    details: Unit-grain facts should join via units and building paths to customers; bypassing documented join paths can introduce ambiguous or duplicated results.
+  - title: Incremental loads use batch and load timestamps
+    severity: low
+    details: Datasets include batch_id and load_ts metadata and are refreshed on scheduled increments, so consumers should account for load cadence in freshness expectations.

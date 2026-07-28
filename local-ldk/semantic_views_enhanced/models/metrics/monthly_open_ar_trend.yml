@@ -1,0 +1,84 @@
+kind: metric
+name: MONTHLY_OPEN_AR_TREND
+measure: AR_OPENAR.TOTAL_OPEN_AR
+ts: AR_OPENAR.AR_MONTH
+granularity: month
+description: Monthly trend of open accounts-receivable balance by branch office and delinquency status.
+
+ai_context:
+  instructions: >
+    Open AR balance over accounting month. Query monthly_open_ar_trend directly:
+    measure is total open AR from ar_openar,
+    ts is the AR accounting month at month grain,
+    slice by gbo or delinquent for collections and financial-risk views.
+    Query via SQL, REST, or GraphQL APIs.
+  synonyms:
+    - open ar trend
+    - receivables trend
+    - monthly open ar
+    - ar balance trend
+  examples:
+    - description: open AR by branch office month over month (SQL API)
+      format: sql
+      query: |
+        SELECT
+          gbo,
+          MEASURE(measure)
+        FROM monthly_open_ar_trend
+        GROUP BY 1;
+    - description: monthly open AR by delinquency status (REST API)
+      format: rest
+      query: |
+        {
+          "measures": ["monthly_open_ar_trend.measure"],
+          "dimensions": ["monthly_open_ar_trend.delinquent"],
+          "timeDimensions": [
+            {
+              "dimension": "monthly_open_ar_trend.ts",
+              "granularity": "month"
+            }
+          ]
+        }
+    - description: open AR by branch office and delinquency status per month (GraphQL API)
+      format: graphql
+      query: |
+        {
+          vulcan {
+            monthly_open_ar_trend {
+              gbo
+              delinquent
+              measure
+              ts {
+                month
+              }
+            }
+          }
+        }
+
+dimensions:
+  - name: GBO
+    ref: AR_OPENAR.GBO
+    description: Global branch office associated with the contract-month AR balance.
+    ai_context:
+      instructions: Use gbo to compare open AR across branch offices.
+      synonyms:
+        - branch office
+        - global branch office
+  - name: DELINQUENT
+    ref: AR_OPENAR.DELINQUENT
+    description: Delinquency flag (Y/N) for segmenting open AR by risk.
+    ai_context:
+      instructions: Primary delinquency breakdown on monthly_open_ar_trend.
+      synonyms:
+        - delinquency status
+        - overdue flag
+
+tags:
+  - finance
+  - receivables
+  - ar
+  - trend
+  - metric
+terms:
+  - finance.monthly_open_ar_trend
+  - ar.open_ar

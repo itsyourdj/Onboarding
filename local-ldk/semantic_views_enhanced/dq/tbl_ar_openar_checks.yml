@@ -1,0 +1,124 @@
+kind: dq
+name: tbl_ar_openar_checks
+depends_on: JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+profiles:
+  - CONTRACT_ID
+  - CUSTOMER_ID
+  - CONTRACTNUMBER
+  - CUSTOMER_NB
+  - GROSSMONTHLYBILLING
+  - OPEN_AR
+  - AR_OVER_60_DAYS
+  - AR_OVER_90_DAYS
+  - AR_OVER_120_DAYS
+  - DISPUTEDAMOUNT
+  - BATCH_ID
+
+rules:
+  # Completeness check
+  - missing_count(CONTRACT_ID) = 0:
+      name: contract_id_required
+      dimension: completeness
+      description: CONTRACT_ID must be present on every AR row
+
+  # Completeness check
+  - missing_count(AR_MONTH) = 0:
+      name: ar_month_required
+      dimension: completeness
+      description: AR_MONTH must be present for the monthly AR grain
+
+  # Uniqueness check
+  - duplicate_count(CONTRACT_ID, AR_MONTH) = 0:
+      name: contract_month_unique
+      dimension: uniqueness
+      description: One row per contract per AR month (CONTRACT_ID, AR_MONTH grain)
+
+  # Validity check
+  - failed rows:
+      name: open_ar_non_negative
+      dimension: validity
+      description: OPEN_AR balance cannot be negative
+      fail query: |
+        SELECT CONTRACT_ID, AR_MONTH, OPEN_AR
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+        WHERE OPEN_AR IS NOT NULL
+          AND OPEN_AR < 0
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: aging_buckets_monotonic
+      dimension: validity
+      description: Older aging buckets must not exceed younger ones (120 <= 90 <= 60)
+      fail query: |
+        SELECT CONTRACT_ID, AR_MONTH, AR_OVER_60_DAYS, AR_OVER_90_DAYS, AR_OVER_120_DAYS
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+        WHERE AR_OVER_90_DAYS > AR_OVER_60_DAYS
+           OR AR_OVER_120_DAYS > AR_OVER_90_DAYS
+      samples limit: 20
+
+  # Consistency: aging and disputed amounts must sit within the total open balance.
+  - failed rows:
+      name: aging_within_open_ar
+      dimension: consistency
+      description: The 60-day aging bucket cannot exceed the total OPEN_AR balance
+      fail query: |
+        SELECT CONTRACT_ID, AR_MONTH, OPEN_AR, AR_OVER_60_DAYS
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+        WHERE OPEN_AR IS NOT NULL
+          AND AR_OVER_60_DAYS IS NOT NULL
+          AND AR_OVER_60_DAYS > OPEN_AR
+      samples limit: 20
+
+  # Consistency check
+  - failed rows:
+      name: disputed_within_open_ar
+      dimension: consistency
+      description: DISPUTEDAMOUNT cannot exceed the total OPEN_AR balance
+      fail query: |
+        SELECT CONTRACT_ID, AR_MONTH, OPEN_AR, DISPUTEDAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+        WHERE OPEN_AR IS NOT NULL
+          AND DISPUTEDAMOUNT IS NOT NULL
+          AND DISPUTEDAMOUNT > OPEN_AR
+      samples limit: 20
+
+  # Integrity: AR rows must tie back to a real contract and customer.
+  - failed rows:
+      name: contract_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CONTRACT_ID must exist in the contract master (no orphan contracts)
+      fail query: |
+        SELECT f.CONTRACT_ID, f.AR_MONTH
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER m
+          ON f.CONTRACT_ID = m.CONTRACT_ID
+        WHERE f.CONTRACT_ID IS NOT NULL
+          AND m.CONTRACT_ID IS NULL
+      samples limit: 20
+
+  # Integrity check
+  - failed rows:
+      name: customer_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CUSTOMER_ID must exist in the customer master (no orphan customers)
+      fail query: |
+        SELECT f.CONTRACT_ID, f.AR_MONTH, f.CUSTOMER_ID
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER m
+          ON f.CUSTOMER_ID = m.CUSTOMER_ID
+        WHERE f.CUSTOMER_ID IS NOT NULL
+          AND m.CUSTOMER_ID IS NULL
+      samples limit: 20
+
+  # Timeliness: the load watermark should never be in the future.
+  - failed rows:
+      name: load_ts_not_in_future
+      dimension: timeliness
+      description: LOAD_TS cannot be later than the current date
+      fail query: |
+        SELECT CONTRACT_ID, AR_MONTH, LOAD_TS
+        FROM JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+        WHERE LOAD_TS IS NOT NULL
+          AND LOAD_TS > CURRENT_DATE
+      samples limit: 20

@@ -1,0 +1,26 @@
+kind: semantic
+name: SVC_CONTRACT_COMPLIANCE
+depends_on: NAABO_PROD.REPORTING.SVC_COMPLIANCE
+description: Trailing-12-month contract visit compliance.
+measures:
+- name: LATEST_ACTUAL_VISIT
+  type: max
+  expression: '{SVC_CONTRACT_COMPLIANCE.ACTUALVISITS12MONTHS}'
+  description: Most recent actual maintenance visit (12m)
+- name: TOTAL_EXPECTED_VISITS
+  type: sum
+  expression: '{SVC_CONTRACT_COMPLIANCE.VISITS12MONTHS}'
+  description: Sum of expected visits (12m)
+dimensions:
+- name: CONTRACT_ID
+  description: Contract governing the required visits.
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: REGION
+  description: Region the unit belongs to.
+- name: UNIT_ID
+  description: Unit the compliance row is for (FK to UNITS).
+- name: ACTUALVISITS12MONTHS
+  description: Timestamp of the last actual maintenance visit in the trailing 12 months (source column is a timestamp, not a count).
+- name: VISITS12MONTHS
+  description: Contracted/required visits in the trailing 12 months.

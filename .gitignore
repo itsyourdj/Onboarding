@@ -1,3 +1,8 @@
-/local-ldk/
 .DS_Store
 .tmp_pylib/
+
+# Track local-ldk sources but skip local/runtime artifacts
+local-ldk/**/.env
+local-ldk/**/.cache/
+local-ldk/**/.logs/
+local-ldk/**/.state.db

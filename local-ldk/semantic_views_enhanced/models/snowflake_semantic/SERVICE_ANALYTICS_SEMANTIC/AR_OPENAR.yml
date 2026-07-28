@@ -1,0 +1,40 @@
+kind: semantic
+name: AR_OPENAR
+depends_on: JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
+description: Accounts-receivable open balances by contract-month.
+measures:
+- name: DELINQUENT_CONTRACT_MONTHS
+  type: sum
+  expression: CASE WHEN {AR_OPENAR.DELINQUENT} = 'Y' THEN 1 ELSE 0 END
+  description: Count of contract-months flagged delinquent
+- name: TOTAL_AR_OVER_90
+  type: sum
+  expression: '{AR_OPENAR.AR_OVER_90_DAYS}'
+  description: Sum of AR aged over 90 days
+- name: TOTAL_DISPUTED
+  type: sum
+  expression: '{AR_OPENAR.DISPUTEDAMOUNT}'
+  description: Sum of disputed amount
+- name: TOTAL_OPEN_AR
+  type: sum
+  expression: '{AR_OPENAR.OPEN_AR}'
+  description: Sum of open AR
+dimensions:
+- name: CONTRACT_ID
+  description: Contract the AR balance is for (FK to CONTRACTS).
+- name: CUSTOMER_ID
+  description: Customer the AR balance is for.
+- name: DELINQUENT
+  description: Delinquency flag for the contract-month (Y/N).
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: AR_MONTH
+  description: Accounting month of the AR snapshot (cast to TIMESTAMP_NTZ at source).
+- name: AR_OVER_120_DAYS
+  description: AR balance aged more than 120 days.
+- name: AR_OVER_90_DAYS
+  description: AR balance aged more than 90 days.
+- name: DISPUTEDAMOUNT
+  description: Portion of the balance under dispute.
+- name: OPEN_AR
+  description: Total open accounts-receivable balance.

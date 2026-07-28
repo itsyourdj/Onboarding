@@ -1,0 +1,64 @@
+kind: dq
+name: global_customer_master_checks
+depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER
+profiles:
+  - CUSTOMER_ID
+  - CUSTOMER_EID
+  - CUSTOMER_NB
+  - CUSTOMER_NAME
+  - CUSTOMER_CLASSIFICATION
+  - SALES_SEGMENT
+  - BILLING_CURRENCY_CD
+  - COUNTRY_CD
+  - REGION_DESC
+  - GBO
+  - CRM_SOURCE_SYSTEM_CD
+
+rules:
+  # Completeness check
+  - missing_count(CUSTOMER_ID) = 0:
+      name: customer_id_required
+      dimension: completeness
+      description: CUSTOMER_ID must be present on every golden customer row
+
+  # Completeness check
+  - missing_count(CUSTOMER_EID) = 0:
+      name: customer_eid_required
+      dimension: completeness
+      description: CUSTOMER_EID (merge key) must be present on every golden record
+
+  # Uniqueness check
+  - duplicate_count(CUSTOMER_ID) = 0:
+      name: customer_id_unique
+      dimension: uniqueness
+      description: Golden master must hold exactly one row per customer
+
+  # Uniqueness check
+  - duplicate_count(CUSTOMER_EID) = 0:
+      name: customer_eid_unique
+      dimension: uniqueness
+      description: The enterprise id must resolve to a single golden record (dedupe worked)
+
+  # Validity check
+  - failed rows:
+      name: billing_currency_standardized
+      dimension: validity
+      description: BILLING_CURRENCY_CD must be a standardized ISO code (USD / CAD) when populated
+      fail query: |
+        SELECT CUSTOMER_ID, BILLING_CURRENCY_CD
+        FROM MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER
+        WHERE BILLING_CURRENCY_CD IS NOT NULL
+          AND BILLING_CURRENCY_CD NOT IN ('USD', 'CAD')
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: country_cd_standardized
+      dimension: validity
+      description: COUNTRY_CD must be a standardized 2-char code (US / CA) when populated
+      fail query: |
+        SELECT CUSTOMER_ID, COUNTRY_CD
+        FROM MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER
+        WHERE COUNTRY_CD IS NOT NULL
+          AND COUNTRY_CD NOT IN ('US', 'CA')
+      samples limit: 20

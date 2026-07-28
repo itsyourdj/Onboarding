@@ -1,0 +1,135 @@
+kind: dq
+name: qualtrics_response_checks
+depends_on: MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+profiles:
+  - RESPONSEID
+  - SURVEYID
+  - CUSTOMER_ID
+  - CONTRACT_ID
+  - BUILDING_ID
+  - NPS_SCORE
+  - NPS_SENTIMENT_SCORE
+  - RISK_SCORE
+  - SATISFACTION_RATING
+  - FINISHED
+  - BATCH_ID
+
+rules:
+  # Completeness check
+  - missing_count(RESPONSEID) = 0:
+      name: responseid_required
+      dimension: completeness
+      description: RESPONSEID must be present on every survey response
+
+  # Uniqueness check
+  - duplicate_count(RESPONSEID) = 0:
+      name: responseid_unique
+      dimension: uniqueness
+      description: One row per survey response (RESPONSEID grain)
+
+  # Validity check
+  - failed rows:
+      name: nps_score_in_range
+      dimension: validity
+      description: NPS_SCORE must be within 0..10 when populated
+      fail query: |
+        SELECT RESPONSEID, NPS_SCORE
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+        WHERE NPS_SCORE IS NOT NULL
+          AND (NPS_SCORE < 0 OR NPS_SCORE > 10)
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: nps_category_valid_values
+      dimension: validity
+      description: NPS_CATEGORY must be Promoter, Passive or Detractor
+      fail query: |
+        SELECT RESPONSEID, NPS_CATEGORY
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+        WHERE NPS_CATEGORY IS NOT NULL
+          AND NPS_CATEGORY NOT IN ('Promoter', 'Passive', 'Detractor')
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: sentiment_score_in_range
+      dimension: validity
+      description: NPS_SENTIMENT_SCORE must be within -1..1 when populated
+      fail query: |
+        SELECT RESPONSEID, NPS_SENTIMENT_SCORE
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+        WHERE NPS_SENTIMENT_SCORE IS NOT NULL
+          AND (NPS_SENTIMENT_SCORE < -1 OR NPS_SENTIMENT_SCORE > 1)
+      samples limit: 20
+
+  # Consistency: the NPS category must agree with the numeric NPS score bands.
+  - failed rows:
+      name: nps_category_consistent_with_score
+      dimension: consistency
+      description: NPS_CATEGORY must match the standard NPS bands (0-6 Detractor, 7-8 Passive, 9-10 Promoter)
+      fail query: |
+        SELECT RESPONSEID, NPS_SCORE, NPS_CATEGORY
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+        WHERE NPS_SCORE IS NOT NULL
+          AND NPS_CATEGORY IS NOT NULL
+          AND NPS_CATEGORY <> CASE
+            WHEN NPS_SCORE >= 9 THEN 'Promoter'
+            WHEN NPS_SCORE >= 7 THEN 'Passive'
+            ELSE 'Detractor'
+          END
+      samples limit: 20
+
+  # Integrity: survey responses must attribute to real master entities.
+  - failed rows:
+      name: customer_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CUSTOMER_ID must exist in the customer master (no orphan customers)
+      fail query: |
+        SELECT f.RESPONSEID, f.CUSTOMER_ID
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER m
+          ON f.CUSTOMER_ID = m.CUSTOMER_ID
+        WHERE f.CUSTOMER_ID IS NOT NULL
+          AND m.CUSTOMER_ID IS NULL
+      samples limit: 20
+
+  # Integrity check
+  - failed rows:
+      name: contract_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CONTRACT_ID must exist in the contract master (no orphan contracts)
+      fail query: |
+        SELECT f.RESPONSEID, f.CONTRACT_ID
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER m
+          ON f.CONTRACT_ID = m.CONTRACT_ID
+        WHERE f.CONTRACT_ID IS NOT NULL
+          AND m.CONTRACT_ID IS NULL
+      samples limit: 20
+
+  # Integrity check
+  - failed rows:
+      name: building_id_referential_integrity
+      dimension: consistency
+      description: Every non-null BUILDING_ID must exist in the building master (no orphan buildings)
+      fail query: |
+        SELECT f.RESPONSEID, f.BUILDING_ID
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_BUILDING_MASTER m
+          ON f.BUILDING_ID = m.BUILDING_ID
+        WHERE f.BUILDING_ID IS NOT NULL
+          AND m.BUILDING_ID IS NULL
+      samples limit: 20
+
+  # Timeliness: the load watermark should never be in the future.
+  - failed rows:
+      name: load_ts_not_in_future
+      dimension: timeliness
+      description: LOAD_TS cannot be later than the current date
+      fail query: |
+        SELECT RESPONSEID, LOAD_TS
+        FROM MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
+        WHERE LOAD_TS IS NOT NULL
+          AND LOAD_TS > CURRENT_DATE
+      samples limit: 20

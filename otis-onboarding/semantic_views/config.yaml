@@ -1,5 +1,5 @@
 vde: false
-name: service-analytics-semantic-core
+name: service-analytics-core
 display_name: Service Analytics Semantic (Core)
 description: Core semantic data product for OTIS service analytics focused on standardized portfolio, reliability, and compliance reporting.
 discoverable: true

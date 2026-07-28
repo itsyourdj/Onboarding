@@ -1,6 +1,6 @@
 version: v1alpha
 type: vulcan
-name: service-analytics-semantic-core
+name: service-analytics-core
 tags:
   - snowflake-analytics
   - service-analytics

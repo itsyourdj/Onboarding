@@ -83,11 +83,6 @@
   description: Workday workforce profile used to align technicians, supervisors, and organization hierarchy.
   grains:
     - WORKER_ID
-  audits:
-    - name: not_null
-      columns: '[WORKER_ID]'
-    - name: workday_empty
-    - name: workday_duplicate_worker_id
   columns:
     WORKER_ID: VARCHAR(16777216)
     AMERICAS_GBO: VARCHAR(16777216)

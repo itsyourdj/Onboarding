@@ -39,8 +39,8 @@ notification_targets:
       - run_end
       - run_failure
       - audit_failure
-      - check_end
-      - check_failure
+      - dq_start
+      - dq_end
       - migration_start
       - migration_end
       - migration_failure

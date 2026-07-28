@@ -22,7 +22,7 @@ spec:
     type: schedule
     schedule:
       crons:
-        - "*/60 * * * *"
+        - "0 5 * * *"
       endOn: "2027-01-01T00:00:00-00:00"
       timezone: "US/Pacific"
       concurrencyPolicy: Forbid

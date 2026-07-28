@@ -1,0 +1,79 @@
+kind: semantic
+name: CUSTOMERS
+depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER
+description: Golden customer master (one row per customer).
+dimensions:
+  - name: BILLING_CURRENCY_CD
+    description: ISO currency code standardized from source variants (US Dollar to USD).
+    ai_context:
+      instructions: Use for currency-aware commercial analysis.
+      caveats:
+        - Required when comparing monetary metrics across countries.
+      synonyms:
+        - billing currency
+        - currency code
+  - name: COUNTRY_CD
+    description: Two-char country code standardized from source variants (United States to US).
+    ai_context:
+      instructions: Primary country dimension for geography reporting.
+      synonyms:
+        - country
+        - country code
+  - name: CUSTOMER_CLASSIFICATION
+    description: Customer classification code (upper-cased, trimmed).
+    ai_context:
+      instructions: Use to segment strategic and priority account tiers.
+      synonyms:
+        - customer tier
+        - account classification
+  - name: CUSTOMER_ID
+    description: Surrogate customer key (CUST_ + last 6 chars of CUSTOMER_EID).
+    behavior:
+      type: identifier
+    ai_context:
+      instructions: Primary customer key across service analytics.
+      synonyms:
+        - customer
+        - account id
+  - name: CUSTOMER_NAME
+    description: Customer legal name. PII - handle per data classification.
+  - name: GBO
+    description: Global business organization / branch grouping.
+  - name: REGION_DESC
+    description: Sales region description.
+    ai_context:
+      instructions: Use for regional portfolio and revenue analysis.
+      synonyms:
+        - region
+        - sales region
+  - name: SALES_SEGMENT
+    description: Sales segment, standardized to title case.
+    ai_context:
+      instructions: Use for enterprise versus non-enterprise segmentation.
+      synonyms:
+        - segment
+        - customer segment
+measures:
+  - name: CUSTOMER_COUNT
+    type: count
+    expression: "{CUSTOMERS.CUSTOMER_ID}"
+    description: Number of customers
+    ai_context:
+      instructions: Base metric for customer population in scope.
+      synonyms:
+        - account count
+        - customer volume
+segments:
+  - name: enterprise_customers
+    expression: "UPPER({CUSTOMERS.SALES_SEGMENT}) IN ('ENTERPRISE', 'STRATEGIC')"
+    description: Enterprise and strategic OTIS accounts.
+  - name: key_class_customers
+    expression: "UPPER({CUSTOMERS.CUSTOMER_CLASSIFICATION}) IN ('A', 'KEY', 'STRATEGIC')"
+    description: Priority-class customers for account focus.
+joins:
+  - name: CONTRACTS
+    type: one_to_many
+    expression: "{CUSTOMERS.CUSTOMER_ID} = {CONTRACTS.CUSTOMER_ID}"
+  - name: NPS_SURVEYS
+    type: one_to_many
+    expression: "{CUSTOMERS.CUSTOMER_ID} = {NPS_SURVEYS.CUSTOMER_ID}"

@@ -1,0 +1,64 @@
+version: v1alpha
+type: vulcan
+name: service-analytics-semantic-core
+tags:
+  - snowflake-analytics
+  - service-analytics
+  - semantic-core
+spec:
+  runAsUser: "deepakjaiswaltmdcio"
+  compute: otis-compute
+  engine: snowflake
+  repo:
+    url: https://github.com/itsyourdj/Onboarding
+    syncFlags:
+      - "--ref=main"
+      - "--submodules=off"
+    baseDir: Onboarding/otis-onboarding/semantic_views
+    secretId: otis-onboarding:onboarding-repo-access
+  depots:
+    - dataos://analyticsprod?purpose=rw
+  workflow:
+    type: schedule
+    schedule:
+      crons:
+        - "*/60 * * * *"
+      endOn: "2027-01-01T00:00:00-00:00"
+      timezone: "US/Pacific"
+      concurrencyPolicy: Forbid
+    logLevel: INFO
+    resource:
+      request:
+        cpu: "500m"
+        memory: "512Mi"
+      limit:
+        cpu: "1000m"
+        memory: "1Gi"
+    migrate:
+      command:
+        - vulcan
+      arguments:
+        - migrate
+    plan:
+      command:
+        - vulcan
+      arguments:
+        - --log-to-stdout
+        - plan
+        - --auto-apply
+    run:
+      command:
+        - vulcan
+      arguments:
+        - --log-to-stdout
+        - run
+  api:
+    replicas: 1
+    logLevel: INFO
+    resource:
+      request:
+        cpu: "500m"
+        memory: "512Mi"
+      limit:
+        cpu: "1000m"
+        memory: "1Gi"

@@ -1,0 +1,28 @@
+good_for:
+  - title: Trend-ready service analytics and KPI packs
+    details: Use for enriched portfolio analytics with pre-modeled monthly trend metrics and governed service-domain KPI outputs.
+  - title: Reliability analysis with stronger data controls
+    details: Use callbacks, open orders, mechanic notes, and workforce mapping with enhanced schema validations and quality checks.
+  - title: Compliance and maintenance intelligence
+    details: Use compliance and maintenance models plus derived trend views to monitor gaps, movement, and risk over time.
+not_for:
+  - title: Finance close or statutory accounting
+    details: Not intended for official accounting, invoice-level reconciliation, or revenue recognition; use finance-governed products for books and close.
+  - title: Real-time dispatch and live operations control
+    details: Not intended for minute-level dispatch decisions or live SLA operations because this product is built for curated analytics.
+caveats:
+  - title: MDM masters are canonical for core entities
+    severity: low
+    details: Customer, contract, building, and unit master datasets are treated as golden sources and flow directly from MDM-aligned production domains.
+  - title: Enhanced models add quality checks
+    severity: low
+    details: Additional audits and validation patterns are applied in enhanced models, but upstream data defects can still require source correction.
+  - title: Derived trends depend on base model freshness
+    severity: medium
+    details: Monthly trend views are only as current as their underlying base semantic models and refresh cadence.
+  - title: Fact joins should route through model hierarchy
+    severity: low
+    details: Unit-grain facts should join via units and building paths to customers; bypassing documented join paths can introduce ambiguous or duplicated results.
+  - title: Incremental loads use batch and load timestamps
+    severity: low
+    details: Datasets include batch_id and load_ts metadata and are refreshed on scheduled increments, so consumers should account for load cadence in freshness expectations.

@@ -1,0 +1,177 @@
+kind: semantic
+name: UNITS
+depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_UNIT_MASTER
+description: Golden unit/equipment master (analytic hub).
+dimensions:
+  - name: BLDG_CITY
+    description: City of the building the unit is installed in.
+    ai_context:
+      instructions: Use for city-level installed-base and risk views.
+      synonyms:
+        - city
+        - location city
+  - name: BUILDING_ID
+    description: Building the unit is installed in (FK to BUILDINGS).
+    ai_context:
+      instructions: Use to roll up units by site/building.
+      synonyms:
+        - building
+        - site id
+  - name: CONTRACT_ID
+    description: Service contract covering the unit (FK to CONTRACTS).
+    ai_context:
+      instructions: Use to connect unit performance with contract terms.
+      synonyms:
+        - contract
+        - agreement id
+  - name: CUSTOMER_ID
+    description: Owning customer surrogate key (FK to CUSTOMERS).
+    ai_context:
+      instructions: Use for customer-level equipment portfolio analysis.
+      synonyms:
+        - customer
+        - account
+  - name: ERP_SOURCE_SYSTEM_CD
+    description: Winning source ERP for this golden record (JDE / NAABO).
+  - name: GBO
+    description: Global business organization / branch grouping.
+  - name: IS_CONNECTED
+    description: Boolean connectivity flag standardized from True/False/Y/N/1/0.
+    ai_context:
+      instructions: Preferred flag for digital connectivity penetration.
+      caveats:
+        - Derived normalization of multiple source encodings.
+      synonyms:
+        - connected flag
+        - online status
+  - name: MACHINE_NUMBER
+    description: Equipment/machine number.
+  - name: OTIS_ONE_ENROLLED
+    description: Boolean Otis ONE enrollment flag.
+    ai_context:
+      instructions: Use to segment units enrolled in Otis ONE services.
+      synonyms:
+        - otis one flag
+        - enrolled status
+  - name: PRODUCT_CLASS
+    description: Product class (elevator / escalator / ...).
+    ai_context:
+      instructions: Primary product category for equipment segmentation.
+      synonyms:
+        - product category
+        - equipment class
+  - name: PRODUCT_NAME
+    description: Product/model name.
+  - name: PRODUCT_SUBCLASS
+    description: Product subclass within the product class.
+  - name: UNIT_ID
+    description: Surrogate unit/equipment key (UNIT_ + last 6 chars of UNIT_EID).
+    behavior:
+      type: identifier
+    ai_context:
+      instructions: Core equipment identifier across service analytics.
+      synonyms:
+        - unit
+        - equipment id
+  - name: UNIT_STATUS
+    description: Unit lifecycle status (active / removed / ...).
+    ai_context:
+      instructions: Use to filter active versus inactive installed base.
+      synonyms:
+        - equipment status
+        - lifecycle status
+  - name: CURRENT_HEALTH_SCORE
+    description: Latest unit health score 0-1; out-of-range values dropped during merge.
+    ai_context:
+      instructions: Use as current reliability-health signal at unit level.
+      caveats:
+        - Score is bounded 0-1 and represents a current snapshot.
+      synonyms:
+        - health score
+        - reliability score
+measures:
+  - name: AVG_UNIT_HEALTH
+    type: avg
+    expression: "{UNITS.CURRENT_HEALTH_SCORE}"
+    description: Average current health score (0-1)
+    ai_context:
+      instructions: KPI for average reliability condition of selected units.
+      caveats:
+        - Mean can mask tail risk; pair with UNITS_AT_RISK.
+      synonyms:
+        - average health
+        - mean unit condition
+  - name: CONNECTED_UNITS
+    type: sum
+    expression: CASE WHEN {UNITS.IS_CONNECTED} THEN 1 ELSE 0 END
+    description: Units flagged as connected
+    ai_context:
+      instructions: Count of digitally connected units.
+      caveats:
+        - Boolean-sum count; assumes one row per unit.
+      synonyms:
+        - connected equipment
+        - online units
+  - name: OTIS_ONE_ENROLLED_UNITS
+    type: sum
+    expression: CASE WHEN {UNITS.OTIS_ONE_ENROLLED} THEN 1 ELSE 0 END
+    description: Units enrolled in Otis ONE
+    ai_context:
+      instructions: Count of Otis ONE enrolled units.
+      caveats:
+        - Boolean-sum count; validate grain before aggregation.
+      synonyms:
+        - otis one units
+        - enrolled units
+  - name: UNITS_AT_RISK
+    type: sum
+    expression: CASE WHEN {UNITS.CURRENT_HEALTH_SCORE} < 0.5 THEN 1 ELSE 0 END
+    description: Units with health score below 0.5
+    ai_context:
+      instructions: Reliability-risk KPI using health score threshold.
+      caveats:
+        - Threshold is rule-based and not a direct failure probability.
+      synonyms:
+        - at risk units
+        - high risk equipment
+  - name: UNIT_COUNT
+    type: count
+    expression: "{UNITS.UNIT_ID}"
+    description: Number of units
+    ai_context:
+      instructions: Baseline installed-base count.
+      synonyms:
+        - installed base
+        - equipment count
+segments:
+  - name: connected_units
+    expression: "{UNITS.IS_CONNECTED} = TRUE"
+    description: Units actively connected for digital monitoring.
+  - name: otis_one_enrolled_units
+    expression: "{UNITS.OTIS_ONE_ENROLLED} = TRUE"
+    description: Units enrolled in Otis ONE services.
+  - name: at_risk_units
+    expression: "{UNITS.CURRENT_HEALTH_SCORE} < 0.5"
+    description: Units with elevated reliability risk.
+joins:
+  - name: CALLBACKS
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {CALLBACKS.UNIT_ID}"
+  - name: MAINTENANCE_PROCEDURES
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {MAINTENANCE_PROCEDURES.UNIT_ID}"
+  - name: MCP_COMPLIANCE
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {MCP_COMPLIANCE.UNIT_ID}"
+  - name: MECHANIC_NOTES
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {MECHANIC_NOTES.UNIT_ID}"
+  - name: OPEN_ORDERS
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {OPEN_ORDERS.UNIT_ID}"
+  - name: OTIS_ONE_UNIT_HEALTH
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {OTIS_ONE_UNIT_HEALTH.UNIT_ID}"
+  - name: SVC_CONTRACT_COMPLIANCE
+    type: one_to_many
+    expression: "{UNITS.UNIT_ID} = {SVC_CONTRACT_COMPLIANCE.UNIT_ID}"

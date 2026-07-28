@@ -1,0 +1,132 @@
+kind: semantic
+name: OPEN_ORDERS
+depends_on: NAABO_PROD.REPORTING.OPORD_CNRCT_FCT
+description: Open-order / repair-job financial facts.
+measures:
+- name: OPEN_ORDER_COUNT
+  type: count
+  expression: '{OPEN_ORDERS.ORDER_KEY}'
+  description: Count of open orders / repair jobs
+  ai_context:
+    instructions: Core backlog KPI for open service and repair jobs.
+    synonyms:
+      - open backlog
+      - open jobs
+- name: OVERALL_MARGIN_PCT
+  type: number
+  expression: ROUND(SUM({OPEN_ORDERS.JOB_MARGIN}) * 100.0 / NULLIF(SUM({OPEN_ORDERS.JOB_REVENUE}), 0), 1)
+  description: Total margin as a percent of total revenue
+  ai_context:
+    instructions: Portfolio profitability percentage across selected orders.
+    caveats:
+      - Ratio-of-sums measure; do not average row-level margin percentages.
+      - Undefined when summed revenue is zero.
+    synonyms:
+      - overall margin percent
+      - blended margin rate
+- name: TOTAL_JOB_COST
+  type: sum
+  expression: '{OPEN_ORDERS.JOB_COST}'
+  description: Sum of job cost
+  ai_context:
+    instructions: Total cost incurred for open order workload.
+    synonyms:
+      - total cost
+      - job spend
+- name: TOTAL_JOB_MARGIN
+  type: sum
+  expression: '{OPEN_ORDERS.JOB_MARGIN}'
+  description: Sum of job margin
+  ai_context:
+    instructions: Total absolute margin dollars across selected orders.
+    synonyms:
+      - margin dollars
+      - gross margin
+- name: TOTAL_JOB_REVENUE
+  type: sum
+  expression: '{OPEN_ORDERS.JOB_REVENUE}'
+  description: Sum of job revenue
+  ai_context:
+    instructions: Total revenue value of the open order portfolio.
+    synonyms:
+      - total revenue
+      - open order revenue
+dimensions:
+- name: CONTRACT_ID
+  description: Contract the order relates to.
+  ai_context:
+    instructions: Use to connect open orders with contract performance.
+    synonyms:
+      - contract
+      - agreement id
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: ORDER_DATE
+  description: Date the order was opened.
+  ai_context:
+    instructions: Use for backlog aging and intake trend analysis.
+    synonyms:
+      - open date
+      - job start date
+- name: ORDER_KEY
+  description: Unique open-order / repair-job key.
+  behavior:
+    type: identifier
+  ai_context:
+    instructions: Primary key for each open order/job record.
+    synonyms:
+      - order id
+      - job key
+- name: ORDER_STATUS
+  description: Order status (open / closed / ...).
+  ai_context:
+    instructions: Use as lifecycle status for order pipeline reporting.
+    synonyms:
+      - job status
+      - order state
+- name: ORDER_TYPE
+  description: Order type (repair / modernization / ...).
+  ai_context:
+    instructions: Use to compare margins and volume by work category.
+    synonyms:
+      - work type
+      - order category
+- name: UNIT_ID
+  description: Unit the order relates to (FK to UNITS).
+  ai_context:
+    instructions: Use for unit-level backlog and profitability analysis.
+    synonyms:
+      - unit
+      - equipment id
+- name: JOB_COST
+  description: Cost incurred for the job.
+  ai_context:
+    instructions: Base cost field for profitability calculations.
+    synonyms:
+      - cost
+      - job cost
+- name: JOB_MARGIN
+  description: Job margin (revenue minus cost).
+  ai_context:
+    instructions: Absolute margin value at job grain.
+    caveats:
+      - Can be negative for loss-making orders.
+    synonyms:
+      - margin dollars
+      - profit value
+- name: JOB_REVENUE
+  description: Revenue booked for the job.
+  ai_context:
+    instructions: Base revenue field for order-level finance metrics.
+    synonyms:
+      - revenue
+      - job sales
+- name: MARGIN_PCT
+  description: Job margin as a percent of revenue.
+  ai_context:
+    instructions: Row-level margin percentage for individual order analysis.
+    caveats:
+      - Do not average this field to derive portfolio margin; use OVERALL_MARGIN_PCT.
+    synonyms:
+      - margin rate
+      - profit percent

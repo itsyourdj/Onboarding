@@ -1,0 +1,105 @@
+kind: metric
+name: MONTHLY_UNIT_FAULT_TREND
+measure: OTIS_ONE_UNIT_HEALTH.TOTAL_FAULTS
+ts: OTIS_ONE_UNIT_HEALTH.SNAPSHOT_DATE
+granularity: month
+description: Monthly trend of Otis ONE IoT unit faults by branch office and predicted-failure flag.
+
+ai_context:
+  instructions: >
+    IoT unit fault volume over telemetry snapshot date. Query monthly_unit_fault_trend directly:
+    measure is total faults from otis_one_unit_health,
+    ts is the telemetry snapshot date at month grain,
+    slice by gbo or predicted_failure_flag for reliability and predictive-maintenance views.
+    Query via SQL, REST, or GraphQL APIs.
+  synonyms:
+    - unit fault trend
+    - iot fault trend
+    - monthly faults
+    - equipment fault trend
+  examples:
+    - description: faults by branch office month over month (SQL API)
+      format: sql
+      query: |
+        SELECT
+          gbo,
+          MEASURE(measure)
+        FROM monthly_unit_fault_trend
+        GROUP BY 1;
+    - description: monthly faults by predicted-failure flag (REST API)
+      format: rest
+      query: |
+        {
+          "measures": ["monthly_unit_fault_trend.measure"],
+          "dimensions": ["monthly_unit_fault_trend.predicted_failure_flag"],
+          "timeDimensions": [
+            {
+              "dimension": "monthly_unit_fault_trend.ts",
+              "granularity": "month"
+            }
+          ]
+        }
+    - description: faults by branch office and predicted-failure flag per month (GraphQL API)
+      format: graphql
+      query: |
+        {
+          vulcan {
+            monthly_unit_fault_trend {
+              gbo
+              predicted_failure_flag
+              measure
+              ts {
+                month
+              }
+            }
+          }
+        }
+
+dimensions:
+  - name: GBO
+    ref: OTIS_ONE_UNIT_HEALTH.GBO
+    description: Global branch office associated with the unit telemetry snapshot.
+    ai_context:
+      instructions: Use gbo to compare unit faults across branch offices.
+      synonyms:
+        - branch office
+        - global branch office
+      examples:
+        - description: monthly faults by branch office (SQL API)
+          format: sql
+          query: |
+            SELECT
+              gbo,
+              MEASURE(measure)
+            FROM monthly_unit_fault_trend
+            GROUP BY 1;
+  - name: PREDICTED_FAILURE_FLAG
+    ref: OTIS_ONE_UNIT_HEALTH.PREDICTED_FAILURE_FLAG
+    description: Predicted-failure flag (Y/N) for segmenting fault volume by predictive-maintenance risk.
+    ai_context:
+      instructions: Primary predicted-failure breakdown on monthly_unit_fault_trend.
+      caveats:
+        - Use as a categorical Y/N reliability-risk segment.
+      synonyms:
+        - failure flag
+        - predicted failure
+        - pm risk flag
+      examples:
+        - description: monthly faults by predicted-failure flag (SQL API)
+          format: sql
+          query: |
+            SELECT
+              predicted_failure_flag,
+              MEASURE(measure)
+            FROM monthly_unit_fault_trend
+            GROUP BY 1;
+
+tags:
+  - iot
+  - reliability
+  - faults
+  - trend
+  - metric
+terms:
+  - iot.monthly_unit_fault_trend
+  - reliability.unit_faults

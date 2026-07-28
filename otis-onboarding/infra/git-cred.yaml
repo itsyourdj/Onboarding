@@ -1,0 +1,16 @@
+name: onboarding-repo-access
+version: v2alpha
+type: secret
+tags:
+  - dataos:type:resource
+  - dataos:type:tenant-resource
+  - dataos:resource:secret
+  - dataos:tenant:ct-onboarding
+description: Secret for git-sync authentication (Bitbucket)
+owner: deepakjaiswaltmdcio
+tenant: ct-sandbox
+spec:
+  type: key-value
+  data:
+    GITSYNC_PASSWORD: ""
+    GITSYNC_USERNAME: "itsyourdj"

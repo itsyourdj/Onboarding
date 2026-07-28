@@ -1,0 +1,50 @@
+kind: semantic
+name: CALLBACKS
+depends_on: SSD_NAA_PROD.RL_AMERICA.FLAT_CALLBACK_EVENT
+description: Reactive service visits triggered when a unit faults or is reported not working (as opposed to planned preventive maintenance).
+measures:
+- name: ENTRAPMENT_CALLBACKS
+  type: sum
+  expression: CASE WHEN {CALLBACKS.TRAPPED_PASSENGER_FLAG} = 'Y' THEN 1 ELSE 0 END
+  description: Callbacks involving a trapped passenger
+- name: FIRST_TIME_FIX_RATE_PCT
+  type: number
+  expression: ROUND(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} = 'Y' THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} IN ('Y', 'N') THEN 1 ELSE 0 END), 0), 1)
+  description: Percent of callbacks fixed on first visit
+- name: OUT_OF_SERVICE_CALLBACKS
+  type: sum
+  expression: CASE WHEN {CALLBACKS.OUT_OF_SERVICE_FLAG} = 'Y' THEN 1 ELSE 0 END
+  description: Callbacks where the unit was out of service
+- name: TOTAL_CALLBACKS
+  type: count
+  expression: '{CALLBACKS.CALLBACKID}'
+  description: Count of callback events
+dimensions:
+- name: CALLBACKID
+  description: Unique callback event identifier.
+  behavior:
+    type: identifier
+- name: CALLBACK_DATE
+  description: Calendar date of the callback.
+- name: CALLBACK_TYPE
+  description: Callback category/type.
+- name: CONTRACT_ID
+  description: Contract associated with the callback.
+- name: CUSTOMER_ID
+  description: Customer associated with the callback.
+- name: FTFR_FLAG
+  description: First-time-fix-resolved flag (Y/N).
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: OUT_OF_SERVICE_FLAG
+  description: Unit-out-of-service flag (Y/N).
+- name: PRODUCTCLASS
+  description: Product class of the unit at time of callback.
+- name: TCB_FLAG
+  description: Trouble-callback flag (Y/N).
+- name: TRAPPED_PASSENGER_FLAG
+  description: Entrapment / trapped-passenger flag (Y/N).
+- name: UNIT_ID
+  description: Unit that generated the callback (FK to UNITS).
+- name: CALLBACK_DATE_TIME
+  description: Timestamp the callback was logged.

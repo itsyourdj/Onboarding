@@ -1,0 +1,28 @@
+good_for:
+  - title: Standardized service analytics reporting
+    details: Use for baseline portfolio reporting across units, buildings, customers, contracts, and service operations with stable model definitions.
+  - title: Core reliability and field-performance analysis
+    details: Use callbacks, open orders, mechanic notes, and workforce mapping to investigate repeat issues and technician execution trends.
+  - title: Compliance and maintenance visibility
+    details: Use maintenance procedures, MCP compliance, and contract compliance to monitor planned vs completed service activity.
+not_for:
+  - title: Advanced derived KPI trend packs
+    details: Not intended for pre-modeled monthly trend KPI outputs; use the enhanced semantic approach when trend-ready metrics are required.
+  - title: Real-time dispatch and live operations control
+    details: Not intended for minute-level dispatch decisions or live SLA operations because the product is designed for curated analytics.
+caveats:
+  - title: MDM masters are canonical for core entities
+    severity: low
+    details: Customer, contract, building, and unit master datasets are treated as golden sources and flow directly from MDM-aligned production domains.
+  - title: Transformations cast raw VARCHAR-heavy staging data
+    severity: low
+    details: Source staging inputs arrive with broad string typing, so this workflow applies explicit type casting and cleanup before publishing analytical tables.
+  - title: Referential issues may surface in core outputs
+    severity: medium
+    details: Orphan-key and upstream relationship inconsistencies are surfaced for transparency and may appear until corrected upstream.
+  - title: Fact joins should route through model hierarchy
+    severity: low
+    details: Unit-grain facts should join via units and building paths to customers; bypassing documented join paths can introduce ambiguous or duplicated results.
+  - title: Incremental loads use batch and load timestamps
+    severity: low
+    details: Datasets include batch_id and load_ts metadata and are refreshed on scheduled increments, so consumers should account for load cadence in freshness expectations.

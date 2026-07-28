@@ -1,0 +1,61 @@
+kind: semantic
+name: CONTRACTS
+depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER
+description: Golden service-contract master.
+measures:
+- name: ACTIVE_CONTRACT_COUNT
+  type: sum
+  expression: CASE WHEN {CONTRACTS.ISACTIVE} THEN 1 ELSE 0 END
+  description: Number of active contracts
+- name: AVG_CONTRACT_VALUE
+  type: avg
+  expression: '{CONTRACTS.CONTRACTVALUE}'
+  description: Average contract value
+- name: CONTRACT_COUNT
+  type: count
+  expression: '{CONTRACTS.CONTRACT_ID}'
+  description: Number of contracts
+- name: TOTAL_CONTRACT_VALUE
+  type: sum
+  expression: '{CONTRACTS.CONTRACTVALUE}'
+  description: Sum of contract value
+- name: TOTAL_GROSS_MONTHLY_BILLING
+  type: sum
+  expression: '{CONTRACTS.GROSSMONTHLYBILLING}'
+  description: Sum of gross monthly billing
+- name: TOTAL_NET_MONTHLY_BILLING
+  type: sum
+  expression: '{CONTRACTS.NETMONTHLYBILLING}'
+  description: Sum of net monthly billing
+joins:
+- name: AR_OPENAR
+  type: one_to_many
+  expression: '{CONTRACTS.CONTRACT_ID} = {AR_OPENAR.CONTRACT_ID}'
+- name: UNITS
+  type: one_to_many
+  expression: '{CONTRACTS.CONTRACT_ID} = {UNITS.CONTRACT_ID}'
+dimensions:
+- name: BUILDING_ID
+  description: Building covered by the contract (FK to BUILDINGS).
+- name: CONTRACTSTATUS
+  description: Raw contract status text from source.
+- name: CONTRACTTYPE
+  description: Contract type (full-service / parts-only / ...).
+- name: CONTRACT_ID
+  description: Surrogate service-contract key.
+  behavior:
+    type: identifier
+- name: CUSTOMER_ID
+  description: Customer holding the contract (FK to CUSTOMERS).
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: ISACTIVE
+  description: Boolean active flag derived from contract status.
+- name: SERVICETYPE
+  description: Service level/type on the contract.
+- name: CONTRACTVALUE
+  description: Total contract value in billing currency.
+- name: GROSSMONTHLYBILLING
+  description: Gross monthly billing amount.
+- name: NETMONTHLYBILLING
+  description: Net monthly billing amount after adjustments.

@@ -1,0 +1,46 @@
+kind: semantic
+name: OTIS_ONE_UNIT_HEALTH
+depends_on: NAABO_PROD.REPORTING.OTISONEOXP
+description: Otis ONE IoT telemetry snapshots.
+measures:
+- name: AVG_HEALTH_SCORE
+  type: avg
+  expression: '{OTIS_ONE_UNIT_HEALTH.HEALTH_SCORE}'
+  description: Average IoT health score
+- name: PREDICTED_FAILURES
+  type: sum
+  expression: CASE WHEN {OTIS_ONE_UNIT_HEALTH.PREDICTED_FAILURE_FLAG} = 'Y' THEN 1 ELSE 0 END
+  description: Snapshots flagged for predicted failure
+- name: TOTAL_ALARMS
+  type: sum
+  expression: '{OTIS_ONE_UNIT_HEALTH.ALARM_COUNT}'
+  description: Sum of alarms raised
+- name: TOTAL_DOOR_FAULTS
+  type: sum
+  expression: '{OTIS_ONE_UNIT_HEALTH.DOOR_FAULTS}'
+  description: Sum of door faults
+- name: TOTAL_FAULTS
+  type: sum
+  expression: '{OTIS_ONE_UNIT_HEALTH.FAULT_COUNT}'
+  description: Sum of fault counts
+dimensions:
+- name: CONNECTIVITY_STATUS
+  description: Device connectivity status at snapshot time.
+- name: GBO
+  description: Global business organization / branch grouping.
+- name: PREDICTED_FAILURE_FLAG
+  description: Predicted-failure flag from the IoT model (Y/N).
+- name: UNIT_ID
+  description: Unit the telemetry snapshot is for (FK to UNITS).
+- name: SNAPSHOT_DATE
+  description: Timestamp of the telemetry snapshot (cast to TIMESTAMP_NTZ at source).
+- name: ALARM_COUNT
+  description: Alarms raised in the snapshot window.
+- name: DOOR_FAULTS
+  description: Door-related faults in the snapshot window.
+- name: FAULT_COUNT
+  description: Total faults recorded in the snapshot window.
+- name: HEALTH_SCORE
+  description: IoT-derived unit health score 0-1 at snapshot.
+- name: RUN_HOURS
+  description: Cumulative run hours at snapshot.

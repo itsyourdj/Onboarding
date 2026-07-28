@@ -1,0 +1,57 @@
+vde: false
+name: service-analytics-semantic-core
+display_name: Service Analytics Semantic (Core)
+description: Core semantic data product for OTIS service analytics focused on standardized portfolio, reliability, and compliance reporting.
+discoverable: true
+version: 0.0.1
+alignment: consumer_aligned
+domain: service
+tags:
+  - Snowflake
+  - Service_Analytics
+  - Semantic_Core
+terms:
+  - glossary.data_product
+  - glossary.service
+  - glossary.service_analytics
+  - glossary.semantic_model
+
+gateways:
+  default:
+    connection:
+      type: depot
+      address: dataos://analyticsprod?purpose=rw
+
+default_gateway: default
+
+model_defaults:
+  dialect: "snowflake"
+  start: "2020-01-01"
+  cron: "*/30 * * * *"
+
+notification_targets:
+  - type: teams_webhook
+    url: "https://default2e22bdde3ec243f5bf9278e9f35a44.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/22/workflows/a88e39da590d45d1aa6e81e1065c4bc6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=ibNbTg8uogoRKZ41JOqgCgZQF4jjxOlX1edGhzj6DVw"
+    notifyOn:
+      - apply_start
+      - apply_end
+      - apply_failure
+      - run_start
+      - run_end
+      - run_failure
+      - audit_failure
+      - check_start
+      - check_end
+      - check_failure
+      - migration_start
+      - migration_end
+      - migration_failure
+      - plan_change
+
+users:
+  - username: manishagrawaltmdcio
+    email: manish.agrawal@tmdc.io
+    type: OWNER
+  - username: deepakjaiswaltmdcio
+    email: deepak.jaiswal@tmdc.io
+    type: DEVELOPER

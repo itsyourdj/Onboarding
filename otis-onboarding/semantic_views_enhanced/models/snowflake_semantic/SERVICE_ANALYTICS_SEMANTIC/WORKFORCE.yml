@@ -1,0 +1,67 @@
+kind: semantic
+name: WORKFORCE
+depends_on: JDE_PRODUCTION.RL_JDE.WORKDAY
+description: Workday HR worker master.
+measures:
+- name: WORKER_COUNT
+  type: count
+  expression: '{WORKFORCE.WORKER_ID}'
+  description: Number of workers
+  ai_context:
+    instructions: HR population measure for workforce planning views.
+    caveats:
+      - Includes all worker records in scope, not just field technicians.
+    synonyms:
+      - employee count
+      - worker volume
+dimensions:
+- name: DEPARTMENT
+  description: Worker department.
+  ai_context:
+    instructions: Use to segment staffing across functional departments.
+    synonyms:
+      - function
+      - department name
+- name: EMPLOYEE_TYPE
+  description: Employment type (full-time / contractor / ...).
+  ai_context:
+    instructions: Use to split permanent versus contingent workforce.
+    synonyms:
+      - worker type
+      - employment category
+- name: JOB_FAMILY
+  description: Job family grouping.
+- name: LOCATION_COUNTRY
+  description: Worker's work-location country.
+  ai_context:
+    instructions: Use for country-level workforce analysis.
+    synonyms:
+      - country
+      - work country
+- name: MANAGEMENT_LEVEL
+  description: Management level/grade.
+  ai_context:
+    instructions: Use to analyze workforce seniority mix.
+    synonyms:
+      - grade
+      - management tier
+- name: SUPERVISOR_EMAIL
+  description: Email address of the worker's supervisor. PII - handle per data classification.
+- name: SUPERVISOR_NAME
+  description: Full name of the worker's supervisor. PII - handle per data classification.
+- name: TECHNICIAN_ID
+  description: Linked technician key (FK to TECHNICIANS).
+  ai_context:
+    instructions: Key link between HR and technician service models.
+    synonyms:
+      - technician id
+      - mechanic id
+- name: WORKER_ID
+  description: Workday worker identifier.
+  ai_context:
+    instructions: Unique worker key for HR record-level analysis.
+    synonyms:
+      - employee id
+      - worker key
+- name: WORK_EMAIL
+  description: Worker's work email address. PII - handle per data classification.

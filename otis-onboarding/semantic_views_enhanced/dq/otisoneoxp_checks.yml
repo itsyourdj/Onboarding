@@ -1,0 +1,151 @@
+kind: dq
+name: otisoneoxp_checks
+depends_on: NAABO_PROD.REPORTING.OTISONEOXP
+profiles:
+  - UNIT_ID
+  - UNIT_EID
+  - CONTRACT_ID
+  - CUSTOMER_ID
+  - UNITID
+  - DOOR_CYCLES
+  - RUN_HOURS
+  - FAULT_COUNT
+  - DOOR_FAULTS
+  - ALARM_COUNT
+  - TEMP_C
+  - VIBRATION_MM_S
+  - HEALTH_SCORE
+  - BATCH_ID
+
+rules:
+  # Completeness check
+  - missing_count(UNIT_ID) = 0:
+      name: unit_id_required
+      dimension: completeness
+      description: UNIT_ID must be present on every telemetry snapshot
+
+  # Uniqueness check
+  - duplicate_count(UNIT_ID, SNAPSHOT_DATE) = 0:
+      name: unit_snapshot_unique
+      dimension: uniqueness
+      description: One row per unit per snapshot (UNIT_ID, SNAPSHOT_DATE grain)
+
+  # Validity check
+  - failed rows:
+      name: health_score_in_range
+      dimension: validity
+      description: HEALTH_SCORE must be within 0..1 when populated
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE, HEALTH_SCORE
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE HEALTH_SCORE IS NOT NULL
+          AND (HEALTH_SCORE < 0 OR HEALTH_SCORE > 1)
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: telemetry_counts_non_negative
+      dimension: validity
+      description: Usage, fault and alarm counters cannot be negative
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE, DOOR_CYCLES, RUN_HOURS, FAULT_COUNT, DOOR_FAULTS, ALARM_COUNT
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE DOOR_CYCLES < 0
+           OR RUN_HOURS < 0
+           OR FAULT_COUNT < 0
+           OR DOOR_FAULTS < 0
+           OR ALARM_COUNT < 0
+      samples limit: 20
+
+  # Validity check
+  - failed rows:
+      name: door_faults_within_faults
+      dimension: validity
+      description: DOOR_FAULTS cannot exceed total FAULT_COUNT
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE, DOOR_FAULTS, FAULT_COUNT
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE DOOR_FAULTS IS NOT NULL
+          AND FAULT_COUNT IS NOT NULL
+          AND DOOR_FAULTS > FAULT_COUNT
+      samples limit: 20
+
+  # Accuracy: telemetry snapshots cannot be dated in the future.
+  - failed rows:
+      name: snapshot_date_not_future
+      dimension: accuracy
+      description: SNAPSHOT_DATE cannot be in the future
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE SNAPSHOT_DATE IS NOT NULL
+          AND SNAPSHOT_DATE > CURRENT_DATE
+      samples limit: 20
+
+  # Consistency: a predicted-failure flag should coincide with a degraded health score.
+  - failed rows:
+      name: predicted_failure_consistent_with_health
+      dimension: consistency
+      description: A predicted failure (PREDICTED_FAILURE_FLAG = Y) should not carry a healthy HEALTH_SCORE (> 0.8)
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE, PREDICTED_FAILURE_FLAG, HEALTH_SCORE
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE PREDICTED_FAILURE_FLAG IS NOT NULL
+          AND UPPER(PREDICTED_FAILURE_FLAG) = 'Y'
+          AND HEALTH_SCORE IS NOT NULL
+          AND HEALTH_SCORE > 0.8
+      samples limit: 20
+
+  # Integrity: surrogate foreign keys must resolve to the MDM masters.
+  - failed rows:
+      name: unit_id_referential_integrity
+      dimension: consistency
+      description: Every non-null UNIT_ID must exist in the unit master (no orphan units)
+      fail query: |
+        SELECT f.UNIT_ID, f.SNAPSHOT_DATE
+        FROM NAABO_PROD.REPORTING.OTISONEOXP f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_UNIT_MASTER m
+          ON f.UNIT_ID = m.UNIT_ID
+        WHERE f.UNIT_ID IS NOT NULL
+          AND m.UNIT_ID IS NULL
+      samples limit: 20
+
+  # Integrity check
+  - failed rows:
+      name: contract_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CONTRACT_ID must exist in the contract master (no orphan contracts)
+      fail query: |
+        SELECT f.UNIT_ID, f.SNAPSHOT_DATE, f.CONTRACT_ID
+        FROM NAABO_PROD.REPORTING.OTISONEOXP f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER m
+          ON f.CONTRACT_ID = m.CONTRACT_ID
+        WHERE f.CONTRACT_ID IS NOT NULL
+          AND m.CONTRACT_ID IS NULL
+      samples limit: 20
+
+  # Integrity check
+  - failed rows:
+      name: customer_id_referential_integrity
+      dimension: consistency
+      description: Every non-null CUSTOMER_ID must exist in the customer master (no orphan customers)
+      fail query: |
+        SELECT f.UNIT_ID, f.SNAPSHOT_DATE, f.CUSTOMER_ID
+        FROM NAABO_PROD.REPORTING.OTISONEOXP f
+        LEFT JOIN MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER m
+          ON f.CUSTOMER_ID = m.CUSTOMER_ID
+        WHERE f.CUSTOMER_ID IS NOT NULL
+          AND m.CUSTOMER_ID IS NULL
+      samples limit: 20
+
+  # Timeliness: the load watermark should never be in the future.
+  - failed rows:
+      name: load_ts_not_in_future
+      dimension: timeliness
+      description: LOAD_TS cannot be later than the current date
+      fail query: |
+        SELECT UNIT_ID, SNAPSHOT_DATE, LOAD_TS
+        FROM NAABO_PROD.REPORTING.OTISONEOXP
+        WHERE LOAD_TS IS NOT NULL
+          AND LOAD_TS > CURRENT_DATE
+      samples limit: 20

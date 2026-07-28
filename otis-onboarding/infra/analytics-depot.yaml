@@ -1,0 +1,17 @@
+name: analyticsprod
+version: v2alpha
+type: depot
+tags:
+  - Snowflake
+  - ANALYTICS_PROD
+description: Connects the Snowflake ANALYTICS_PROD database to DataOS for downstream data processing.
+spec:
+  type: snowflake
+  spec:
+    database: "ANALYTICS_PROD"
+    url: "BKSFOCJ-MM27667.snowflakecomputing.com"
+    warehouse: "SNOWFLAKE_LEARNING_WH"
+    account: "BKSFOCJ-MM27667"
+  secrets:
+    - id: "otis-onboarding:analytics-prod-cred"
+      purpose: rw

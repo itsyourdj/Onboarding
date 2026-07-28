@@ -1,0 +1,19 @@
+name: mdmnaaprod
+version: v2alpha
+type: depot
+tags:
+  - dataos:type:snowflake-resource
+  - dataos:type:tenant-resource
+  - dataos:resource:depot 
+  - dataos:resource:mdmnaaprod
+description: Connects the Snowflake MDM_NAA_PROD database to DataOS for downstream data processing.
+spec:
+  type: snowflake
+  spec:
+    database: "MDM_NAA_PROD"
+    url: "BKSFOCJ-MM27667.snowflakecomputing.com"
+    warehouse: "SNOWFLAKE_LEARNING_WH"
+    account: "BKSFOCJ-MM27667"
+  secrets:
+    - id: "otis-onboarding:analytics-prod-cred"
+      purpose: rw

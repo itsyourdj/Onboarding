@@ -1,0 +1,26 @@
+name: mdmnaaprod-metadata
+version: v1alpha
+type: nilus
+tags:
+  - nilus
+  - mdmnaaprod-metadata
+description: Catalog Snowflake metadata, schema, lineage, and query usage
+spec:
+  type: metadata
+  mode: deep
+  compute: otis-compute
+  logLevel: INFO
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+  # schedule:
+  #   crons:
+  #     - "0 */6 * * *"
+    # concurrencyPolicy: Forbid
+  source:
+    address: dataos://mdmnaaprod?purpose=rw
+    options:
+      service_type: snowflake
+      query_log_duration: 10
+    

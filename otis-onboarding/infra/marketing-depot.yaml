@@ -1,0 +1,19 @@
+name: marketingdashboard
+version: v2alpha
+type: depot
+tags:
+  - dataos:type:snowflake-resource
+  - dataos:type:tenant-resource
+  - dataos:resource:depot 
+  - MARKETING_DASHBOARD
+description: Connects the Snowflake MARKETING_DASHBOARD database to DataOS for downstream data processing.
+spec:
+  type: snowflake
+  spec:
+    database: "MARKETING_DASHBOARD"
+    url: "BKSFOCJ-MM27667.snowflakecomputing.com"
+    warehouse: "SNOWFLAKE_LEARNING_WH"
+    account: "BKSFOCJ-MM27667"
+  secrets:
+    - id: "otis-onboarding:analytics-prod-cred"
+      purpose: rw

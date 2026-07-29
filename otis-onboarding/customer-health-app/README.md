@@ -91,6 +91,68 @@ The Docker image does **not** hardcode semantic credentials. Provide
 `SEMANTIC_API_URL` and `SEMANTIC_API_TOKEN` at runtime from your deployment
 manifest (for example `container.yaml` envs/secret injection).
 
+### Build and push for Linux (DataOS/K8s)
+
+If you build from Apple Silicon (M1/M2/M3) without setting platform, you may
+push an ARM-only image, which can fail on AMD64 clusters with
+`ImagePullBackOff`.
+
+Build and push an AMD64 image explicitly:
+
+```bash
+docker buildx build \
+  --platform linux/amd64 \
+  --no-cache \
+  -t deepak2407/customer-health-app:0.0.2 \
+  --push .
+```
+
+Verify architecture:
+
+```bash
+docker buildx imagetools inspect deepak2407/customer-health-app:0.0.2
+```
+
+Expected platform includes `linux/amd64`.
+
+## DataOS deployment
+
+1. Apply image-pull secret first (for private Docker Hub images):
+
+```bash
+ds2 rs apply -f docker_secrets.yaml
+```
+
+2. Set image tag in `container.yaml`:
+   - `image: deepak2407/customer-health-app:0.0.2`
+
+3. Ensure runtime envs are injected via `container.yaml` (or secret refs):
+   - `SEMANTIC_API_URL`
+   - `SEMANTIC_API_TOKEN`
+   - `DATA_SOURCE=semantic`
+
+4. Apply app:
+
+```bash
+ds2 rs apply -f container.yaml
+```
+
+### Troubleshooting `ImagePullBackOff`
+
+- Tag not found: verify image/tag exists on Docker Hub.
+- Wrong architecture: ensure image has `linux/amd64`.
+- Secret mismatch: `imagePullSecret` in `container.yaml` must match secret name.
+- Secret missing/invalid: re-apply `docker_secrets.yaml` with valid credentials/token.
+- Private repo access denied: confirm Docker Hub user/token has pull access.
+
+## Security hygiene
+
+- Do not commit real credentials/tokens in `container.yaml`, `.env`, or
+  `docker_secrets.yaml`.
+- Keep local secrets in untracked files only; use platform secret injection for
+  deployed environments.
+- Rotate Docker Hub/DataOS tokens immediately if they were ever committed.
+
 ## Semantic mode notes
 
 1. Set `DATA_SOURCE=semantic`, `SEMANTIC_API_URL`, and `SEMANTIC_API_TOKEN` in `backend/.env`.

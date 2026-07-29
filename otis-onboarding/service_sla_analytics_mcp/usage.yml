@@ -1,6 +1,8 @@
 good_for:
   - title: Service callback / incident volume and quality trending
     details: Track callback volume, trouble-callback rate, entrapment rate, out-of-service rate, and first-time-fix rate over time by region, product class, and branch.
+  - title: True-timestamp precision on callback trend metrics
+    details: "Added 2026-07-29: callback_volume_trend, trouble_callback_rate_trend, entrapment_rate_trend, response_time_trend, and resolution_time_trend now use CALLBACK_DATE_TIME (a real TIMESTAMP column with time-of-day precision) as their ts, instead of CALLBACK_DATE (a date-only column). Supports finer-grained/intraday time-series analysis, not just calendar-day rollups."
   - title: Real SLA response-time and resolution-time reporting
     details: "Added 2026-07-29: gold_callback_facts carries real dispatch/arrival/close timestamps (avg_response_time_hours, avg_resolution_time_hours). Live averages ~2.8h response, ~7.0h resolution, ~89-100% populated."
   - title: Per-technician callback attribution

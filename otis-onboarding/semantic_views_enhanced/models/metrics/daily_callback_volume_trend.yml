@@ -1,0 +1,107 @@
+# Added (2026-07-29): parity metric for the service_sla_analytics_mcp use case.
+# ts uses CALLBACK_DATE_TIME — a true TIMESTAMP column with real time-of-day
+# precision — instead of CALLBACK_DATE (a date-only field), so this trend
+# supports intraday/hourly analysis as well as daily rollups.
+kind: metric
+name: DAILY_CALLBACK_VOLUME_TREND
+measure: CALLBACKS.TOTAL_CALLBACKS
+ts: CALLBACKS.CALLBACK_DATE_TIME
+granularity: day
+description: Daily trend of reactive service callback volume by product class and branch office, using the real callback timestamp for time-series precision.
+
+ai_context:
+  instructions: >
+    Callback/incident volume over the true callback timestamp (not just
+    calendar date). Query daily_callback_volume_trend directly:
+    measure is total callbacks from callbacks,
+    ts is the callback timestamp at day grain,
+    slice by productclass or gbo for reliability and branch-level views.
+    Query via SQL, REST, or GraphQL APIs.
+  synonyms:
+    - callback volume trend
+    - daily callbacks
+    - incident volume trend
+    - service call trend
+  examples:
+    - description: callback volume by branch office day over day (SQL API)
+      format: sql
+      query: |
+        SELECT
+          gbo,
+          MEASURE(measure)
+        FROM daily_callback_volume_trend
+        GROUP BY 1;
+    - description: daily callback volume by product class (REST API)
+      format: rest
+      query: |
+        {
+          "measures": ["daily_callback_volume_trend.measure"],
+          "dimensions": ["daily_callback_volume_trend.productclass"],
+          "timeDimensions": [
+            {
+              "dimension": "daily_callback_volume_trend.ts",
+              "granularity": "day"
+            }
+          ]
+        }
+    - description: callback volume by product class and branch office per day (GraphQL API)
+      format: graphql
+      query: |
+        {
+          vulcan {
+            daily_callback_volume_trend {
+              productclass
+              gbo
+              measure
+              ts {
+                day
+              }
+            }
+          }
+        }
+
+dimensions:
+  - name: PRODUCTCLASS
+    ref: CALLBACKS.PRODUCTCLASS
+    description: Product class of the unit at time of callback.
+    ai_context:
+      instructions: Use to compare callback volume across equipment classes.
+      synonyms:
+        - product class
+        - equipment type
+      examples:
+        - description: daily callback volume by product class (SQL API)
+          format: sql
+          query: |
+            SELECT
+              productclass,
+              MEASURE(measure)
+            FROM daily_callback_volume_trend
+            GROUP BY 1;
+  - name: GBO
+    ref: CALLBACKS.GBO
+    description: Global business organization / branch grouping associated with the callback.
+    ai_context:
+      instructions: Use gbo to compare callback volume across branch offices.
+      synonyms:
+        - branch office
+        - global branch office
+      examples:
+        - description: daily callback volume by branch office (SQL API)
+          format: sql
+          query: |
+            SELECT
+              gbo,
+              MEASURE(measure)
+            FROM daily_callback_volume_trend
+            GROUP BY 1;
+
+tags:
+  - service
+  - callbacks
+  - reliability
+  - trend
+  - metric
+terms:
+  - service.daily_callback_volume_trend
+  - service.callback_volume

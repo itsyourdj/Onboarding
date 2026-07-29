@@ -1,8 +1,11 @@
 # Source: build follow-up (2026-07-29) — real SLA resolution-time measure discovered
+# ts UPDATED (2026-07-29): now points to CALLBACK_DATE_TIME, a true TIMESTAMP
+# column with real time-of-day precision, instead of CALLBACK_DATE (a DATE
+# column only cast to TIMESTAMP with no time component).
 kind: metric
 name: resolution_time_trend
 measure: callbacks.avg_resolution_time_hours
-ts: callbacks.CALLBACK_DATE
+ts: callbacks.CALLBACK_DATE_TIME
 granularity: day
 
 dimensions:

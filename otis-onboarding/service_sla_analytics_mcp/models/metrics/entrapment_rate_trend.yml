@@ -1,8 +1,11 @@
 # Source: design spec > Section 7 (entrapment_rate_trend)
+# ts UPDATED (2026-07-29): now points to CALLBACK_DATE_TIME, a true TIMESTAMP
+# column with real time-of-day precision, instead of CALLBACK_DATE (a DATE
+# column only cast to TIMESTAMP with no time component).
 kind: metric
 name: entrapment_rate_trend
 measure: callbacks.entrapment_rate
-ts: callbacks.CALLBACK_DATE
+ts: callbacks.CALLBACK_DATE_TIME
 granularity: day
 
 dimensions:

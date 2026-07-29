@@ -15,7 +15,7 @@ spec:
     syncFlags:
       - "--ref=main"
       - "--submodules=off"
-    baseDir: Onboarding/otis-onboarding/service_sla_analytics_mc
+    baseDir: Onboarding/otis-onboarding/service_sla_analytics_mcp
     secretId: otis-onboarding:onboarding-repo-access
   depots:
     - dataos://analyticsprod?purpose=rw

@@ -3,55 +3,55 @@ name: MAINTENANCE_PROCEDURES
 depends_on: SSD_NAA_PROD.RL_AMERICA.FLAT_MAINTENANCE_EVENT
 description: Preventive-maintenance procedure events.
 measures:
-- name: TOTAL_PROCEDURES
-  type: count
-  description: Count of maintenance procedures
-  ai_context:
-    instructions: Core workload measure for preventive maintenance events.
-    synonyms:
-      - PM procedures
-      - maintenance event count
-- name: TOTAL_WORK_HOURS
-  type: sum
-  expression: '{MAINTENANCE_PROCEDURES.WORKTIME}'
-  description: Sum of logged work hours
-  ai_context:
-    instructions: Use to quantify maintenance labor effort.
-    caveats:
-      - Reflects logged hours and may not equal payroll hours.
-    synonyms:
-      - labor hours
-      - maintenance work hours
+  - name: TOTAL_PROCEDURES
+    type: count
+    description: Count of maintenance procedures
+    ai_context:
+      instructions: Core workload measure for preventive maintenance events.
+      synonyms:
+        - PM procedures
+        - maintenance event count
+  - name: TOTAL_WORK_HOURS
+    type: sum
+    expression: '{MAINTENANCE_PROCEDURES.WORKTIME}'
+    description: Sum of logged work hours
+    ai_context:
+      instructions: Use to quantify maintenance labor effort.
+      caveats:
+        - Reflects logged hours and may not equal payroll hours.
+      synonyms:
+        - labor hours
+        - maintenance work hours
 dimensions:
-- name: GBO
-  description: Global business organization / branch grouping.
-- name: PROCEDURENUMBER
-  description: Preventive-maintenance procedure number.
-  ai_context:
-    instructions: Use to analyze activity by PM procedure code.
-    synonyms:
-      - procedure code
-      - PM number
-- name: SCHEDULETASKSTATUS
-  description: Scheduled task status (completed / missed / ...).
-  ai_context:
-    instructions: Use for completion and missed-task monitoring.
-    synonyms:
-      - task status
-      - schedule status
-- name: UNIT_ID
-  description: Unit the procedure was performed on (FK to UNITS).
-  ai_context:
-    instructions: Use for unit-level preventive maintenance history.
-    synonyms:
-      - unit
-      - equipment id
-- name: WORKTIME
-  description: Logged work time in hours for the procedure.
-  ai_context:
-    instructions: Base labor-hour field used in effort calculations.
-    caveats:
-      - Not a duration between timestamps; it is an entered hour value.
-    synonyms:
-      - work hours
-      - time spent
+  - name: GBO
+    description: Global business organization / branch grouping.
+  - name: PROCEDURENUMBER
+    description: Preventive-maintenance procedure number.
+    ai_context:
+      instructions: Use to analyze activity by PM procedure code.
+      synonyms:
+        - procedure code
+        - PM number
+  - name: SCHEDULETASKSTATUS
+    description: Scheduled task status (completed / missed / ...).
+    ai_context:
+      instructions: Use for completion and missed-task monitoring.
+      synonyms:
+        - task status
+        - schedule status
+  - name: UNIT_ID
+    description: Unit the procedure was performed on (FK to UNITS).
+    ai_context:
+      instructions: Use for unit-level preventive maintenance history.
+      synonyms:
+        - unit
+        - equipment id
+  - name: WORKTIME
+    description: Logged work time in hours for the procedure.
+    ai_context:
+      instructions: Base labor-hour field used in effort calculations.
+      caveats:
+        - Not a duration between timestamps; it is an entered hour value.
+      synonyms:
+        - work hours
+        - time spent

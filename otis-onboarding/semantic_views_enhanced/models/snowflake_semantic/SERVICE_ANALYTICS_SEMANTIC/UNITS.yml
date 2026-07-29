@@ -89,6 +89,13 @@ dimensions:
       synonyms:
         - health score
         - reliability score
+  - name: INSTALLATION_DATE
+    description: "Date the unit was originally installed (added 2026-07-29)."
+    ai_context:
+      instructions: Use to compute equipment age and identify aging installed base.
+      synonyms:
+        - install date
+        - installed on
 measures:
   - name: AVG_UNIT_HEALTH
     type: avg

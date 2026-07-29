@@ -3,56 +3,56 @@ name: BUILDINGS
 depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_BUILDING_MASTER
 description: Golden building/site master.
 measures:
-- name: BUILDING_COUNT
-  type: count
-  expression: '{BUILDINGS.BUILDING_ID}'
-  description: Number of buildings
-  ai_context:
-    instructions: Installed-site count for portfolio footprint reporting.
-    synonyms:
-      - site count
-      - building volume
+  - name: BUILDING_COUNT
+    type: count
+    expression: '{BUILDINGS.BUILDING_ID}'
+    description: Number of buildings
+    ai_context:
+      instructions: Installed-site count for portfolio footprint reporting.
+      synonyms:
+        - site count
+        - building volume
 joins:
-- name: UNITS
-  type: one_to_many
-  expression: '{BUILDINGS.BUILDING_ID} = {UNITS.BUILDING_ID}'
+  - name: UNITS
+    type: one_to_many
+    expression: '{BUILDINGS.BUILDING_ID} = {UNITS.BUILDING_ID}'
 dimensions:
-- name: BLDG_CITY
-  description: Building city (trimmed).
-  ai_context:
-    instructions: Use for city-level geographic service analysis.
-    synonyms:
-      - city
-      - location city
-- name: BUILDING_ID
-  description: Surrogate building/site key.
-  behavior:
-    type: identifier
-  ai_context:
-    instructions: Primary site identifier for joins and aggregation.
-    synonyms:
-      - site id
-      - building key
-- name: BUILDING_NAME
-  description: Building/site name.
-- name: CUSTOMER_ID
-  description: Owning customer surrogate key (FK to CUSTOMERS).
-  ai_context:
-    instructions: Use for customer-level site ownership analysis.
-    synonyms:
-      - customer
-      - account
-- name: GBO
-  description: Global business organization / branch grouping.
-  ai_context:
-    instructions: Use for branch-level site distribution.
-    synonyms:
-      - branch
-      - business unit
-- name: REGION_DESC
-  description: Region description for the site.
-  ai_context:
-    instructions: Geographic region dimension for service coverage rollups.
-    synonyms:
-      - region
-      - area
+  - name: BLDG_CITY
+    description: Building city (trimmed).
+    ai_context:
+      instructions: Use for city-level geographic service analysis.
+      synonyms:
+        - city
+        - location city
+  - name: BUILDING_ID
+    description: Surrogate building/site key.
+    behavior:
+      type: identifier
+    ai_context:
+      instructions: Primary site identifier for joins and aggregation.
+      synonyms:
+        - site id
+        - building key
+  - name: BUILDING_NAME
+    description: Building/site name.
+  - name: CUSTOMER_ID
+    description: Owning customer surrogate key (FK to CUSTOMERS).
+    ai_context:
+      instructions: Use for customer-level site ownership analysis.
+      synonyms:
+        - customer
+        - account
+  - name: GBO
+    description: Global business organization / branch grouping.
+    ai_context:
+      instructions: Use for branch-level site distribution.
+      synonyms:
+        - branch
+        - business unit
+  - name: REGION_DESC
+    description: Region description for the site.
+    ai_context:
+      instructions: Geographic region dimension for service coverage rollups.
+      synonyms:
+        - region
+        - area

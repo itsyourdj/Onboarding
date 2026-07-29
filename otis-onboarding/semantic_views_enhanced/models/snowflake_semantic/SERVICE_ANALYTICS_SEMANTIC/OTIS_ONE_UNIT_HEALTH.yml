@@ -3,121 +3,137 @@ name: OTIS_ONE_UNIT_HEALTH
 depends_on: NAABO_PROD.REPORTING.OTISONEOXP
 description: Otis ONE IoT telemetry snapshots.
 measures:
-- name: AVG_HEALTH_SCORE
-  type: avg
-  expression: '{OTIS_ONE_UNIT_HEALTH.HEALTH_SCORE}'
-  description: Average IoT health score
-  ai_context:
-    instructions: Use for fleet-level IoT health trend monitoring.
-    caveats:
-      - Average can hide extreme low-health units.
-    synonyms:
-      - average health
-      - iot health index
-- name: PREDICTED_FAILURES
-  type: sum
-  expression: CASE WHEN {OTIS_ONE_UNIT_HEALTH.PREDICTED_FAILURE_FLAG} = 'Y' THEN 1 ELSE 0 END
-  description: Snapshots flagged for predicted failure
-  ai_context:
-    instructions: Early-warning KPI for potential reliability events.
-    caveats:
-      - Counts flagged snapshots, not confirmed failures.
-    synonyms:
-      - predicted breakdowns
-      - failure alerts
-- name: TOTAL_ALARMS
-  type: sum
-  expression: '{OTIS_ONE_UNIT_HEALTH.ALARM_COUNT}'
-  description: Sum of alarms raised
-  ai_context:
-    instructions: Use to track alarm burden from connected units.
-    caveats:
-      - Alarm totals depend on telemetry frequency and windowing.
-    synonyms:
-      - alarm volume
-      - total alerts
-- name: TOTAL_DOOR_FAULTS
-  type: sum
-  expression: '{OTIS_ONE_UNIT_HEALTH.DOOR_FAULTS}'
-  description: Sum of door faults
-  ai_context:
-    instructions: Use for door-system reliability monitoring.
-    synonyms:
-      - door issues
-      - door fault count
-- name: TOTAL_FAULTS
-  type: sum
-  expression: '{OTIS_ONE_UNIT_HEALTH.FAULT_COUNT}'
-  description: Sum of fault counts
-  ai_context:
-    instructions: Overall fault workload indicator from telemetry.
-    caveats:
-      - Fault counts are event totals, not distinct fault types.
-    synonyms:
-      - fault volume
-      - total equipment faults
+  - name: AVG_HEALTH_SCORE
+    type: avg
+    expression: '{OTIS_ONE_UNIT_HEALTH.HEALTH_SCORE}'
+    description: Average IoT health score
+    ai_context:
+      instructions: Use for fleet-level IoT health trend monitoring.
+      caveats:
+        - Average can hide extreme low-health units.
+      synonyms:
+        - average health
+        - iot health index
+  - name: PREDICTED_FAILURES
+    type: sum
+    expression: CASE WHEN {OTIS_ONE_UNIT_HEALTH.PREDICTED_FAILURE_FLAG} = 'Y' THEN 1 ELSE 0 END
+    description: Snapshots flagged for predicted failure
+    ai_context:
+      instructions: Early-warning KPI for potential reliability events.
+      caveats:
+        - Counts flagged snapshots, not confirmed failures.
+      synonyms:
+        - predicted breakdowns
+        - failure alerts
+  - name: TOTAL_ALARMS
+    type: sum
+    expression: '{OTIS_ONE_UNIT_HEALTH.ALARM_COUNT}'
+    description: Sum of alarms raised
+    ai_context:
+      instructions: Use to track alarm burden from connected units.
+      caveats:
+        - Alarm totals depend on telemetry frequency and windowing.
+      synonyms:
+        - alarm volume
+        - total alerts
+  - name: TOTAL_DOOR_FAULTS
+    type: sum
+    expression: '{OTIS_ONE_UNIT_HEALTH.DOOR_FAULTS}'
+    description: Sum of door faults
+    ai_context:
+      instructions: Use for door-system reliability monitoring.
+      synonyms:
+        - door issues
+        - door fault count
+  - name: TOTAL_FAULTS
+    type: sum
+    expression: '{OTIS_ONE_UNIT_HEALTH.FAULT_COUNT}'
+    description: Sum of fault counts
+    ai_context:
+      instructions: Overall fault workload indicator from telemetry.
+      caveats:
+        - Fault counts are event totals, not distinct fault types.
+      synonyms:
+        - fault volume
+        - total equipment faults
+  - name: UNITS_MONITORED
+    type: count_distinct
+    expression: '{OTIS_ONE_UNIT_HEALTH.UNIT_ID}'
+    description: "Count of distinct units with an IoT telemetry snapshot in scope (added 2026-07-29)."
+    ai_context:
+      instructions: Use as the denominator for connected/monitored fleet size, e.g. alongside PREDICTED_FAILURES filtered views.
+      synonyms:
+        - monitored units
+        - connected unit count
 dimensions:
-- name: CONNECTIVITY_STATUS
-  description: Device connectivity status at snapshot time.
-  ai_context:
-    instructions: Use for telemetry coverage and online/offline segmentation.
-    synonyms:
-      - connectivity
-      - online status
-- name: GBO
-  description: Global business organization / branch grouping.
-- name: PREDICTED_FAILURE_FLAG
-  description: Predicted-failure flag from the IoT model (Y/N).
-  ai_context:
-    instructions: Binary model output for potential upcoming failure.
-    caveats:
-      - Prediction is probabilistic and may include false positives.
-    synonyms:
-      - failure risk flag
-      - predictive alert flag
-- name: UNIT_ID
-  description: Unit the telemetry snapshot is for (FK to UNITS).
-  ai_context:
-    instructions: Use to tie telemetry outcomes to specific equipment.
-    synonyms:
-      - unit
-      - equipment id
-- name: SNAPSHOT_DATE
-  description: Timestamp of the telemetry snapshot (cast to TIMESTAMP_NTZ at source).
-  ai_context:
-    instructions: Use for time-series analysis of health and faults.
-    synonyms:
-      - snapshot time
-      - telemetry timestamp
-- name: ALARM_COUNT
-  description: Alarms raised in the snapshot window.
-  ai_context:
-    instructions: Base alarm field for alert intensity analysis.
-    synonyms:
-      - alarms
-      - alert count
-- name: DOOR_FAULTS
-  description: Door-related faults in the snapshot window.
-  ai_context:
-    instructions: Door subsystem fault count at snapshot grain.
-    synonyms:
-      - door faults
-      - door issues
-- name: FAULT_COUNT
-  description: Total faults recorded in the snapshot window.
-  ai_context:
-    instructions: Total faults at snapshot grain for reliability analysis.
-    synonyms:
-      - faults
-      - issue count
-- name: HEALTH_SCORE
-  description: IoT-derived unit health score 0-1 at snapshot.
-  ai_context:
-    instructions: Core model score for unit condition and risk.
-    caveats:
-      - Score is bounded 0-1 and should not be interpreted as uptime percent.
-    synonyms:
-      - condition score
-      - reliability score
-- name: RUN_HOURS
-  description: Cumulative run hours at snapshot.
+  - name: CUSTOMER_ID
+    description: "Customer that owns the monitored unit (added 2026-07-29, FK to CUSTOMERS)."
+    ai_context:
+      instructions: Use for customer-level IoT health and predicted-failure rollups.
+      synonyms:
+        - customer
+        - account
+  - name: CONNECTIVITY_STATUS
+    description: Device connectivity status at snapshot time.
+    ai_context:
+      instructions: Use for telemetry coverage and online/offline segmentation.
+      synonyms:
+        - connectivity
+        - online status
+  - name: GBO
+    description: Global business organization / branch grouping.
+  - name: PREDICTED_FAILURE_FLAG
+    description: Predicted-failure flag from the IoT model (Y/N).
+    ai_context:
+      instructions: Binary model output for potential upcoming failure.
+      caveats:
+        - Prediction is probabilistic and may include false positives.
+      synonyms:
+        - failure risk flag
+        - predictive alert flag
+  - name: UNIT_ID
+    description: Unit the telemetry snapshot is for (FK to UNITS).
+    ai_context:
+      instructions: Use to tie telemetry outcomes to specific equipment.
+      synonyms:
+        - unit
+        - equipment id
+  - name: SNAPSHOT_DATE
+    description: Timestamp of the telemetry snapshot (cast to TIMESTAMP_NTZ at source).
+    ai_context:
+      instructions: Use for time-series analysis of health and faults.
+      synonyms:
+        - snapshot time
+        - telemetry timestamp
+  - name: ALARM_COUNT
+    description: Alarms raised in the snapshot window.
+    ai_context:
+      instructions: Base alarm field for alert intensity analysis.
+      synonyms:
+        - alarms
+        - alert count
+  - name: DOOR_FAULTS
+    description: Door-related faults in the snapshot window.
+    ai_context:
+      instructions: Door subsystem fault count at snapshot grain.
+      synonyms:
+        - door faults
+        - door issues
+  - name: FAULT_COUNT
+    description: Total faults recorded in the snapshot window.
+    ai_context:
+      instructions: Total faults at snapshot grain for reliability analysis.
+      synonyms:
+        - faults
+        - issue count
+  - name: HEALTH_SCORE
+    description: IoT-derived unit health score 0-1 at snapshot.
+    ai_context:
+      instructions: Core model score for unit condition and risk.
+      caveats:
+        - Score is bounded 0-1 and should not be interpreted as uptime percent.
+      synonyms:
+        - condition score
+        - reliability score
+  - name: RUN_HOURS
+    description: Cumulative run hours at snapshot.

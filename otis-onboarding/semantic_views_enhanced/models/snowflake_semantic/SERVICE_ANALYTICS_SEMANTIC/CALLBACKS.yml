@@ -3,49 +3,74 @@ name: CALLBACKS
 depends_on: SSD_NAA_PROD.RL_AMERICA.FLAT_CALLBACK_EVENT
 description: Reactive service visits triggered when a unit faults or is reported not working (as opposed to planned preventive maintenance).
 measures:
-- name: ENTRAPMENT_CALLBACKS
-  type: sum
-  expression: CASE WHEN {CALLBACKS.TRAPPED_PASSENGER_FLAG} = 'Y' THEN 1 ELSE 0 END
-  description: Callbacks involving a trapped passenger
-  ai_context:
-    instructions: Use for safety-critical callback volume tracking.
-    caveats:
-      - Sums a boolean flag and counts callback rows, not unique units.
-    synonyms:
-      - entrapments
-      - trapped passenger calls
-- name: FIRST_TIME_FIX_RATE_PCT
-  type: number
-  expression: ROUND(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} = 'Y' THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} IN ('Y', 'N') THEN 1 ELSE 0 END), 0), 1)
-  description: Percent of callbacks fixed on first visit
-  ai_context:
-    instructions: KPI for service effectiveness on reactive visits.
-    caveats:
-      - Excludes records where FTFR flag is missing.
-      - Percentage can be distorted in low-volume slices.
-    synonyms:
-      - FTFR
-      - first time fix
-- name: OUT_OF_SERVICE_CALLBACKS
-  type: sum
-  expression: CASE WHEN {CALLBACKS.OUT_OF_SERVICE_FLAG} = 'Y' THEN 1 ELSE 0 END
-  description: Callbacks where the unit was out of service
-  ai_context:
-    instructions: Use to monitor high-impact downtime callbacks.
-    caveats:
-      - Flag-based count; not duration of outage.
-    synonyms:
-      - outage callbacks
-      - downtime callbacks
-- name: TOTAL_CALLBACKS
-  type: count
-  expression: '{CALLBACKS.CALLBACKID}'
-  description: Count of callback events
-  ai_context:
-    instructions: Primary workload measure for reactive service demand.
-    synonyms:
-      - callback volume
-      - service call count
+  - name: ENTRAPMENT_CALLBACKS
+    type: sum
+    expression: CASE WHEN {CALLBACKS.TRAPPED_PASSENGER_FLAG} = 'Y' THEN 1 ELSE 0 END
+    description: Callbacks involving a trapped passenger
+    ai_context:
+      instructions: Use for safety-critical callback volume tracking.
+      caveats:
+        - Sums a boolean flag and counts callback rows, not unique units.
+      synonyms:
+        - entrapments
+        - trapped passenger calls
+  - name: FIRST_TIME_FIX_RATE_PCT
+    type: number
+    expression: ROUND(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} = 'Y' THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN {CALLBACKS.FTFR_FLAG} IN ('Y', 'N') THEN 1 ELSE 0 END), 0), 1)
+    description: Percent of callbacks fixed on first visit
+    ai_context:
+      instructions: KPI for service effectiveness on reactive visits.
+      caveats:
+        - Excludes records where FTFR flag is missing.
+        - Percentage can be distorted in low-volume slices.
+      synonyms:
+        - FTFR
+        - first time fix
+  - name: OUT_OF_SERVICE_CALLBACKS
+    type: sum
+    expression: CASE WHEN {CALLBACKS.OUT_OF_SERVICE_FLAG} = 'Y' THEN 1 ELSE 0 END
+    description: Callbacks where the unit was out of service
+    ai_context:
+      instructions: Use to monitor high-impact downtime callbacks.
+      caveats:
+        - Flag-based count; not duration of outage.
+      synonyms:
+        - outage callbacks
+        - downtime callbacks
+  - name: TOTAL_CALLBACKS
+    type: count
+    expression: '{CALLBACKS.CALLBACKID}'
+    description: Count of callback events
+    ai_context:
+      instructions: Primary workload measure for reactive service demand.
+      synonyms:
+        - callback volume
+        - service call count
+  - name: AVG_CALLBACK_LEAD_TIME_HOURS
+    type: avg
+    expression: DATEDIFF('hour', {CALLBACKS.NAA_DISPATCHED_DATE}, {CALLBACKS.ARRIVED_SITE})
+    description: "Average hours between technician dispatch and on-site arrival (added 2026-07-29, parity with service_sla_analytics_mcp's response-time measure)."
+    ai_context:
+      instructions: Real SLA response-time measure. Use for response-time trending and technician dispatch efficiency.
+      caveats:
+        - NULL when dispatch or arrival timestamp is missing.
+      synonyms:
+        - response time
+        - average response time
+        - dispatch lead time
+  - name: TOTAL_UNIT_DOWNTIME_HOURS
+    type: sum
+    expression: CASE WHEN {CALLBACKS.OUT_OF_SERVICE_FLAG} = 'Y' THEN DATEDIFF('hour', {CALLBACKS.NAA_DISPATCHED_DATE}, {CALLBACKS.LEFT_SITE_BISDATE}) ELSE 0 END
+    description: "Total hours units were left out of service across callbacks (added 2026-07-29), from dispatch until the technician left site."
+    ai_context:
+      instructions: Use to quantify cumulative equipment downtime impact from out-of-service callbacks.
+      caveats:
+        - Only accrues hours for callbacks flagged OUT_OF_SERVICE_FLAG='Y'; zero otherwise.
+        - NULL dispatch/left timestamps are treated as no downtime contribution.
+      synonyms:
+        - downtime hours
+        - outage duration
+        - unit downtime
 dimensions:
 - name: CALLBACKID
   description: Unique callback event identifier.
@@ -125,3 +150,30 @@ dimensions:
     synonyms:
       - callback timestamp
       - logged time
+- name: NAA_DISPATCHED_DATE
+  description: "Timestamp a technician was dispatched for this callback (added 2026-07-29) — start of the SLA response-time clock."
+  ai_context:
+    instructions: Use as the start point for response-time and resolution-time calculations.
+    synonyms:
+      - dispatch time
+      - dispatched at
+- name: ARRIVED_SITE
+  description: "Timestamp the technician arrived on site (added 2026-07-29) — end of the SLA response-time clock."
+  ai_context:
+    instructions: Use as the end point for response-time calculations.
+    synonyms:
+      - arrival time
+      - arrived at
+- name: LEFT_SITE_BISDATE
+  description: "Timestamp the technician left the site (added 2026-07-29)."
+  ai_context:
+    instructions: Use with NAA_DISPATCHED_DATE to compute unit downtime duration for out-of-service callbacks.
+    synonyms:
+      - left site time
+- name: CLOSED_ON
+  description: "Timestamp the callback was closed out (added 2026-07-29) — end of the SLA resolution-time clock."
+  ai_context:
+    instructions: Use as the end point for resolution-time calculations.
+    synonyms:
+      - closed at
+      - resolution time end

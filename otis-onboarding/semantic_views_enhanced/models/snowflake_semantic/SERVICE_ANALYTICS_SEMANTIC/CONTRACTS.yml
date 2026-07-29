@@ -76,6 +76,79 @@ dimensions:
       synonyms:
         - net monthly billing
         - adjusted monthly billing
+  - name: CONTRACTTYPEDESCRIPTION
+    description: "Plain-language contract type description (added 2026-07-29)."
+    ai_context:
+      instructions: Use for customer-facing display of contract type instead of the raw CONTRACTTYPE code.
+      synonyms:
+        - contract type description
+  - name: CONTRACTSTATUSDESCRIPTION
+    description: "Plain-language contract status description (added 2026-07-29)."
+    ai_context:
+      instructions: Use for customer-facing display of contract status instead of the raw CONTRACTSTATUS code.
+      synonyms:
+        - contract status description
+  - name: SERVICEPACKAGEDESC
+    description: "Service package name/description on the contract (added 2026-07-29)."
+    ai_context:
+      instructions: Use for customer-facing display of the contracted service tier.
+      synonyms:
+        - service package
+        - service tier
+  - name: CONTRACTSTARTDATE
+    description: "Date the contract started (added 2026-07-29)."
+    ai_context:
+      instructions: Use for contract-tenure and cohort analysis.
+      synonyms:
+        - start date
+        - contract inception date
+  - name: ORIGINALCONTRACTEXPDATE
+    description: "Original contract expiration date (added 2026-07-29)."
+    ai_context:
+      instructions: Use to assess original committed term length.
+      synonyms:
+        - expiration date
+        - contract expiry
+  - name: RENEWALDATE
+    description: "Next/most recent renewal date on the contract (added 2026-07-29)."
+    ai_context:
+      instructions: Use to identify upcoming renewals for retention outreach.
+      synonyms:
+        - renewal date
+        - next renewal
+  - name: CANCELDATE
+    description: "Date the contract was cancelled, if applicable (added 2026-07-29)."
+    ai_context:
+      instructions: Use with CANCELLATIONREASON to analyze churn timing.
+      synonyms:
+        - cancellation date
+        - churn date
+  - name: CANCELLATIONREASON
+    description: "Reason the contract was cancelled, if applicable (added 2026-07-29)."
+    ai_context:
+      instructions: Use for churn-reason analysis alongside CANCELDATE.
+      synonyms:
+        - cancel reason
+        - churn reason
+  - name: RENEWALFLAG
+    description: "Flag indicating renewal status/intent on the contract (added 2026-07-29)."
+    ai_context:
+      instructions: Use as a quick renewal-risk signal alongside RENEWALDATE.
+      synonyms:
+        - renewal flag
+  - name: SALESREPNAME
+    description: "Name of the sales representative on the contract (added 2026-07-29)."
+    ai_context:
+      instructions: Use for sales-rep-level portfolio and renewal-outreach views.
+      synonyms:
+        - sales rep
+        - account executive
+  - name: CURRENCY_CD
+    description: "Billing currency code for the contract's monetary fields (added 2026-07-29)."
+    ai_context:
+      instructions: Required for currency-aware comparison of CONTRACTVALUE/GROSSMONTHLYBILLING across regions.
+      synonyms:
+        - currency code
 measures:
   - name: ACTIVE_CONTRACT_COUNT
     type: sum

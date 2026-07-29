@@ -3,51 +3,51 @@ name: TECHNICIANS
 depends_on: NAABO_PROD.REPORTING.TBL_MECHANIC
 description: Field technician (mechanic) master.
 measures:
-- name: TECHNICIAN_COUNT
-  type: count
-  expression: '{TECHNICIANS.TECHNICIAN_ID}'
-  description: Number of technicians
-  ai_context:
-    instructions: Workforce size KPI for service delivery capacity.
-    caveats:
-      - Count reflects rows in this master, not active shift staffing.
-    synonyms:
-      - mechanic count
-      - field technician volume
+  - name: TECHNICIAN_COUNT
+    type: count
+    expression: '{TECHNICIANS.TECHNICIAN_ID}'
+    description: Number of technicians
+    ai_context:
+      instructions: Workforce size KPI for service delivery capacity.
+      caveats:
+        - Count reflects rows in this master, not active shift staffing.
+      synonyms:
+        - mechanic count
+        - field technician volume
 joins:
-- name: WORKFORCE
-  type: one_to_many
-  expression: '{TECHNICIANS.TECHNICIAN_ID} = {WORKFORCE.TECHNICIAN_ID}'
+  - name: WORKFORCE
+    type: one_to_many
+    expression: '{TECHNICIANS.TECHNICIAN_ID} = {WORKFORCE.TECHNICIAN_ID}'
 dimensions:
-- name: EMPLOYEE_FULL_NAME
-  description: Technician full name. PII - handle per data classification.
-- name: GBO
-  description: Global business organization / branch grouping.
-  ai_context:
-    instructions: Use for branch-level technician capacity rollups.
-    synonyms:
-      - branch
-      - business unit
-- name: OFFICE_CODE
-  description: Home office/branch code for the technician.
-  ai_context:
-    instructions: Use to map technicians to local operating offices.
-    synonyms:
-      - branch code
-      - office
-- name: STATUS
-  description: Employment/assignment status.
-  ai_context:
-    instructions: Use to segment active versus inactive technician records.
-    synonyms:
-      - technician status
-      - assignment status
-- name: TECHNICIAN_ID
-  description: Surrogate technician (mechanic) key.
-  behavior:
-    type: identifier
-  ai_context:
-    instructions: Primary technician key across service analytics models.
-    synonyms:
-      - mechanic id
-      - technician key
+  - name: EMPLOYEE_FULL_NAME
+    description: Technician full name. PII - handle per data classification.
+  - name: GBO
+    description: Global business organization / branch grouping.
+    ai_context:
+      instructions: Use for branch-level technician capacity rollups.
+      synonyms:
+        - branch
+        - business unit
+  - name: OFFICE_CODE
+    description: Home office/branch code for the technician.
+    ai_context:
+      instructions: Use to map technicians to local operating offices.
+      synonyms:
+        - branch code
+        - office
+  - name: STATUS
+    description: Employment/assignment status.
+    ai_context:
+      instructions: Use to segment active versus inactive technician records.
+      synonyms:
+        - technician status
+        - assignment status
+  - name: TECHNICIAN_ID
+    description: Surrogate technician (mechanic) key.
+    behavior:
+      type: identifier
+    ai_context:
+      instructions: Primary technician key across service analytics models.
+      synonyms:
+        - mechanic id
+        - technician key

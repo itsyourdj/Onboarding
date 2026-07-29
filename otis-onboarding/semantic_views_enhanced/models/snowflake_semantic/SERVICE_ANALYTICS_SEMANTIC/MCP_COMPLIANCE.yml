@@ -3,95 +3,102 @@ name: MCP_COMPLIANCE
 depends_on: NAABO_PROD.REPORTING.MCP_COMPLIANCE_REPORT
 description: Maintenance-control-plan compliance by unit-month.
 measures:
-- name: AVG_COMPLIANCE_PCT
-  type: avg
-  expression: '{MCP_COMPLIANCE.COMPLIANCE_PCT}'
-  description: Average compliance percentage
-  ai_context:
-    instructions: Headline KPI for maintenance plan adherence.
-    caveats:
-      - Averaging percentages can differ from weighted compliance at aggregate level.
-    synonyms:
-      - average compliance
-      - mcp adherence rate
-- name: TOTAL_COMPLETED_VISITS
-  type: sum
-  expression: '{MCP_COMPLIANCE.COMPLETED_VISITS}'
-  description: Sum of completed visits
-  ai_context:
-    instructions: Total executed maintenance visits in scope.
-    synonyms:
-      - completed PM visits
-      - done visits
-- name: TOTAL_MISSED_VISITS
-  type: sum
-  expression: '{MCP_COMPLIANCE.MISSED_VISITS}'
-  description: Sum of missed visits
-  ai_context:
-    instructions: Use to quantify maintenance execution gaps.
-    synonyms:
-      - missed PM visits
-      - skipped visits
-- name: TOTAL_SCHEDULED_VISITS
-  type: sum
-  expression: '{MCP_COMPLIANCE.SCHEDULED_VISITS}'
-  description: Sum of scheduled visits
-  ai_context:
-    instructions: Planned maintenance visit denominator for compliance tracking.
-    synonyms:
-      - planned visits
-      - scheduled PM volume
+  - name: AVG_COMPLIANCE_PCT
+    type: avg
+    expression: '{MCP_COMPLIANCE.COMPLIANCE_PCT}'
+    description: Average compliance percentage
+    ai_context:
+      instructions: Headline KPI for maintenance plan adherence.
+      caveats:
+        - Averaging percentages can differ from weighted compliance at aggregate level.
+      synonyms:
+        - average compliance
+        - mcp adherence rate
+  - name: TOTAL_COMPLETED_VISITS
+    type: sum
+    expression: '{MCP_COMPLIANCE.COMPLETED_VISITS}'
+    description: Sum of completed visits
+    ai_context:
+      instructions: Total executed maintenance visits in scope.
+      synonyms:
+        - completed PM visits
+        - done visits
+  - name: TOTAL_MISSED_VISITS
+    type: sum
+    expression: '{MCP_COMPLIANCE.MISSED_VISITS}'
+    description: Sum of missed visits
+    ai_context:
+      instructions: Use to quantify maintenance execution gaps.
+      synonyms:
+        - missed PM visits
+        - skipped visits
+  - name: TOTAL_SCHEDULED_VISITS
+    type: sum
+    expression: '{MCP_COMPLIANCE.SCHEDULED_VISITS}'
+    description: Sum of scheduled visits
+    ai_context:
+      instructions: Planned maintenance visit denominator for compliance tracking.
+      synonyms:
+        - planned visits
+        - scheduled PM volume
 dimensions:
-- name: GBO
-  description: Global business organization / branch grouping.
-- name: REGION
-  description: Region the unit belongs to.
-  ai_context:
-    instructions: Use for regional compliance benchmarking.
-    synonyms:
-      - geography
-      - area
-- name: REPORT_MONTH
-  description: Reporting month (first day of month).
-  ai_context:
-    instructions: Monthly time grain for compliance trends.
-    synonyms:
-      - compliance month
-      - report period
-- name: UNIT_ID
-  description: Unit the compliance row is for (FK to UNITS).
-  ai_context:
-    instructions: Unit-level key for maintenance plan compliance.
-    synonyms:
-      - unit
-      - equipment id
-- name: COMPLETED_VISITS
-  description: Maintenance visits completed in the month.
-  ai_context:
-    instructions: Completed maintenance count at row grain.
-    synonyms:
-      - completed visits
-      - done maintenance
-- name: COMPLIANCE_PCT
-  description: Compliance percentage (completed / scheduled).
-  ai_context:
-    instructions: Row-level compliance ratio for unit-month records.
-    caveats:
-      - Prefer weighted calculation for large aggregate reporting.
-    synonyms:
-      - compliance percent
-      - adherence rate
-- name: MISSED_VISITS
-  description: Maintenance visits missed in the month.
-  ai_context:
-    instructions: Missed maintenance count at row grain.
-    synonyms:
-      - missed maintenance
-      - overdue visits
-- name: SCHEDULED_VISITS
-  description: Maintenance visits scheduled in the month.
-  ai_context:
-    instructions: Scheduled maintenance count at row grain.
-    synonyms:
-      - planned maintenance
-      - scheduled count
+  - name: CUSTOMER_ID
+    description: "Customer the compliance row is for (added 2026-07-29, FK to CUSTOMERS)."
+    ai_context:
+      instructions: Use for customer-level maintenance-compliance rollups.
+      synonyms:
+        - customer
+        - account
+  - name: GBO
+    description: Global business organization / branch grouping.
+  - name: REGION
+    description: Region the unit belongs to.
+    ai_context:
+      instructions: Use for regional compliance benchmarking.
+      synonyms:
+        - geography
+        - area
+  - name: REPORT_MONTH
+    description: Reporting month (first day of month).
+    ai_context:
+      instructions: Monthly time grain for compliance trends.
+      synonyms:
+        - compliance month
+        - report period
+  - name: UNIT_ID
+    description: Unit the compliance row is for (FK to UNITS).
+    ai_context:
+      instructions: Unit-level key for maintenance plan compliance.
+      synonyms:
+        - unit
+        - equipment id
+  - name: COMPLETED_VISITS
+    description: Maintenance visits completed in the month.
+    ai_context:
+      instructions: Completed maintenance count at row grain.
+      synonyms:
+        - completed visits
+        - done maintenance
+  - name: COMPLIANCE_PCT
+    description: Compliance percentage (completed / scheduled).
+    ai_context:
+      instructions: Row-level compliance ratio for unit-month records.
+      caveats:
+        - Prefer weighted calculation for large aggregate reporting.
+      synonyms:
+        - compliance percent
+        - adherence rate
+  - name: MISSED_VISITS
+    description: Maintenance visits missed in the month.
+    ai_context:
+      instructions: Missed maintenance count at row grain.
+      synonyms:
+        - missed maintenance
+        - overdue visits
+  - name: SCHEDULED_VISITS
+    description: Maintenance visits scheduled in the month.
+    ai_context:
+      instructions: Scheduled maintenance count at row grain.
+      synonyms:
+        - planned maintenance
+        - scheduled count

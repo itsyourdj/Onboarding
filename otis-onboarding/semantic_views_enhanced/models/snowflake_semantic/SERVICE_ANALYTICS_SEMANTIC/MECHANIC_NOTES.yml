@@ -3,38 +3,54 @@ name: MECHANIC_NOTES
 depends_on: NAABO_PROD.REPORTING.MESSAGEDETAILSDATASET
 description: Free-text mechanic work notes.
 measures:
-- name: TOTAL_NOTES
-  type: count
-  expression: '{MECHANIC_NOTES.UNIQUEID}'
-  description: Count of mechanic notes
-  ai_context:
-    instructions: Use to quantify field documentation activity.
-    caveats:
-      - More notes do not necessarily indicate more issues.
-    synonyms:
-      - note count
-      - mechanic comments
+  - name: TOTAL_NOTES
+    type: count
+    expression: '{MECHANIC_NOTES.UNIQUEID}'
+    description: Count of mechanic notes
+    ai_context:
+      instructions: Use to quantify field documentation activity.
+      caveats:
+        - More notes do not necessarily indicate more issues.
+      synonyms:
+        - note count
+        - mechanic comments
 dimensions:
-- name: UNIQUEID
-  description: Unique mechanic-note identifier.
-  behavior:
-    type: identifier
-  ai_context:
-    instructions: Event key for each mechanic note entry.
-    synonyms:
-      - note id
-      - message id
-- name: UNIT_ID
-  description: Unit the note refers to (FK to UNITS).
-  ai_context:
-    instructions: Use to connect notes with unit history and performance.
-    synonyms:
-      - unit
-      - equipment id
-- name: WORKCOMPLETIONDATE
-  description: Date the work described in the note was completed.
-  ai_context:
-    instructions: Use for timelines of completed work notes.
-    synonyms:
-      - completion date
-      - work done date
+  - name: UNIQUEID
+    description: Unique mechanic-note identifier.
+    behavior:
+      type: identifier
+    ai_context:
+      instructions: Event key for each mechanic note entry.
+      synonyms:
+        - note id
+        - message id
+  - name: UNIT_ID
+    description: Unit the note refers to (FK to UNITS).
+    ai_context:
+      instructions: Use to connect notes with unit history and performance.
+      synonyms:
+        - unit
+        - equipment id
+  - name: CUSTOMER_ID
+    description: "Customer the note refers to (added 2026-07-29, FK to CUSTOMERS)."
+    ai_context:
+      instructions: Use for customer-level service-note timelines.
+      synonyms:
+        - customer
+        - account
+  - name: WORKCOMPLETIONDATE
+    description: Date the work described in the note was completed.
+    ai_context:
+      instructions: Use for timelines of completed work notes.
+      synonyms:
+        - completion date
+        - work done date
+  - name: MESSAGENOTES
+    description: "Free-text mechanic note content (added 2026-07-29)."
+    ai_context:
+      instructions: Use for qualitative review of field-technician observations per unit/customer.
+      caveats:
+        - May be null/empty.
+      synonyms:
+        - note text
+        - work notes

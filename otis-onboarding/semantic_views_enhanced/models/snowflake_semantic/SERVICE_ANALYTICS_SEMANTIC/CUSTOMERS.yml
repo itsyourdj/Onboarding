@@ -39,6 +39,13 @@ dimensions:
     description: Customer legal name. PII - handle per data classification.
   - name: GBO
     description: Global business organization / branch grouping.
+  - name: NSA_NAME
+    description: "National service agreement name/area for this customer (added 2026-07-29)."
+    ai_context:
+      instructions: Use for NSA-level account grouping and reporting.
+      synonyms:
+        - nsa
+        - national service agreement
   - name: REGION_DESC
     description: Sales region description.
     ai_context:
@@ -46,6 +53,13 @@ dimensions:
       synonyms:
         - region
         - sales region
+  - name: SUBREGION_DESC
+    description: "Subregion description within the sales region (added 2026-07-29)."
+    ai_context:
+      instructions: Use for finer-grained geographic rollups below REGION_DESC.
+      synonyms:
+        - subregion
+        - sub-region
   - name: SALES_SEGMENT
     description: Sales segment, standardized to title case.
     ai_context:

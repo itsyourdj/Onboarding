@@ -1,0 +1,63 @@
+# Local compose profiles:
+#   1) Semantic mode (recommended): uses backend/.env SEMANTIC_* values.
+#      docker compose --profile semantic up --build
+#   2) CSV + Postgres mode (offline/local data only):
+#      docker compose --profile postgres up --build
+#
+# Both modes expose http://localhost:4000.
+
+services:
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: health
+      POSTGRES_PASSWORD: health
+      POSTGRES_DB: customer_health
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U health -d customer_health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    profiles: ["postgres"]
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      # Set to e.g. "/metadata_sync" when the app is mounted under a sub-path.
+      BASE_PATH: ""
+      DATA_SOURCE: postgres
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: customer_health
+      PGUSER: health
+      PGPASSWORD: health
+      DATA_DIR: /data
+    volumes:
+      # CSVs live outside the app folder; mount them read-only for ingestion.
+      - ../output_incremental:/data:ro
+    ports:
+      - "4000:4000"
+
+  app-semantic:
+    profiles: ["semantic"]
+    build: .
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      BASE_PATH: ""
+      DATA_SOURCE: semantic
+    ports:
+      - "4000:4000"
+
+volumes:
+  pgdata:

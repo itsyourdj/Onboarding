@@ -1,0 +1,66 @@
+version: v1alpha
+type: app
+name: pulse
+title: Pulse App
+description: Customer health app to spot at-risk accounts, understand satisfaction drivers, and act on Pulse insights.
+owner: deepakjaiswaltmdcio
+tags:
+  - customer-health
+  - pulse
+spec:
+  compute: otis-compute
+  runAsUser: deepakjaiswaltmdcio
+  logLevel: INFO
+  replicas: 1
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  service:
+    type: node-js
+    image: deepak2407/customer-health-app:0.0.2
+    # imagePullSecret: docker-cred
+    command:
+      - npm
+    arguments:
+      - start
+    port: 4000
+    envs:
+      NODE_ENV: production
+      PORT: "4000"
+      DATA_SOURCE: semantic
+      SEMANTIC_API_URL: "https://clienttech.instance.dataos.cloud/vulcan/tenants/otis-onboarding/data-products/otis-onboarding-service-analytic-enhanced"
+      # Do not commit real tokens in git; inject this from platform secret management.
+      SEMANTIC_API_TOKEN: "<set-via-secret>"
+      BASE_PATH: /pulse
+    hostname: pulse
+    stateful: false
+    http:
+      stripPath: false
+      path: /pulse
+      noNetworkAuthorization: true
+      ingress:
+        enabled: true
+        path: /pulse
+        stripPath: false
+        appDetailSpec: pulse
+  app:
+    icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMyZGQ0YmYiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMGY3NjZlIi8+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCB4PSI4IiB5PSI4IiByeD0iMTYiIHJ5PSIxNiIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSJ1cmwoI2cpIi8+CiAgPHBvbHlsaW5lIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMy41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHBvaW50cz0iMTUsMzQgMjMsMzQgMjcsMjIgMzMsNDQgMzcsMjggNDEsMzQgNDksMzQiLz4KPC9zdmc+"
+    domain: platform
+    description: Customer health app to spot at-risk accounts, understand satisfaction drivers, and act on Pulse insights.
+    tags:
+      - customer-health
+      - pulse
+    owners:
+      - deepakjaiswaltmdcio
+    products:
+      - service-analytic-enhanced
+    references:
+      - title: GitHub Link
+        url: https://github.com/itsyourdj/Onboarding/tree/main/customer-health-app/
+    link:
+      title: Open app
+      url: https://clienttech.instance.dataos.cloud/pulse

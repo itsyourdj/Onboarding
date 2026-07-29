@@ -1,0 +1,71 @@
+/* Design tokens — adapted from the Lodestar design language.
+   Roles map to Tailwind utilities (bg-bg-primary, text-fg-primary, …) and
+   swap automatically when [data-theme="dark"] is set on <html>. */
+
+:root {
+  /* Raw palette */
+  --color-palette-white: #ffffff;
+  --color-palette-slate: #242422;
+  --color-palette-cream: #f5f2ec;
+  --color-palette-fog: #f4f4f5;
+  --color-palette-sandpaper: #e5dfd7;
+  --color-palette-cloud: #f0f0f0;
+  --color-palette-mist: #c4c4c4;
+  --color-palette-graphite: #141414;
+  --color-palette-slate-night: #4d4d4d;
+  --color-palette-raised-night: #5c5c5c;
+  --color-palette-card-night: #1e1e1e;
+  --color-palette-hairline-night: #333333;
+  --color-palette-steel: #3c424c;
+  --color-palette-accent-blue: #5b8cff;
+  --color-palette-primary-teal: #54ded1;
+  --color-palette-dark-teal: #009293;
+  --color-palette-ember: #ff5537;
+  --color-palette-amber: #d97706;
+  --color-palette-iron: #35505b;
+  --color-palette-midnight: #202f36;
+
+  /* Roles — light */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f4f4f5;
+  --color-bg-elevated: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-border-card: #e5dfd7;
+  --color-fg-primary: #242422;
+  --color-fg-secondary: #35505b;
+  --color-action-primary: #009293;
+  --color-brand-accent: #54ded1;
+  --color-state-success: #0f9d8c;
+  --color-state-danger: #ff5537;
+  --color-state-warning: #d97706;
+  --color-divider: #e5dfd7;
+
+  /* Semantic health colors (legible on both themes) */
+  --color-health-good: #0f9d8c;
+  --color-health-watch: #d97706;
+  --color-health-risk: #ff5537;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "IBM Plex Serif", ui-serif, Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+[data-theme="dark"] {
+  --color-bg-primary: #141414;
+  --color-bg-secondary: #1c1c1c;
+  --color-bg-elevated: #242424;
+  --color-bg-card: #1e1e1e;
+  --color-border-card: #333333;
+  --color-fg-primary: #f0f0f0;
+  --color-fg-secondary: #a6b0b5;
+  --color-action-primary: #5b8cff;
+  --color-brand-accent: #5b8cff;
+  --color-state-success: #2dd4bf;
+  --color-state-danger: #ff5537;
+  --color-state-warning: #d97706;
+  --color-divider: #3c424c;
+
+  --color-health-good: #2dd4bf;
+  --color-health-watch: #f59e0b;
+  --color-health-risk: #ff6b52;
+}

@@ -1,0 +1,90 @@
+# Source: design spec > Section 5/6/7/15.5 (open_orders semantic model)
+kind: semantic
+name: open_orders
+depends_on: analytics.gold_open_order_facts
+
+ai_context:
+  instructions: >
+    Repair-job financial facts — one row per open-order/repair-job. Use for job
+    cost/revenue/margin analysis and open_order_count trending.
+  synonyms:
+    - "open orders"
+    - "repair jobs"
+
+dimensions:
+  - ORDER_KEY
+  - ORDER_DATE
+  - ORDER_STATUS
+  - ORDER_TYPE
+  - JOB_REVENUE
+  - JOB_COST
+  - JOB_MARGIN
+  - name: PRODUCT_CLASS
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: UNIT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: open_order_count
+    type: count
+    expression: "{open_orders.ORDER_KEY}"
+    description: Count of open orders / repair jobs
+    behavior:
+      type: flow
+
+  - name: total_job_revenue
+    type: sum
+    expression: "{open_orders.JOB_REVENUE}"
+    description: Sum of job revenue
+    behavior:
+      type: flow
+
+  - name: total_job_cost
+    type: sum
+    expression: "{open_orders.JOB_COST}"
+    description: Sum of job cost
+    behavior:
+      type: flow
+
+  - name: total_job_margin
+    type: sum
+    expression: "{open_orders.JOB_MARGIN}"
+    description: Sum of job margin
+    behavior:
+      type: flow
+
+joins:
+  - name: contract_compliance
+    type: many_to_one
+    expression: "{open_orders.CONTRACT_ID} = {contract_compliance.CONTRACT_ID} AND {open_orders.UNIT_ID} = {contract_compliance.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Join to pull contract visit-compliance context (contract_visit_compliance_rate)
+        alongside open-order/repair-job measures for the same contract+unit. Many
+        orders match one contract_compliance row (grain: CONTRACT_ID + UNIT_ID) —
+        safe many_to_one, no fan-out risk.
+  - name: units
+    type: many_to_one
+    expression: "{open_orders.UNIT_ID} = {units.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Bridge join to the units dimension. Chain through here to connect
+        open_orders indirectly to callbacks or unit_health_daily on shared
+        unit attributes (Vulcan does not support many_to_many joins directly).
+  - name: contracts
+    type: many_to_one
+    expression: "{open_orders.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+  - name: customers
+    type: many_to_one
+    expression: "{open_orders.CUSTOMER_ID} = {customers.CUSTOMER_ID}"

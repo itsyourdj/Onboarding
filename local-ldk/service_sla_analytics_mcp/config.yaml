@@ -1,0 +1,87 @@
+name: "service-sla-analytics"
+display_name: "Service SLA Analytics"
+tenant: "default"
+description: "Track SLA / response-time-adjacent service performance for elevator/escalator service jobs so ops and field leaders can spot service-quality issues early."
+discoverable: true
+version: "0.1.0"
+alignment: consumer_aligned
+domain: "service"
+vde: false
+
+# Optional categorization
+tags: []  # e.g. ["marketing", "saas", "analytics"]
+terms: []  # e.g. ["glossary.data_product", "glossary.business_intelligence"]
+
+users:
+  - username: "deepak_jaiswal"
+    github_username: "itsyourdj"
+    email: "deepak.jaiswal@tmdc.io"
+    type: "OWNER"
+
+# notification_targets:
+#   - type: console
+#     notify_on:
+#       - apply_start
+#       - apply_end
+#       - run_start
+#       - run_end
+#       - migration_start
+#       - migration_end
+#       - apply_failure
+#       - run_failure
+#       - audit_failure
+#       - migration_failure
+#       - plan_change
+#       - dq_start
+#       - dq_end
+
+# --- Gateway Connection ---
+gateways:
+  snowflake:
+    connection:
+      type: snowflake
+      account: BKSFOCJ-MM27667
+      # concurrent_tasks: 4
+      # register_comments: True
+      # pre_ping: False
+      # pretty_sql: False
+      # schema_differ_overrides: 
+      # catalog_type_overrides: 
+      # user_agent: 
+      user: YASHTMDC
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      warehouse: COMPUTE_WH
+      database: ANALYTICS_PROD
+      role: ACCOUNTADMIN
+      # authenticator: 
+      # token: 
+      # host: 
+      # port: 
+      # application: DataOS_Vulcan
+      # private_key: 
+      # private_key_path: 
+      # private_key_passphrase: 
+      # session_parameters: 
+
+    # State sync - use DuckDB by default for local projects
+    state_connection:
+      type: duckdb
+      database: ./.state.db
+
+model_defaults:
+  dialect: snowflake
+  start: 2020-01-01         # Start date for backfill history
+  cron: '*/5 * * * *'            # Run models every 5 minutes (can override per model)
+
+# --- Linting Rules ---
+# Enforce standards for your team
+linter:
+  enabled: true
+  rules:
+    - ambiguousorinvalidcolumn
+    - invalidselectstarexpansion
+    - noambiguousprojections
+
+ignore_patterns:
+  - "*-deploy.yaml"
+  - "docs/**"

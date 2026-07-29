@@ -1,0 +1,36 @@
+# Source: design spec > Section 13 Model Architecture (technicians — standalone reference)
+kind: semantic
+name: technicians
+depends_on: analytics.gold_technicians
+
+ai_context:
+  instructions: >
+    Field technician (mechanic) master — standalone reference only. NOT joined to
+    any callback or open-order fact: no technician-to-job link exists in the
+    available source tables.
+  synonyms:
+    - "technicians"
+    - "mechanics"
+
+dimensions:
+  - EMPLOYEE_FULL_NAME
+  - name: OFFICE_CODE
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: STATUS
+    behavior:
+      type: categorical
+  - name: TECHNICIAN_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: technician_count
+    type: count
+    expression: "{technicians.TECHNICIAN_ID}"
+    description: Number of technicians
+    behavior:
+      type: flow

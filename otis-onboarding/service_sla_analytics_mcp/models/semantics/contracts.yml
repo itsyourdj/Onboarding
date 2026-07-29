@@ -1,0 +1,41 @@
+# Source: build follow-up (2026-07-29) — contracts bridge/dimension semantic model
+kind: semantic
+name: contracts
+depends_on: analytics.gold_contracts
+
+ai_context:
+  instructions: >
+    Golden service-contract dimension — one row per contract. Bridge model: join
+    here from callbacks, open_orders, or contract_compliance to connect any two
+    of those fact models to each other indirectly.
+  synonyms:
+    - "contracts"
+
+dimensions:
+  - ISACTIVE
+  - name: CONTRACTTYPE
+    behavior:
+      type: categorical
+  - name: SERVICETYPE
+    behavior:
+      type: categorical
+  - name: CONTRACTSTATUS
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: contract_count
+    type: count
+    expression: "{contracts.CONTRACT_ID}"
+    description: Number of contracts
+    behavior:
+      type: flow

@@ -1,0 +1,14 @@
+# Source: design spec > Section 7 (callback_volume_trend)
+kind: metric
+name: callback_volume_trend
+measure: callbacks.total_callbacks
+ts: callbacks.CALLBACK_DATE
+granularity: day
+
+dimensions:
+  - callbacks.CALLBACK_TYPE
+  - callbacks.PRODUCT_CLASS
+  - callbacks.REGION_DESC
+  - callbacks.GBO
+
+description: Callback/incident volume over time — answers "fault/incident volume trend"

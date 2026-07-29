@@ -1,0 +1,73 @@
+test_gold_callback_facts_basic:
+  model: analytics.gold_callback_facts
+  inputs:
+    '"SSD_NAA_PROD"."RL_AMERICA"."FLAT_CALLBACK_EVENT"':
+      rows:
+        - CALLBACKID: "CB100"
+          CALLBACK_DATE: "2026-07-01"
+          CALLBACK_DATE_TIME: "2026-07-01 08:30:00"
+          UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          CALLBACK_TYPE: "Trouble"
+          TCB_FLAG: "Y"
+          TRAPPED_PASSENGER_FLAG: "N"
+          OUT_OF_SERVICE_FLAG: "N"
+          FTFR_FLAG: "Y"
+          GBO: "BRANCH01"
+          EMP_NUMBER: "EMP001"
+          NAA_DISPATCHED_DATE: "2026-07-01 08:00:00"
+          ARRIVED_SITE: "2026-07-01 09:30:00"
+          CLOSED_ON: "2026-07-01 11:00:00"
+    '"NAABO_PROD"."REPORTING"."TBL_MECHANIC"':
+      rows:
+        - TECHNICIAN_ID: "TECH100"
+          EMP_NUMBER: "EMP001"
+          EMPLOYEE_FULL_NAME: "Jane Doe"
+          OFFICE_CODE: "OFC01"
+          GBO: "BRANCH01"
+          STATUS: "Active"
+    '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER"':
+      rows:
+        - UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          BUILDING_ID: "BLDG_1"
+          GBO: "BRANCH01"
+          PRODUCT_CLASS: "Elevator"
+          PRODUCT_NAME: "Gen2"
+          PRODUCT_SUBCLASS: "Traction"
+          UNIT_STATUS: "active"
+          IS_CONNECTED: true
+          OTIS_ONE_ENROLLED: true
+          CURRENT_HEALTH_SCORE: 0.9
+          MACHINE_NUMBER: "M123"
+    '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CUSTOMER_MASTER"':
+      rows:
+        - CUSTOMER_ID: "CUST_000001"
+          CUSTOMER_NAME: "Acme Corp"
+          CUSTOMER_CLASSIFICATION: "COMMERCIAL"
+          SALES_SEGMENT: "Enterprise"
+          REGION_DESC: "Northeast"
+          GBO: "BRANCH01"
+          COUNTRY_CD: "US"
+          BILLING_CURRENCY_CD: "USD"
+
+  outputs:
+    query:
+      partial: true
+      rows:
+        - CALLBACKID: "CB100"
+          UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          CALLBACK_TYPE: "Trouble"
+          TCB_FLAG: "Y"
+          OUT_OF_SERVICE_FLAG: "N"
+          FTFR_FLAG: "Y"
+          PRODUCT_CLASS: "Elevator"
+          REGION_DESC: "Northeast"
+          SALES_SEGMENT: "Enterprise"
+          TECHNICIAN_ID: "TECH100"
+          RESPONSE_TIME_HOURS: 1.0
+          RESOLUTION_TIME_HOURS: 3.0

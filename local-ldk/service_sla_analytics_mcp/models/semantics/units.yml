@@ -1,0 +1,49 @@
+# Source: build follow-up (2026-07-29) — units bridge/dimension semantic model
+kind: semantic
+name: units
+depends_on: analytics.gold_units
+
+ai_context:
+  instructions: >
+    Golden unit/equipment dimension — one row per unit. Bridge model: join here
+    from callbacks, open_orders, unit_health_daily, or contract_compliance to
+    connect any two of those fact models to each other indirectly (Vulcan does
+    not support many_to_many joins directly between facts).
+  synonyms:
+    - "units"
+    - "equipment"
+
+dimensions:
+  - MACHINE_NUMBER
+  - name: PRODUCT_CLASS
+    behavior:
+      type: categorical
+  - name: PRODUCT_NAME
+    behavior:
+      type: categorical
+  - name: PRODUCT_SUBCLASS
+    behavior:
+      type: categorical
+  - name: UNIT_STATUS
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: UNIT_ID
+    behavior:
+      type: identifier
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: unit_count
+    type: count
+    expression: "{units.UNIT_ID}"
+    description: Number of units
+    behavior:
+      type: flow

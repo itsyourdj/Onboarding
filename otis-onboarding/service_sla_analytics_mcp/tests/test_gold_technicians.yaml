@@ -1,0 +1,18 @@
+test_gold_technicians_basic:
+  model: analytics.gold_technicians
+  inputs:
+    '"NAABO_PROD"."REPORTING"."TBL_MECHANIC"':
+      rows:
+        - TECHNICIAN_ID: "TECH100"
+          EMPLOYEE_FULL_NAME: "Jane Doe"
+          OFFICE_CODE: "OFC01"
+          GBO: "BRANCH01"
+          STATUS: "Active"
+
+  outputs:
+    query:
+      partial: true
+      rows:
+        - TECHNICIAN_ID: "TECH100"
+          OFFICE_CODE: "OFC01"
+          STATUS: "Active"

@@ -1,0 +1,66 @@
+# Source: design spec > Section 5/6/7/15.5 (unit_health_daily semantic model)
+kind: semantic
+name: unit_health_daily
+depends_on: analytics.gold_unit_health_daily
+
+ai_context:
+  instructions: >
+    IoT telemetry snapshots — one row per unit per snapshot. Use fault_count/alarm_count
+    for fault trending.
+  synonyms:
+    - "unit health"
+    - "IoT telemetry"
+    - "otis one"
+
+dimensions:
+  - SNAPSHOT_DATE
+  - HEALTH_SCORE
+  - FAULT_COUNT
+  - ALARM_COUNT
+  - name: PRODUCT_CLASS
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: UNIT_ID
+    behavior:
+      type: identifier
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: fault_count
+    type: sum
+    expression: "{unit_health_daily.FAULT_COUNT}"
+    description: Sum of faults recorded in the IoT snapshot window
+    behavior:
+      type: flow
+
+  - name: alarm_count
+    type: sum
+    expression: "{unit_health_daily.ALARM_COUNT}"
+    description: Sum of alarms raised in the IoT snapshot window
+    behavior:
+      type: flow
+
+joins:
+  - name: units
+    type: many_to_one
+    expression: "{unit_health_daily.UNIT_ID} = {units.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Bridge join to the units dimension. Chain through here to connect
+        unit_health_daily indirectly to callbacks or open_orders on shared
+        unit attributes (Vulcan does not support many_to_many joins directly
+        between fact tables — this is the resolution).
+  - name: contracts
+    type: many_to_one
+    expression: "{unit_health_daily.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+  - name: customers
+    type: many_to_one
+    expression: "{unit_health_daily.CUSTOMER_ID} = {customers.CUSTOMER_ID}"

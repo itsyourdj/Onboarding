@@ -1,0 +1,35 @@
+test_gold_contract_compliance_basic:
+  model: analytics.gold_contract_compliance
+  inputs:
+    '"NAABO_PROD"."REPORTING"."SVC_COMPLIANCE"':
+      rows:
+        - CONTRACT_ID: "CONTRACT_000001"
+          UNIT_ID: "UNIT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          REGION: "Northeast"
+          GBO: "BRANCH01"
+          ACTUALVISITS12MONTHS: 10
+          VISITS12MONTHS: 12
+    '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CONTRACT_MASTER"':
+      rows:
+        - CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          BUILDING_ID: "BLDG_1"
+          CONTRACTTYPE: "full-service"
+          SERVICETYPE: "Premium"
+          CONTRACTSTATUS: "active"
+          ISACTIVE: true
+          GBO: "BRANCH01"
+          CONTRACTVALUE: 50000
+          GROSSMONTHLYBILLING: 4000
+          NETMONTHLYBILLING: 3800
+
+  outputs:
+    query:
+      partial: true
+      rows:
+        - CONTRACT_ID: "CONTRACT_000001"
+          UNIT_ID: "UNIT_000001"
+          ACTUALVISITS12MONTHS: 10
+          VISITS12MONTHS: 12
+          CONTRACTTYPE: "full-service"

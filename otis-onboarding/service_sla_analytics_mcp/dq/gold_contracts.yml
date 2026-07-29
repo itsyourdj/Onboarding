@@ -1,0 +1,18 @@
+# Source: build follow-up (2026-07-29) — contracts bridge/dimension model
+kind: dq
+name: gold_contracts_dq
+depends_on: analytics.gold_contracts
+
+# Profiled columns: grain key (PK) only. ISACTIVE (boolean) is intentionally
+# excluded; no numeric or time columns exist on this dimension model.
+profiles:
+  - CONTRACT_ID
+
+rules:
+  - missing_count(CONTRACT_ID) = 0:
+      name: contract_id_required
+      dimension: completeness
+
+  - duplicate_count(CONTRACT_ID) = 0:
+      name: unique_contract_ids
+      dimension: uniqueness

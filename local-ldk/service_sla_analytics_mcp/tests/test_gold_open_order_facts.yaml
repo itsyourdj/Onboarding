@@ -1,0 +1,43 @@
+test_gold_open_order_facts_basic:
+  model: analytics.gold_open_order_facts
+  inputs:
+    '"NAABO_PROD"."REPORTING"."OPORD_CNRCT_FCT"':
+      rows:
+        - ORDER_KEY: "ORD100"
+          UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          ORDER_TYPE: "repair"
+          ORDER_STATUS: "open"
+          ORDER_DATE: "2026-07-01"
+          JOB_REVENUE: 1000.00
+          JOB_COST: 600.00
+          JOB_MARGIN: 400.00
+          MARGIN_PCT: 0.4
+          GBO: "BRANCH01"
+    '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER"':
+      rows:
+        - UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          BUILDING_ID: "BLDG_1"
+          GBO: "BRANCH01"
+          PRODUCT_CLASS: "Elevator"
+          PRODUCT_NAME: "Gen2"
+          PRODUCT_SUBCLASS: "Traction"
+          UNIT_STATUS: "active"
+          IS_CONNECTED: true
+          OTIS_ONE_ENROLLED: true
+          CURRENT_HEALTH_SCORE: 0.9
+          MACHINE_NUMBER: "M123"
+
+  outputs:
+    query:
+      partial: true
+      rows:
+        - ORDER_KEY: "ORD100"
+          UNIT_ID: "UNIT_000001"
+          JOB_REVENUE: 1000.00
+          JOB_COST: 600.00
+          JOB_MARGIN: 400.00
+          PRODUCT_CLASS: "Elevator"

@@ -1,0 +1,13 @@
+# Source: design spec > Section 7 (trouble_callback_rate_trend)
+kind: metric
+name: trouble_callback_rate_trend
+measure: callbacks.trouble_callback_rate
+ts: callbacks.CALLBACK_DATE
+granularity: day
+
+dimensions:
+  - callbacks.PRODUCT_CLASS
+  - callbacks.REGION_DESC
+  - callbacks.GBO
+
+description: Trouble-callback rate over time — SLA-adjacent quality proxy

@@ -1,0 +1,13 @@
+# Source: build follow-up (2026-07-29) — real SLA response-time measure discovered
+kind: metric
+name: response_time_trend
+measure: callbacks.avg_response_time_hours
+ts: callbacks.CALLBACK_DATE
+granularity: day
+
+dimensions:
+  - callbacks.PRODUCT_CLASS
+  - callbacks.REGION_DESC
+  - callbacks.GBO
+
+description: Average hours between dispatch and on-site arrival, over time — real SLA response-time measure

@@ -1,0 +1,161 @@
+# Source: design spec > Section 13 Model Architecture (EXTERNAL sources)
+# These are the raw physical Snowflake tables underlying the Service Analytics
+# Semantic (Core) DP's semantic models (CALLBACKS, OPEN_ORDERS, TECHNICIANS,
+# CONTRACTS, CUSTOMERS, UNITS, SVC_CONTRACT_COMPLIANCE, OTIS_ONE_UNIT_HEALTH).
+# Owned by another team (Manish Agrawal) — used as-is, no modification.
+#
+# NOTE: columns previously marked "unconfirmed" (hidden by the discovery tool's
+# column cap) that ARE selected by a gold model SQL file were validated by a
+# successful `vulcan plan dev --auto-apply` against live Snowflake on 2026-07-29
+# (FTFR_FLAG, GBO on FLAT_CALLBACK_EVENT; VISITS12MONTHS on SVC_COMPLIANCE).
+# Columns not yet referenced by any model SQL remain marked TODO below.
+
+- name: '"SSD_NAA_PROD"."RL_AMERICA"."FLAT_CALLBACK_EVENT"'
+  description: "Raw callback events — reactive service visits triggered when a unit faults or is reported not working. Underlies the CALLBACKS semantic model."
+  # Full 39-column schema confirmed via live DESCRIBE TABLE on 2026-07-29
+  # (supersedes the earlier 20-column discovery-tool-capped list).
+  columns:
+    CALLBACKID: VARCHAR
+    CALLBACK_DATE: DATE
+    CALLBACK_DATE_TIME: TIMESTAMP
+    MACHINE_NUMBER: VARCHAR
+    UNIT_ID: VARCHAR
+    UNITID: NUMBER
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    BUILDING_NAME: VARCHAR
+    BLDG_CITY: VARCHAR
+    TERRITORY_NUMBER: VARCHAR
+    ORIGINAL_CALLBACK_TYPE: VARCHAR
+    CALLBACK_TYPE: VARCHAR
+    CALLBACKCODEID: VARCHAR
+    CALLBACKCODENAME: VARCHAR
+    COMPONENT_DESCRIPTION: VARCHAR
+    TCB_FLAG: VARCHAR
+    TRAPPED_PASSENGER_FLAG: VARCHAR
+    OUT_OF_SERVICE_FLAG: VARCHAR
+    NAA_DISPATCHED_DATE: TIMESTAMP
+    ARRIVED_SITE: TIMESTAMP
+    LEFT_SITE_BISDATE: TIMESTAMP
+    CLOSED_ON: TIMESTAMP
+    CLOSED_TIME: TIMESTAMP
+    MECHANIC_FULL_NAME: VARCHAR
+    EMP_NUMBER: VARCHAR
+    SUPERVISOREMPLOYEEID: NUMBER
+    SUPERVISORNAME: VARCHAR
+    INSTALLATION_DATE: DATE
+    PRODUCTCLASS: VARCHAR
+    PRODUCTSUBCLASS: VARCHAR
+    PRODUCTNAME: VARCHAR
+    GBO: VARCHAR
+    ADDITIONAL_COMPLAINT: VARCHAR
+    FTFR_FLAG: VARCHAR
+    REBELFLAG: VARCHAR
+    BATCH_ID: NUMBER
+    LOAD_TS: DATE
+
+- name: '"NAABO_PROD"."REPORTING"."OPORD_CNRCT_FCT"'
+  description: "Raw open-order / repair-job financial facts. Underlies the OPEN_ORDERS semantic model."
+  columns:
+    ORDER_KEY: VARCHAR
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    ORDER_TYPE: VARCHAR
+    ORDER_STATUS: VARCHAR
+    ORDER_DATE: DATE
+    JOB_REVENUE: DECIMAL
+    JOB_COST: DECIMAL
+    JOB_MARGIN: DECIMAL
+    MARGIN_PCT: DECIMAL
+    GBO: VARCHAR
+
+- name: '"NAABO_PROD"."REPORTING"."TBL_MECHANIC"'
+  description: "Raw field technician (mechanic) master. Underlies the TECHNICIANS semantic model. UPDATE (2026-07-29): EMP_NUMBER bridges to FLAT_CALLBACK_EVENT.EMP_NUMBER (~97% match rate) — no longer a standalone, unjoined reference."
+  # Full 15-column schema confirmed via live DESCRIBE TABLE on 2026-07-29.
+  columns:
+    TECHNICIAN_ID: VARCHAR
+    MECHANIC_ID: VARCHAR
+    EMP_NUMBER: VARCHAR
+    EMPLOYEEID: NUMBER
+    PAYROLL_NUMBER: NUMBER
+    EMPLOYEE_FULL_NAME: VARCHAR
+    OFFICE_CODE: VARCHAR
+    GBO: VARCHAR
+    SUPERVISOR_EMPLOYEE_ID: NUMBER
+    SUPERVISOR_NAME: VARCHAR
+    HIRE_DATE: DATE
+    STATUS: VARCHAR
+    LEGACYID: VARCHAR
+    BATCH_ID: NUMBER
+    LOAD_TS: DATE
+
+- name: '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CONTRACT_MASTER"'
+  description: "Golden service-contract master. Underlies the CONTRACTS semantic model."
+  columns:
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    CONTRACTTYPE: VARCHAR
+    SERVICETYPE: VARCHAR
+    CONTRACTSTATUS: VARCHAR
+    ISACTIVE: BOOLEAN
+    GBO: VARCHAR
+    CONTRACTVALUE: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasn't confirmed this column name
+    GROSSMONTHLYBILLING: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasn't confirmed this column name
+    NETMONTHLYBILLING: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasn't confirmed this column name
+
+- name: '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CUSTOMER_MASTER"'
+  description: "Golden customer master (one row per customer). Underlies the CUSTOMERS semantic model."
+  columns:
+    CUSTOMER_ID: VARCHAR
+    CUSTOMER_NAME: VARCHAR
+    CUSTOMER_CLASSIFICATION: VARCHAR
+    SALES_SEGMENT: VARCHAR
+    REGION_DESC: VARCHAR
+    GBO: VARCHAR
+    COUNTRY_CD: VARCHAR
+    BILLING_CURRENCY_CD: VARCHAR
+
+- name: '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER"'
+  description: "Golden unit/equipment master (analytic hub). Underlies the UNITS semantic model."
+  columns:
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    GBO: VARCHAR
+    PRODUCT_CLASS: VARCHAR
+    PRODUCT_NAME: VARCHAR
+    PRODUCT_SUBCLASS: VARCHAR
+    UNIT_STATUS: VARCHAR
+    IS_CONNECTED: BOOLEAN
+    OTIS_ONE_ENROLLED: BOOLEAN
+    CURRENT_HEALTH_SCORE: DECIMAL
+    MACHINE_NUMBER: VARCHAR
+
+- name: '"NAABO_PROD"."REPORTING"."SVC_COMPLIANCE"'
+  description: "Raw trailing-12-month contract visit compliance. Underlies the SVC_CONTRACT_COMPLIANCE semantic model."
+  columns:
+    CONTRACT_ID: VARCHAR
+    UNIT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    REGION: VARCHAR
+    GBO: VARCHAR
+    ACTUALVISITS12MONTHS: DECIMAL # CAVEAT: source docs describe this as "a timestamp, not a count" despite DECIMAL type — see data-product-plan.md Section 15 Coverage Gaps
+    VISITS12MONTHS: DECIMAL # TODO: unconfirmed — verify column exists (hidden by column cap; 23 total columns, only 20 exposed during discovery)
+
+- name: '"NAABO_PROD"."REPORTING"."OTISONEOXP"'
+  description: "Raw Otis ONE IoT telemetry snapshots. Underlies the OTIS_ONE_UNIT_HEALTH semantic model."
+  columns:
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    GBO: VARCHAR
+    SNAPSHOT_DATE: TIMESTAMP
+    FAULT_COUNT: DECIMAL
+    DOOR_FAULTS: DECIMAL
+    ALARM_COUNT: DECIMAL
+    HEALTH_SCORE: DECIMAL
+    RUN_HOURS: DECIMAL

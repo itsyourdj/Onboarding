@@ -1,0 +1,26 @@
+# Source: design spec > Section 15 Coverage Gaps (gold_contract_compliance_dq)
+kind: dq
+name: gold_contract_compliance_dq
+depends_on: analytics.gold_contract_compliance
+
+# Profiled columns: grain keys/FKs (CONTRACT_ID, UNIT_ID) + all numeric columns.
+# No time or boolean columns exist on this model.
+profiles:
+  - CONTRACT_ID
+  - UNIT_ID
+  - ACTUALVISITS12MONTHS
+  - VISITS12MONTHS
+
+rules:
+  - missing_count(CONTRACT_ID) = 0:
+      name: compliance_contract_required
+      dimension: completeness
+
+  - failed rows:
+      name: suspicious_actual_visits_value
+      dimension: accuracy
+      fail query: |
+        SELECT * FROM analytics.gold_contract_compliance
+        WHERE ACTUALVISITS12MONTHS > VISITS12MONTHS * 3
+      samples limit: 10
+      description: "[Estimated] Flags rows where ACTUALVISITS12MONTHS looks implausible relative to VISITS12MONTHS — supports investigating whether this column is a mislabeled timestamp upstream (see Coverage Gaps)"

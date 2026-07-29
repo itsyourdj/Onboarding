@@ -1,0 +1,18 @@
+# Source: build follow-up (2026-07-29) — gold_technicians had no DQ coverage
+kind: dq
+name: gold_technicians_dq
+depends_on: analytics.gold_technicians
+
+# Profiled columns: grain key (PK) only. No FK, numeric, time, or boolean
+# columns exist on this standalone reference model.
+profiles:
+  - TECHNICIAN_ID
+
+rules:
+  - missing_count(TECHNICIAN_ID) = 0:
+      name: technician_id_required
+      dimension: completeness
+
+  - duplicate_count(TECHNICIAN_ID) = 0:
+      name: unique_technician_ids
+      dimension: uniqueness

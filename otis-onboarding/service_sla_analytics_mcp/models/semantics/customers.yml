@@ -1,0 +1,40 @@
+# Source: build follow-up (2026-07-29) — customers bridge/dimension semantic model
+kind: semantic
+name: customers
+depends_on: analytics.gold_customers
+
+ai_context:
+  instructions: >
+    Golden customer dimension — one row per customer. Bridge model: join here
+    from callbacks, open_orders, unit_health_daily, or contract_compliance to
+    connect any two of those fact models to each other indirectly.
+  synonyms:
+    - "customers"
+
+dimensions:
+  - CUSTOMER_NAME
+  - COUNTRY_CD
+  - BILLING_CURRENCY_CD
+  - name: CUSTOMER_CLASSIFICATION
+    behavior:
+      type: categorical
+  - name: SALES_SEGMENT
+    behavior:
+      type: categorical
+  - name: REGION_DESC
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: customer_count
+    type: count
+    expression: "{customers.CUSTOMER_ID}"
+    description: Number of customers
+    behavior:
+      type: flow

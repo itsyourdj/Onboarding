@@ -1,0 +1,250 @@
+# Source: design spec > Section 5/6/7/15.5/15.6 (callbacks semantic model)
+kind: semantic
+name: callbacks
+depends_on: analytics.gold_callback_facts
+
+ai_context:
+  instructions:
+    - "Use this semantic model for questions about service callbacks/incidents on elevator and escalator units. One row represents one callback event."
+    - "Use total_callbacks for volume questions. Use avg_response_time_hours / avg_resolution_time_hours for real SLA timing (from dispatch->arrival and dispatch->close timestamps, discovered 2026-07-29). Use trouble_callback_rate / entrapment_rate / out_of_service_rate / first_time_fix_rate as additional quality-proxy measures."
+  synonyms:
+    - "callbacks"
+    - "service calls"
+    - "incidents"
+    - "trouble calls"
+  examples:
+    - description: "What is the fault/incident volume trend over time?"
+      format: sql
+      query: |
+        SELECT CALLBACK_DATE, MEASURE(callbacks.total_callbacks)
+        FROM callbacks
+        GROUP BY 1;
+    - description: "What is our average response time and resolution time?"
+      format: sql
+      query: |
+        SELECT MEASURE(callbacks.avg_response_time_hours), MEASURE(callbacks.avg_resolution_time_hours)
+        FROM callbacks;
+    - description: "Which technician handled the most callbacks?"
+      format: sql
+      query: |
+        SELECT technicians.EMPLOYEE_FULL_NAME, MEASURE(callbacks.total_callbacks)
+        FROM callbacks
+        GROUP BY 1
+        ORDER BY 2 DESC;
+
+dimensions:
+  - CALLBACKID
+  - CALLBACK_DATE
+  - CALLBACK_DATE_TIME
+  - TCB_FLAG
+  - TRAPPED_PASSENGER_FLAG
+  - OUT_OF_SERVICE_FLAG
+  - FTFR_FLAG
+  - name: CALLBACK_TYPE
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "callback type"
+        - "incident type"
+  - name: PRODUCT_CLASS
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "equipment type"
+        - "unit type"
+  - name: REGION_DESC
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "region"
+        - "territory"
+  - name: GBO
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "branch"
+        - "business org"
+      caveats:
+        - "Rough branch/region proxy — not validated against REGION_DESC"
+  - name: SALES_SEGMENT
+    behavior:
+      type: categorical
+  - name: CUSTOMER_CLASSIFICATION
+    behavior:
+      type: categorical
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+  - name: UNIT_ID
+    behavior:
+      type: identifier
+  - name: TECHNICIAN_ID
+    behavior:
+      type: identifier
+    ai_context:
+      synonyms:
+        - "technician"
+        - "mechanic"
+      caveats:
+        - "~97% of callbacks match a technician via EMP_NUMBER; ~3% have no match (join to technicians will be NULL)"
+  - DISPATCHED_AT
+  - ARRIVED_AT
+  - CLOSED_AT
+  - RESPONSE_TIME_HOURS
+  - RESOLUTION_TIME_HOURS
+
+measures:
+  - name: total_callbacks
+    type: count
+    expression: "{callbacks.CALLBACKID}"
+    description: Total number of callback events
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "callback volume"
+        - "incident count"
+
+  - name: trouble_callback_count
+    type: count
+    expression: "{callbacks.CALLBACKID}"
+    filters:
+      - "{callbacks.TCB_FLAG} = 'Y'"
+    description: Numerator helper for trouble_callback_rate — count of trouble callbacks
+    behavior:
+      type: flow
+
+  - name: entrapment_count
+    type: count
+    expression: "{callbacks.CALLBACKID}"
+    filters:
+      - "{callbacks.TRAPPED_PASSENGER_FLAG} = 'Y'"
+    description: Numerator helper for entrapment_rate — count of entrapment callbacks
+    behavior:
+      type: flow
+
+  - name: out_of_service_count
+    type: count
+    expression: "{callbacks.CALLBACKID}"
+    filters:
+      - "{callbacks.OUT_OF_SERVICE_FLAG} = 'Y'"
+    description: Numerator helper for out_of_service_rate — count of out-of-service callbacks
+    behavior:
+      type: flow
+
+  - name: first_time_fix_count
+    type: count
+    expression: "{callbacks.CALLBACKID}"
+    filters:
+      - "{callbacks.FTFR_FLAG} = 'Y'"
+    description: Numerator helper for first_time_fix_rate — count of first-time-fixed callbacks
+    behavior:
+      type: flow
+
+  - name: trouble_callback_rate
+    type: number
+    expression: "SUM(CASE WHEN {callbacks.TCB_FLAG} = 'Y' THEN 1 ELSE 0 END) * 1.00 / NULLIF(COUNT({callbacks.CALLBACKID}), 0)"
+    description: "Proxy SLA-adjacent measure — share of callbacks flagged as trouble callbacks. DOC/CLI SKEW: computed inline (not via behavior.ratio) because the installed CLI requires a non-empty expression for type: number measures."
+    ai_context:
+      synonyms:
+        - "SLA breach rate (proxy)"
+      caveats:
+        - "This is a proxy for SLA breach since no response/resolution timestamp exists — do not present as literal SLA compliance"
+
+  - name: entrapment_rate
+    type: number
+    expression: "SUM(CASE WHEN {callbacks.TRAPPED_PASSENGER_FLAG} = 'Y' THEN 1 ELSE 0 END) * 1.00 / NULLIF(COUNT({callbacks.CALLBACKID}), 0)"
+    description: "Share of callbacks involving a trapped passenger (safety incident)"
+    ai_context:
+      synonyms:
+        - "entrapment rate"
+        - "safety incident rate"
+      caveats:
+        - "Safety-critical — always show alongside absolute count for low-volume contracts"
+
+  - name: out_of_service_rate
+    type: number
+    expression: "SUM(CASE WHEN {callbacks.OUT_OF_SERVICE_FLAG} = 'Y' THEN 1 ELSE 0 END) * 1.00 / NULLIF(COUNT({callbacks.CALLBACKID}), 0)"
+    description: "Share of callbacks where the unit was out of service"
+    ai_context:
+      synonyms:
+        - "OOS rate"
+        - "downtime rate"
+
+  - name: first_time_fix_rate
+    type: number
+    expression: "SUM(CASE WHEN {callbacks.FTFR_FLAG} = 'Y' THEN 1 ELSE 0 END) * 1.00 / NULLIF(COUNT({callbacks.CALLBACKID}), 0)"
+    description: "Share of callbacks resolved on the first visit"
+    ai_context:
+      synonyms:
+        - "FTFR"
+
+  - name: avg_response_time_hours
+    type: avg
+    expression: "{callbacks.RESPONSE_TIME_HOURS}"
+    description: "Average hours between dispatch and on-site arrival. Real SLA response-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/ARRIVED_SITE columns not originally in the design spec)."
+    ai_context:
+      synonyms:
+        - "response time"
+        - "average response time"
+      caveats:
+        - "NULL when dispatch or arrival timestamp is missing (~11% of rows). A small number of rows show a negative duration (~-1 hour), likely clock-rounding artifacts — monitored via DQ, not filtered out."
+
+  - name: avg_resolution_time_hours
+    type: avg
+    expression: "{callbacks.RESOLUTION_TIME_HOURS}"
+    description: "Average hours between dispatch and callback close. Real SLA resolution-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/CLOSED_ON columns not originally in the design spec)."
+    ai_context:
+      synonyms:
+        - "resolution time"
+        - "average resolution time"
+      caveats:
+        - "NULL when dispatch or close timestamp is missing (~10% of rows)."
+
+segments:
+  - name: trouble_callbacks_only
+    expression: "{callbacks.TCB_FLAG} = 'Y'"
+    description: Only trouble callbacks
+  - name: entrapment_callbacks_only
+    expression: "{callbacks.TRAPPED_PASSENGER_FLAG} = 'Y'"
+    description: Only entrapment callbacks
+
+joins:
+  - name: contract_compliance
+    type: many_to_one
+    expression: "{callbacks.CONTRACT_ID} = {contract_compliance.CONTRACT_ID} AND {callbacks.UNIT_ID} = {contract_compliance.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Join to pull contract visit-compliance context (contract_visit_compliance_rate)
+        alongside callback measures for the same contract+unit. Many callbacks
+        match one contract_compliance row (grain: CONTRACT_ID + UNIT_ID) — safe
+        many_to_one, no fan-out risk.
+  - name: units
+    type: many_to_one
+    expression: "{callbacks.UNIT_ID} = {units.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Bridge join to the units dimension. Chain through here to connect
+        callbacks indirectly to unit_health_daily or open_orders on shared
+        unit attributes (Vulcan does not support many_to_many joins directly).
+  - name: contracts
+    type: many_to_one
+    expression: "{callbacks.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+  - name: customers
+    type: many_to_one
+    expression: "{callbacks.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
+  - name: technicians
+    type: many_to_one
+    expression: "{callbacks.TECHNICIAN_ID} = {technicians.TECHNICIAN_ID}"
+    ai_context:
+      instructions: >
+        Join to attribute callbacks to the attending technician (via EMP_NUMBER
+        bridge, ~97% match rate — discovered 2026-07-29). Resolves the
+        previously-documented "no technician-to-job link" limitation.

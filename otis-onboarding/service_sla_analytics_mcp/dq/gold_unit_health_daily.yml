@@ -1,0 +1,28 @@
+# Source: design spec > Section 15 Quality Rules (gold_unit_health_daily_dq)
+kind: dq
+name: gold_unit_health_daily_dq
+depends_on: analytics.gold_unit_health_daily
+
+# Profiled columns: grain key/FK (UNIT_ID) + all numeric columns.
+# SNAPSHOT_DATE (time) is intentionally excluded; no boolean columns exist here.
+profiles:
+  - UNIT_ID
+  - FAULT_COUNT
+  - DOOR_FAULTS
+  - ALARM_COUNT
+  - HEALTH_SCORE
+  - RUN_HOURS
+
+rules:
+  - missing_count(UNIT_ID) = 0:
+      name: unit_health_unit_required
+      dimension: completeness
+
+  - failed rows:
+      name: stale_telemetry_snapshot
+      dimension: timeliness
+      fail query: |
+        SELECT MAX(SNAPSHOT_DATE) AS latest_snapshot
+        FROM analytics.gold_unit_health_daily
+        HAVING MAX(SNAPSHOT_DATE) < CURRENT_TIMESTAMP - INTERVAL '48 hours'
+      description: "[Estimated] Freshness cadence is daily; checks only the MOST RECENT snapshot is within 48h — NOT a per-row check, since the table holds full historical backfill data where most rows are legitimately old. (Fixed 2026-07-29: original per-row check flagged nearly every historical row as stale.)"

@@ -1,0 +1,361 @@
+# Source: design spec > Section 13 Model Architecture (EXTERNAL sources)
+# These are the raw physical Snowflake tables underlying the Service Analytics
+# Semantic (Core) DPs semantic models (CALLBACKS, OPEN_ORDERS, TECHNICIANS,
+# CONTRACTS, CUSTOMERS, UNITS, SVC_CONTRACT_COMPLIANCE, OTIS_ONE_UNIT_HEALTH).
+# Owned by another team (Manish Agrawal) — used as-is, no modification.
+#
+# NOTE: columns previously marked unconfirmed (hidden by the discovery tools
+# column cap) that ARE selected by a gold model SQL file were validated by a
+# successful `vulcan plan dev --auto-apply` against live Snowflake on 2026-07-29
+# (FTFR_FLAG, GBO on FLAT_CALLBACK_EVENT; VISITS12MONTHS on SVC_COMPLIANCE).
+# Columns not yet referenced by any model SQL remain marked TODO below.
+#
+# column_descriptions / column_tags (2026-07-29, revised to business language):
+# descriptions explain what a column means to the business, not how its parsed.
+# Tag vocabulary is business-domain-oriented: customer, contract, billing,
+# equipment, technician, service_quality, safety, sla, revenue, cost,
+# profitability, compliance, branch, connectivity, pii.
+
+- name: SSD_NAA_PROD.RL_AMERICA.FLAT_CALLBACK_EVENT
+  description: Every reactive service visit logged when an elevator or escalator faults or is reported not working. Source for callback volume, service quality, technician attribution, and SLA response/resolution timing.
+  columns:
+    CALLBACKID: VARCHAR
+    CALLBACK_DATE: DATE
+    CALLBACK_DATE_TIME: TIMESTAMP
+    MACHINE_NUMBER: VARCHAR
+    UNIT_ID: VARCHAR
+    UNITID: NUMBER
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    BUILDING_NAME: VARCHAR
+    BLDG_CITY: VARCHAR
+    TERRITORY_NUMBER: VARCHAR
+    ORIGINAL_CALLBACK_TYPE: VARCHAR
+    CALLBACK_TYPE: VARCHAR
+    CALLBACKCODEID: VARCHAR
+    CALLBACKCODENAME: VARCHAR
+    COMPONENT_DESCRIPTION: VARCHAR
+    TCB_FLAG: VARCHAR
+    TRAPPED_PASSENGER_FLAG: VARCHAR
+    OUT_OF_SERVICE_FLAG: VARCHAR
+    NAA_DISPATCHED_DATE: TIMESTAMP
+    ARRIVED_SITE: TIMESTAMP
+    LEFT_SITE_BISDATE: TIMESTAMP
+    CLOSED_ON: TIMESTAMP
+    CLOSED_TIME: TIMESTAMP
+    MECHANIC_FULL_NAME: VARCHAR
+    EMP_NUMBER: VARCHAR
+    SUPERVISOREMPLOYEEID: NUMBER
+    SUPERVISORNAME: VARCHAR
+    INSTALLATION_DATE: DATE
+    PRODUCTCLASS: VARCHAR
+    PRODUCTSUBCLASS: VARCHAR
+    PRODUCTNAME: VARCHAR
+    GBO: VARCHAR
+    ADDITIONAL_COMPLAINT: VARCHAR
+    FTFR_FLAG: VARCHAR
+    REBELFLAG: VARCHAR
+    BATCH_ID: NUMBER
+    LOAD_TS: DATE
+  column_descriptions:
+    CALLBACKID: Unique number identifying this service callback
+    CALLBACK_DATE: Date the callback was reported
+    CALLBACK_DATE_TIME: Exact time the callback was reported
+    MACHINE_NUMBER: Machine number of the equipment serviced
+    UNIT_ID: The elevator/escalator unit this callback is for
+    UNITID: Legacy numeric unit reference used by older source systems
+    CONTRACT_ID: The service contract this callback falls under
+    CUSTOMER_ID: The customer who owns the equipment
+    BUILDING_ID: The building where the equipment is located
+    BUILDING_NAME: Name of the building where the equipment is located
+    BLDG_CITY: City where the building is located
+    TERRITORY_NUMBER: Service territory responsible for this callback
+    ORIGINAL_CALLBACK_TYPE: How the callback was originally categorized when logged
+    CALLBACK_TYPE: Final, cleaned-up category of the callback
+    CALLBACKCODEID: Code identifying the reported reason for the callback
+    CALLBACKCODENAME: Plain-language reason for the callback
+    COMPONENT_DESCRIPTION: The equipment component that failed
+    TCB_FLAG: Whether this was a trouble callback (Y/N) — a key service-quality signal
+    TRAPPED_PASSENGER_FLAG: Whether a passenger was trapped during this incident (Y/N) — a safety-critical signal
+    OUT_OF_SERVICE_FLAG: Whether the unit was left out of service (Y/N)
+    NAA_DISPATCHED_DATE: When a technician was dispatched for this callback — start of the SLA response-time clock
+    ARRIVED_SITE: When the technician arrived on site — end of the SLA response-time clock
+    LEFT_SITE_BISDATE: When the technician left the site
+    CLOSED_ON: When the callback was closed out — end of the SLA resolution-time clock
+    CLOSED_TIME: Time of day the callback was closed
+    MECHANIC_FULL_NAME: Name of the technician who attended the callback (customer-facing PII)
+    EMP_NUMBER: Employee number of the attending technician — links this callback to the technician roster
+    SUPERVISOREMPLOYEEID: Employee number of the attending technicians supervisor
+    SUPERVISORNAME: Name of the attending technicians supervisor (PII)
+    INSTALLATION_DATE: Date the equipment was originally installed
+    PRODUCTCLASS: Type of equipment (elevator, escalator, etc.)
+    PRODUCTSUBCLASS: More specific equipment type within its product class
+    PRODUCTNAME: Equipment model/product name
+    GBO: Branch or business unit responsible for this callback
+    ADDITIONAL_COMPLAINT: Free-text notes on additional customer complaints
+    FTFR_FLAG: Whether the issue was fixed on the first visit (Y/N) — a key service-quality signal
+    REBELFLAG: Whether this is a repeat callback for the same issue (Y/N)
+    BATCH_ID: Internal load batch reference
+    LOAD_TS: Date this record was last loaded
+  column_tags:
+    CALLBACKID: [callback]
+    UNIT_ID: [equipment]
+    CONTRACT_ID: [contract]
+    CUSTOMER_ID: [customer]
+    EMP_NUMBER: [technician]
+    TCB_FLAG: [service_quality]
+    TRAPPED_PASSENGER_FLAG: [safety]
+    OUT_OF_SERVICE_FLAG: [service_quality]
+    FTFR_FLAG: [service_quality]
+    REBELFLAG: [service_quality]
+    MECHANIC_FULL_NAME: [pii, technician]
+    SUPERVISORNAME: [pii]
+    NAA_DISPATCHED_DATE: [sla]
+    ARRIVED_SITE: [sla]
+    CLOSED_ON: [sla]
+    GBO: [branch]
+
+- name: NAABO_PROD.REPORTING.OPORD_CNRCT_FCT
+  description: Repair-job financials — the cost, revenue, and margin of every open repair job. Source for job profitability and repair-volume trending.
+  columns:
+    ORDER_KEY: VARCHAR
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    ORDER_TYPE: VARCHAR
+    ORDER_STATUS: VARCHAR
+    ORDER_DATE: DATE
+    JOB_REVENUE: DECIMAL
+    JOB_COST: DECIMAL
+    JOB_MARGIN: DECIMAL
+    MARGIN_PCT: DECIMAL
+    GBO: VARCHAR
+  column_descriptions:
+    ORDER_KEY: Unique number identifying this repair job
+    UNIT_ID: The elevator/escalator unit this job was performed on
+    CONTRACT_ID: The service contract this job falls under
+    CUSTOMER_ID: The customer who owns the equipment
+    ORDER_TYPE: Type of job (repair, callback, modernization, etc.)
+    ORDER_STATUS: Current status of the job (open, closed, etc.)
+    ORDER_DATE: Date the job was opened
+    JOB_REVENUE: Revenue booked for this job
+    JOB_COST: Cost incurred to complete this job
+    JOB_MARGIN: Profit made on this job (revenue minus cost)
+    MARGIN_PCT: Profit margin as a percentage of revenue
+    GBO: Branch or business unit responsible for this job
+  column_tags:
+    ORDER_KEY: [repair_job]
+    UNIT_ID: [equipment]
+    CONTRACT_ID: [contract]
+    CUSTOMER_ID: [customer]
+    JOB_REVENUE: [revenue]
+    JOB_COST: [cost]
+    JOB_MARGIN: [profitability]
+    MARGIN_PCT: [profitability]
+    GBO: [branch]
+
+- name: NAABO_PROD.REPORTING.TBL_MECHANIC
+  description: The technician (mechanic) roster. Links to callbacks via employee number to attribute service visits to the technician who performed them.
+  columns:
+    TECHNICIAN_ID: VARCHAR
+    MECHANIC_ID: VARCHAR
+    EMP_NUMBER: VARCHAR
+    EMPLOYEEID: NUMBER
+    PAYROLL_NUMBER: NUMBER
+    EMPLOYEE_FULL_NAME: VARCHAR
+    OFFICE_CODE: VARCHAR
+    GBO: VARCHAR
+    SUPERVISOR_EMPLOYEE_ID: NUMBER
+    SUPERVISOR_NAME: VARCHAR
+    HIRE_DATE: DATE
+    STATUS: VARCHAR
+    LEGACYID: VARCHAR
+    BATCH_ID: NUMBER
+    LOAD_TS: DATE
+  column_descriptions:
+    TECHNICIAN_ID: Unique number identifying this technician
+    MECHANIC_ID: Legacy technician reference used by older source systems
+    EMP_NUMBER: Employee number — the link between this technician and their attended callbacks
+    EMPLOYEEID: Numeric employee reference used by HR systems
+    PAYROLL_NUMBER: Payroll reference number
+    EMPLOYEE_FULL_NAME: Technicians full name (PII)
+    OFFICE_CODE: Home service office/branch for this technician
+    GBO: Branch or business unit this technician belongs to
+    SUPERVISOR_EMPLOYEE_ID: Employee number of this technicians supervisor
+    SUPERVISOR_NAME: Name of this technicians supervisor (PII)
+    HIRE_DATE: Date this technician was hired
+    STATUS: Current employment status (Active, Terminated, etc.)
+    LEGACYID: Legacy source-system reference
+    BATCH_ID: Internal load batch reference
+    LOAD_TS: Date this record was last loaded
+  column_tags:
+    TECHNICIAN_ID: [technician]
+    EMP_NUMBER: [technician]
+    EMPLOYEE_FULL_NAME: [pii, technician]
+    SUPERVISOR_NAME: [pii]
+    GBO: [branch]
+
+- name: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER
+  description: The master list of every service contract — who holds it, what it covers, and its billing terms. Source of truth for contract type, status, and billing.
+  columns:
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    CONTRACTTYPE: VARCHAR
+    SERVICETYPE: VARCHAR
+    CONTRACTSTATUS: VARCHAR
+    ISACTIVE: BOOLEAN
+    GBO: VARCHAR
+    CONTRACTVALUE: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasnt confirmed this column name
+    GROSSMONTHLYBILLING: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasnt confirmed this column name
+    NETMONTHLYBILLING: DECIMAL # TODO: unverified — not yet selected by any gold model SQL, so live plan hasnt confirmed this column name
+  column_descriptions:
+    CONTRACT_ID: Unique number identifying this service contract
+    CUSTOMER_ID: The customer who holds this contract
+    BUILDING_ID: The building this contract covers
+    CONTRACTTYPE: Type of contract (full-service, parts-only, etc.)
+    SERVICETYPE: Service level included in this contract
+    CONTRACTSTATUS: Current status of this contract
+    ISACTIVE: Whether this contract is currently active
+    GBO: Branch or business unit responsible for this contract
+    CONTRACTVALUE: Total value of this contract (TODO: column name not yet confirmed against live warehouse)
+    GROSSMONTHLYBILLING: Gross amount billed to the customer each month (TODO: column name not yet confirmed against live warehouse)
+    NETMONTHLYBILLING: Net amount billed to the customer each month, after adjustments (TODO: column name not yet confirmed against live warehouse)
+  column_tags:
+    CONTRACT_ID: [contract]
+    CUSTOMER_ID: [customer]
+    BUILDING_ID: [contract]
+    ISACTIVE: [contract]
+    CONTRACTVALUE: [revenue]
+    GROSSMONTHLYBILLING: [billing]
+    NETMONTHLYBILLING: [billing]
+    GBO: [branch]
+
+- name: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CUSTOMER_MASTER
+  description: The master list of every customer — one row per customer, with their classification, segment, and region.
+  columns:
+    CUSTOMER_ID: VARCHAR
+    CUSTOMER_NAME: VARCHAR
+    CUSTOMER_CLASSIFICATION: VARCHAR
+    SALES_SEGMENT: VARCHAR
+    REGION_DESC: VARCHAR
+    GBO: VARCHAR
+    COUNTRY_CD: VARCHAR
+    BILLING_CURRENCY_CD: VARCHAR
+  column_descriptions:
+    CUSTOMER_ID: Unique number identifying this customer
+    CUSTOMER_NAME: Customers legal/company name (PII)
+    CUSTOMER_CLASSIFICATION: Business classification of this customer
+    SALES_SEGMENT: Sales segment this customer belongs to
+    REGION_DESC: Sales region this customer belongs to
+    GBO: Branch or business unit responsible for this customer
+    COUNTRY_CD: Country this customer is based in
+    BILLING_CURRENCY_CD: Currency this customer is billed in
+  column_tags:
+    CUSTOMER_ID: [customer]
+    CUSTOMER_NAME: [pii, customer]
+    REGION_DESC: [customer]
+    SALES_SEGMENT: [customer]
+    GBO: [branch]
+
+- name: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_UNIT_MASTER
+  description: The master list of every piece of equipment (elevator/escalator unit) — its product type, status, contract, and connectivity.
+  columns:
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    BUILDING_ID: VARCHAR
+    GBO: VARCHAR
+    PRODUCT_CLASS: VARCHAR
+    PRODUCT_NAME: VARCHAR
+    PRODUCT_SUBCLASS: VARCHAR
+    UNIT_STATUS: VARCHAR
+    IS_CONNECTED: BOOLEAN
+    OTIS_ONE_ENROLLED: BOOLEAN
+    CURRENT_HEALTH_SCORE: DECIMAL
+    MACHINE_NUMBER: VARCHAR
+  column_descriptions:
+    UNIT_ID: Unique number identifying this piece of equipment
+    CONTRACT_ID: The service contract that covers this equipment
+    CUSTOMER_ID: The customer who owns this equipment
+    BUILDING_ID: The building this equipment is installed in
+    GBO: Branch or business unit responsible for this equipment
+    PRODUCT_CLASS: Type of equipment (elevator, escalator, etc.)
+    PRODUCT_NAME: Equipment model/product name
+    PRODUCT_SUBCLASS: More specific equipment type within its product class
+    UNIT_STATUS: Current lifecycle status of this equipment (active, removed, etc.)
+    IS_CONNECTED: Whether this equipment is connected to remote monitoring
+    OTIS_ONE_ENROLLED: Whether this equipment is enrolled in Otis ONE IoT monitoring
+    CURRENT_HEALTH_SCORE: Latest overall health score for this equipment, 0-1
+    MACHINE_NUMBER: Machine number of this equipment
+  column_tags:
+    UNIT_ID: [equipment]
+    CONTRACT_ID: [contract]
+    CUSTOMER_ID: [customer]
+    BUILDING_ID: [equipment]
+    IS_CONNECTED: [connectivity]
+    OTIS_ONE_ENROLLED: [connectivity]
+    CURRENT_HEALTH_SCORE: [equipment_health]
+    GBO: [branch]
+
+- name: NAABO_PROD.REPORTING.SVC_COMPLIANCE
+  description: Trailing-12-month contract visit compliance — how many maintenance visits were actually completed versus required, per contract and unit.
+  columns:
+    CONTRACT_ID: VARCHAR
+    UNIT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    REGION: VARCHAR
+    GBO: VARCHAR
+    ACTUALVISITS12MONTHS: DECIMAL # CAVEAT: source docs describe this as a timestamp, not a count despite DECIMAL type — see data-product-plan.md Section 15 Coverage Gaps
+    VISITS12MONTHS: DECIMAL # TODO: unconfirmed — verify column exists (hidden by column cap; 23 total columns, only 20 exposed during discovery)
+  column_descriptions:
+    CONTRACT_ID: The service contract this compliance record is for
+    UNIT_ID: The equipment this compliance record is for
+    CUSTOMER_ID: The customer who owns the equipment
+    REGION: Sales/service region for this contract
+    GBO: Branch or business unit responsible for this contract
+    ACTUALVISITS12MONTHS: Maintenance visits actually completed in the trailing 12 months. CAVEAT: this column may actually hold a timestamp rather than a count in the source system — see data-product-plan.md Coverage Gaps before trusting this number
+    VISITS12MONTHS: Maintenance visits required under the contract in the trailing 12 months (TODO: column name not yet confirmed against live warehouse)
+  column_tags:
+    CONTRACT_ID: [contract]
+    UNIT_ID: [equipment]
+    CUSTOMER_ID: [customer]
+    ACTUALVISITS12MONTHS: [compliance]
+    VISITS12MONTHS: [compliance]
+    GBO: [branch]
+
+- name: NAABO_PROD.REPORTING.OTISONEOXP
+  description: Otis ONE IoT telemetry — periodic health snapshots for connected equipment, including fault counts, alarms, and run hours. Source for equipment health and fault trending.
+  columns:
+    UNIT_ID: VARCHAR
+    CONTRACT_ID: VARCHAR
+    CUSTOMER_ID: VARCHAR
+    GBO: VARCHAR
+    SNAPSHOT_DATE: TIMESTAMP
+    FAULT_COUNT: DECIMAL
+    DOOR_FAULTS: DECIMAL
+    ALARM_COUNT: DECIMAL
+    HEALTH_SCORE: DECIMAL
+    RUN_HOURS: DECIMAL
+  column_descriptions:
+    UNIT_ID: The equipment this telemetry snapshot is for
+    CONTRACT_ID: The service contract that covers this equipment
+    CUSTOMER_ID: The customer who owns this equipment
+    GBO: Branch or business unit responsible for this equipment
+    SNAPSHOT_DATE: When this telemetry snapshot was captured. CAVEAT: the most recent snapshot seen was 2026-06-27, about a month old as of 2026-07-28 — see data-product-plan.md Open Questions
+    FAULT_COUNT: Total faults recorded since the last snapshot
+    DOOR_FAULTS: Door-related faults recorded since the last snapshot
+    ALARM_COUNT: Alarms raised since the last snapshot
+    HEALTH_SCORE: Composite equipment health score at the time of the snapshot, 0-1
+    RUN_HOURS: Hours the equipment was in operation since the last snapshot
+  column_tags:
+    UNIT_ID: [equipment]
+    CONTRACT_ID: [contract]
+    CUSTOMER_ID: [customer]
+    FAULT_COUNT: [equipment_health]
+    DOOR_FAULTS: [equipment_health]
+    ALARM_COUNT: [equipment_health]
+    HEALTH_SCORE: [equipment_health]
+    RUN_HOURS: [equipment_utilization]
+    GBO: [branch]

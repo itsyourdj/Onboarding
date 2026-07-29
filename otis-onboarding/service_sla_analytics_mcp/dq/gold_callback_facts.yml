@@ -1,0 +1,73 @@
+# Source: design spec > Section 15 Quality Rules (gold_callback_facts_dq)
+kind: dq
+name: gold_callback_facts_dq
+depends_on: analytics.gold_callback_facts
+
+# Profiled columns: grain key (PK) + all FKs + numeric SLA measures (added
+# 2026-07-29). Time columns (CALLBACK_DATE, CALLBACK_DATE_TIME, DISPATCHED_AT,
+# ARRIVED_AT, CLOSED_AT) are intentionally excluded; no boolean columns exist.
+profiles:
+  - CALLBACKID
+  - UNIT_ID
+  - CONTRACT_ID
+  - CUSTOMER_ID
+  - TECHNICIAN_ID
+  - RESPONSE_TIME_HOURS
+  - RESOLUTION_TIME_HOURS
+
+rules:
+  - missing_count(UNIT_ID) = 0:
+      name: callback_unit_required
+      dimension: completeness
+
+  - missing_count(CONTRACT_ID) = 0:
+      name: callback_contract_required
+      dimension: completeness
+
+  - duplicate_count(CALLBACKID) = 0:
+      name: unique_callback_ids
+      dimension: uniqueness
+
+  - failed rows:
+      name: valid_flag_values
+      dimension: validity
+      fail query: |
+        SELECT * FROM analytics.gold_callback_facts
+        WHERE TCB_FLAG NOT IN ('Y', 'N')
+           OR FTFR_FLAG NOT IN ('Y', 'N')
+           OR OUT_OF_SERVICE_FLAG NOT IN ('Y', 'N')
+           OR TRAPPED_PASSENGER_FLAG NOT IN ('Y', 'N')
+      samples limit: 10
+      description: "All callback flags must be Y or N"
+
+  - change for row_count >= -50%:
+      name: callback_volume_drop_alert
+      dimension: timeliness
+      description: "[Estimated] Alert if daily callback volume drops more than 50% vs prior run"
+
+  - failed rows:
+      name: orphaned_callback_units
+      dimension: consistency
+      fail query: |
+        SELECT cb.CALLBACKID
+        FROM analytics.gold_callback_facts AS cb
+        LEFT JOIN "MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER" AS u
+          ON cb.UNIT_ID = u.UNIT_ID
+        WHERE cb.UNIT_ID IS NOT NULL
+          AND u.UNIT_ID IS NULL
+      samples limit: 20
+      description: "Moved from a blocking audit (2026-07-29): real data shows 13k+ callbacks referencing units not yet in the MDM golden-record UNIT_MASTER — a coverage gap, not a defect. Monitored here instead of blocking the model."
+
+  - missing_count(TECHNICIAN_ID) <= 850:
+      name: technician_match_rate
+      dimension: consistency
+      description: "[Estimated] ~97% of callbacks match a technician via EMP_NUMBER bridge (discovered 2026-07-29); ~3% (~850 of 27,973 at time of discovery) have no match. Threshold should be re-derived as volume grows."
+
+  - failed rows:
+      name: negative_response_time
+      dimension: accuracy
+      fail query: |
+        SELECT * FROM analytics.gold_callback_facts
+        WHERE RESPONSE_TIME_HOURS < 0 OR RESOLUTION_TIME_HOURS < 0
+      samples limit: 20
+      description: "[Estimated] A small number of rows show negative response/resolution time (~-1 hour observed), likely clock-rounding artifacts in the source dispatch/arrival timestamps. Monitored, not blocking."

@@ -1,0 +1,70 @@
+# Source: design spec > Section 5/6/7/15.5 (contract_compliance semantic model)
+kind: semantic
+name: contract_compliance
+depends_on: analytics.gold_contract_compliance
+
+ai_context:
+  instructions: >
+    Trailing-12-month contract visit compliance — one row per contract per unit.
+    Caveat: ACTUALVISITS12MONTHS may be a mislabeled timestamp column upstream
+    (see data-product-plan.md Section 15 Coverage Gaps) — verify before trusting
+    contract_visit_compliance_rate.
+  synonyms:
+    - "visit compliance"
+    - "maintenance compliance"
+
+dimensions:
+  - REGION
+  - ACTUALVISITS12MONTHS
+  - VISITS12MONTHS
+  - name: CONTRACTTYPE
+    behavior:
+      type: categorical
+  - name: GBO
+    behavior:
+      type: categorical
+  - name: CONTRACT_ID
+    behavior:
+      type: identifier
+  - name: UNIT_ID
+    behavior:
+      type: identifier
+  - name: CUSTOMER_ID
+    behavior:
+      type: identifier
+
+measures:
+  - name: actual_visits_sum
+    type: sum
+    expression: "{contract_compliance.ACTUALVISITS12MONTHS}"
+    description: "Numerator helper for contract_visit_compliance_rate. CAVEAT: source column may be a mislabeled timestamp, not a count."
+    behavior:
+      type: flow
+
+  - name: expected_visits_sum
+    type: sum
+    expression: "{contract_compliance.VISITS12MONTHS}"
+    description: Denominator helper for contract_visit_compliance_rate
+    behavior:
+      type: flow
+
+  - name: contract_visit_compliance_rate
+    type: number
+    expression: "SUM({contract_compliance.ACTUALVISITS12MONTHS}) * 1.00 / NULLIF(SUM({contract_compliance.VISITS12MONTHS}), 0)"
+    description: "Share of expected maintenance visits actually completed, trailing 12 months. DOC/CLI SKEW: computed inline (not via behavior.ratio) because the installed CLI requires a non-empty expression for type: number measures. CAVEAT: ACTUALVISITS12MONTHS may be a mislabeled timestamp column upstream — see data-product-plan.md Section 15 Coverage Gaps."
+
+joins:
+  - name: units
+    type: many_to_one
+    expression: "{contract_compliance.UNIT_ID} = {units.UNIT_ID}"
+    ai_context:
+      instructions: >
+        Bridge join to the units dimension. Chain through here to connect
+        contract_compliance indirectly to callbacks, open_orders, or
+        unit_health_daily on shared unit attributes.
+  - name: contracts
+    type: many_to_one
+    expression: "{contract_compliance.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+  - name: customers
+    type: many_to_one
+    expression: "{contract_compliance.CUSTOMER_ID} = {customers.CUSTOMER_ID}"

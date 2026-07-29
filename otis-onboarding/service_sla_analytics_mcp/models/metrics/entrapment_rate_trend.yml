@@ -1,0 +1,13 @@
+# Source: design spec > Section 7 (entrapment_rate_trend)
+kind: metric
+name: entrapment_rate_trend
+measure: callbacks.entrapment_rate
+ts: callbacks.CALLBACK_DATE
+granularity: day
+
+dimensions:
+  - callbacks.PRODUCT_CLASS
+  - callbacks.REGION_DESC
+  - callbacks.GBO
+
+description: Entrapment (safety) rate over time

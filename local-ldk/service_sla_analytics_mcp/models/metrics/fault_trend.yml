@@ -1,0 +1,12 @@
+# Source: design spec > Section 7 (fault_trend)
+kind: metric
+name: fault_trend
+measure: unit_health_daily.fault_count
+ts: unit_health_daily.SNAPSHOT_DATE
+granularity: day
+
+dimensions:
+  - unit_health_daily.PRODUCT_CLASS
+  - unit_health_daily.GBO
+
+description: IoT-detected fault volume over time

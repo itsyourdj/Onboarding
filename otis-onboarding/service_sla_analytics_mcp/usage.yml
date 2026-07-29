@@ -1,0 +1,35 @@
+good_for:
+  - title: Service callback / incident volume and quality trending
+    details: Track callback volume, trouble-callback rate, entrapment rate, out-of-service rate, and first-time-fix rate over time by region, product class, and branch.
+  - title: Real SLA response-time and resolution-time reporting
+    details: "Added 2026-07-29: gold_callback_facts carries real dispatch/arrival/close timestamps (avg_response_time_hours, avg_resolution_time_hours). Live averages ~2.8h response, ~7.0h resolution, ~89-100% populated."
+  - title: Per-technician callback attribution
+    details: "Added 2026-07-29: callbacks joins to technicians via an EMP_NUMBER bridge (~97% match rate, 27,159 of 27,973 callbacks). Supports questions like 'which technician handled the most callbacks'."
+  - title: Repair-job / open-order financial and volume trending
+    details: Track open-order counts, job cost, revenue, and margin over time.
+  - title: Equipment fault/alarm trending
+    details: Track IoT-detected fault and alarm counts by unit over time via Otis ONE telemetry.
+  - title: Contract visit compliance monitoring
+    details: Track trailing-12-month actual vs. expected maintenance visits by contract and unit.
+  - title: Cross-fact analysis via shared dimensions
+    details: "Added 2026-07-29: callbacks, open_orders, unit_health_daily, and contract_compliance all join many_to_one to shared units/contracts/customers bridge dimensions, enabling indirect cross-fact analysis."
+
+not_for:
+  - title: Per-technician performance benchmarking without caveats
+    details: Technician attribution now exists (~97% match rate) but has not been validated for completeness/accuracy beyond the match-rate check — treat volume-based attribution as directional, not a formal performance review, until further validated.
+
+caveats:
+  - title: Table profiling has not been run
+    details: Row counts, null rates, and freshness for all 8 source tables are unverified. Quality-rule thresholds are marked [Estimated] and should be re-derived once real data volumes are known.
+    severity: medium
+  - title: contract_visit_compliance_rate may be unreliable
+    details: The source column ACTUALVISITS12MONTHS is documented by its owning data product as "a timestamp, not a count" despite being typed NUMERIC. Verify before trusting this measure.
+    severity: medium
+  - title: No population filter applied
+    details: All records are included regardless of contract/unit active status. Use the active_contracts / active_units segments to filter at query time instead.
+    severity: low
+
+references:
+  - title: Design spec
+    url: ./data-product-plan.md
+    type: doc

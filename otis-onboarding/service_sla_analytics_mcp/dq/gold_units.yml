@@ -1,0 +1,18 @@
+# Source: build follow-up (2026-07-29) — units bridge/dimension model
+kind: dq
+name: gold_units_dq
+depends_on: analytics.gold_units
+
+# Profiled columns: grain key (PK) only. No numeric, time, or boolean columns
+# exist on this dimension model.
+profiles:
+  - UNIT_ID
+
+rules:
+  - missing_count(UNIT_ID) = 0:
+      name: unit_id_required
+      dimension: completeness
+
+  - duplicate_count(UNIT_ID) = 0:
+      name: unique_unit_ids
+      dimension: uniqueness

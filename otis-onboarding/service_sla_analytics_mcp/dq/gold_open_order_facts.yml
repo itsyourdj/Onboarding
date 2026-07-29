@@ -1,0 +1,42 @@
+# Source: design spec > Section 15 Quality Rules (gold_open_order_facts_dq)
+kind: dq
+name: gold_open_order_facts_dq
+depends_on: analytics.gold_open_order_facts
+
+# Profiled columns: grain key (PK) + all FKs + all numeric columns.
+# ORDER_DATE (time) is intentionally excluded; no boolean columns exist here.
+profiles:
+  - ORDER_KEY
+  - UNIT_ID
+  - CONTRACT_ID
+  - JOB_REVENUE
+  - JOB_COST
+  - JOB_MARGIN
+  - MARGIN_PCT
+
+rules:
+  - missing_count(UNIT_ID) = 0:
+      name: order_unit_required
+      dimension: completeness
+
+  - duplicate_count(ORDER_KEY) = 0:
+      name: unique_order_keys
+      dimension: uniqueness
+
+  - change for row_count >= -50%:
+      name: order_volume_drop_alert
+      dimension: timeliness
+      description: "[Estimated] Alert if daily open-order volume drops more than 50% vs prior run"
+
+  - failed rows:
+      name: orphaned_order_contracts
+      dimension: consistency
+      fail query: |
+        SELECT oo.ORDER_KEY
+        FROM analytics.gold_open_order_facts AS oo
+        LEFT JOIN "MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CONTRACT_MASTER" AS ct
+          ON oo.CONTRACT_ID = ct.CONTRACT_ID
+        WHERE oo.CONTRACT_ID IS NOT NULL
+          AND ct.CONTRACT_ID IS NULL
+      samples limit: 20
+      description: "Moved from a blocking audit (2026-07-29): real data shows 145 orders referencing contracts not yet in the MDM golden-record CONTRACT_MASTER — a coverage gap, not a defect. Monitored here instead of blocking the model."

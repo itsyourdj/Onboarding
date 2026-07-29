@@ -1,0 +1,39 @@
+test_gold_unit_health_daily_basic:
+  model: analytics.gold_unit_health_daily
+  inputs:
+    '"NAABO_PROD"."REPORTING"."OTISONEOXP"':
+      rows:
+        - UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          GBO: "BRANCH01"
+          SNAPSHOT_DATE: "2026-07-01 00:00:00"
+          FAULT_COUNT: 3
+          DOOR_FAULTS: 1
+          ALARM_COUNT: 2
+          HEALTH_SCORE: 0.85
+          RUN_HOURS: 120
+    '"MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER"':
+      rows:
+        - UNIT_ID: "UNIT_000001"
+          CONTRACT_ID: "CONTRACT_000001"
+          CUSTOMER_ID: "CUST_000001"
+          BUILDING_ID: "BLDG_1"
+          GBO: "BRANCH01"
+          PRODUCT_CLASS: "Elevator"
+          PRODUCT_NAME: "Gen2"
+          PRODUCT_SUBCLASS: "Traction"
+          UNIT_STATUS: "active"
+          IS_CONNECTED: true
+          OTIS_ONE_ENROLLED: true
+          CURRENT_HEALTH_SCORE: 0.9
+          MACHINE_NUMBER: "M123"
+
+  outputs:
+    query:
+      partial: true
+      rows:
+        - UNIT_ID: "UNIT_000001"
+          FAULT_COUNT: 3
+          ALARM_COUNT: 2
+          PRODUCT_CLASS: "Elevator"

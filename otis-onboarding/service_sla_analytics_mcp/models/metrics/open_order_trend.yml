@@ -1,0 +1,12 @@
+# Source: design spec > Section 7 (open_order_trend)
+kind: metric
+name: open_order_trend
+measure: open_orders.open_order_count
+ts: open_orders.ORDER_DATE
+granularity: day
+
+dimensions:
+  - open_orders.PRODUCT_CLASS
+  - open_orders.GBO
+
+description: Repair-job/open-order volume over time

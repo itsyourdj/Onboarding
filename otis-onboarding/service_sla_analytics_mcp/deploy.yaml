@@ -23,9 +23,9 @@ spec:
     type: schedule
     schedule:
       crons:
-        - "0 5 * * *"
-      endOn: "2027-01-01T00:00:00-00:00"
-      timezone: "US/Pacific"
+        - "30 11 * * *"
+      timezone: "Asia/Kolkata"
+      endOn: "2027-01-01T00:00:00Z"
       concurrencyPolicy: Forbid
     logLevel: INFO
     resource:

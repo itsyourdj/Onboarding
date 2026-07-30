@@ -8,6 +8,7 @@ import { overviewRouter } from "./routes/overview.js";
 import { customersRouter } from "./routes/customers.js";
 import { insightsRouter } from "./routes/insights.js";
 import { filtersRouter } from "./routes/filters.js";
+import { authRouter } from "./routes/auth.js";
 import { getScoredCustomers } from "./services/cache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,7 @@ router.use("/api/overview", overviewRouter);
 router.use("/api/customers", customersRouter);
 router.use("/api/insights", insightsRouter);
 router.use("/api/filters", filtersRouter);
+router.use("/api/auth", authRouter);
 
 // Serve the built frontend (present in production images). STATIC_DIR overrides.
 const staticDir = process.env.STATIC_DIR || path.join(__dirname, "../public");

@@ -16,6 +16,7 @@ import { fetchInsights } from "../lib/api";
 import { Card, SectionTitle, Spinner, EmptyState } from "../components/ui";
 import { ChartTooltip } from "../components/charts";
 import { soft } from "../lib/health";
+import { AccessRestricted } from "../components/AccessRestricted";
 
 const GRID = "rgba(148,163,184,0.18)";
 const AXIS = "#94a3b8";
@@ -33,7 +34,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   Unknown: "#94a3b8",
 };
 
-export default function Insights() {
+export default function Insights({ fullAccess }: { fullAccess: boolean }) {
+  if (!fullAccess) return <AccessRestricted tabName="Satisfaction Insights" />;
+
   const { data, isLoading } = useQuery({ queryKey: ["insights"], queryFn: fetchInsights });
   if (isLoading || !data) return <Spinner label="Analysing voice of customer…" />;
 

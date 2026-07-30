@@ -21,7 +21,7 @@ spec:
       memory: 4Gi
   service:
     type: node-js
-    image: deepak2407/customer-health-app:0.0.2
+    image: deepak2407/customer-health-app:0.0.5
     # imagePullSecret: docker-cred
     command:
       - npm
@@ -32,6 +32,7 @@ spec:
       NODE_ENV: production
       PORT: "4000"
       DATA_SOURCE: semantic
+      DATAOS_ENV: "https://clienttech.instance.dataos.cloud"
       SEMANTIC_API_URL: "https://clienttech.instance.dataos.cloud/vulcan/tenants/otis-onboarding/data-products/otis-onboarding-service-analytic-enhanced"
       # Do not commit real tokens in git; inject this from platform secret management.
       SEMANTIC_API_TOKEN: "<set-via-secret>"

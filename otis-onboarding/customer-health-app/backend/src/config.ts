@@ -1,6 +1,24 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+function readDataosContext() {
+  const semanticUrl = (process.env.SEMANTIC_API_URL ?? "").trim();
+  if (!semanticUrl) return { semanticUrl: "", dataosOrigin: "", tenantId: "" };
+  try {
+    const parsed = new URL(semanticUrl);
+    const tenantMatch = parsed.pathname.match(/\/tenants\/([^/]+)/i);
+    return {
+      semanticUrl: semanticUrl.replace(/\/+$/, ""),
+      dataosOrigin: parsed.origin.replace(/\/+$/, ""),
+      tenantId: tenantMatch?.[1] ?? "",
+    };
+  } catch {
+    return { semanticUrl: semanticUrl.replace(/\/+$/, ""), dataosOrigin: "", tenantId: "" };
+  }
+}
+
+const dataos = readDataosContext();
+
 // dev | prod — lets us run the same build against local Postgres (dev) or the
 // provisioned/semantic backend (prod) just by flipping env vars.
 const appEnv = (process.env.APP_ENV ?? process.env.NODE_ENV ?? "dev").toLowerCase();
@@ -19,7 +37,7 @@ export const config = {
   dataDir: process.env.DATA_DIR ?? "",
   semantic: {
     // Data-product BASE url; the client appends /api/v1/query/... paths.
-    url: (process.env.SEMANTIC_API_URL ?? "").replace(/\/+$/, ""),
+    url: dataos.semanticUrl,
     token: process.env.SEMANTIC_API_TOKEN ?? "",
     // How many async queries to run in parallel (gateway throttles high concurrency).
     concurrency: Number(process.env.SEMANTIC_CONCURRENCY ?? 3),
@@ -32,4 +50,5 @@ export const config = {
   cacheTtlMs: Number(
     process.env.CACHE_TTL_MS ?? (appEnv.startsWith("prod") ? 600000 : 60000)
   ),
+  dataos,
 };

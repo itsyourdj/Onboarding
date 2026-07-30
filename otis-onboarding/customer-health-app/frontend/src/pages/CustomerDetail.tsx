@@ -30,11 +30,14 @@ import { Card, HealthBadge, NpsBadge, SectionTitle, Spinner, StatLine, ProgressB
 import { fmtCurrency, fmtDate, fmtNum, fmtPct } from "../lib/format";
 import { scoreColor, soft, CHART } from "../lib/health";
 import { ChartTooltip } from "../components/charts";
+import { AccessRestricted } from "../components/AccessRestricted";
 
 const GRID = "rgba(148,163,184,0.18)";
 const AXIS = "#94a3b8";
 
-export default function CustomerDetail() {
+export default function CustomerDetail({ fullAccess }: { fullAccess: boolean }) {
+  if (!fullAccess) return <AccessRestricted tabName="Customer Detail" />;
+
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useQuery({ queryKey: ["customer", id], queryFn: () => fetchCustomer(id!), enabled: !!id });
   if (isLoading || !data) return <Spinner label="Loading customer profile…" />;

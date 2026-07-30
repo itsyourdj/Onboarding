@@ -15,7 +15,7 @@ const nav = [
   { to: "/insights", label: "Satisfaction Insights", icon: MessageSquareHeart, end: false },
 ];
 
-export default function Layout({ children }: { children: ReactNode }) {
+export default function Layout({ children, fullAccess }: { children: ReactNode; fullAccess: boolean }) {
   const [collapsed, setCollapsed] = useState<boolean>(
     () => typeof window !== "undefined" && localStorage.getItem("ch.sidebar") === "1"
   );
@@ -33,6 +33,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           collapsed ? "md:pl-[84px]" : "md:pl-[280px]",
         ].join(" ")}
       >
+        {!fullAccess && (
+          <div className="border-b border-divider bg-bg-secondary px-6 py-3 text-sm text-fg-secondary lg:px-10">
+            Limited access: some tabs are restricted for your current role.
+          </div>
+        )}
         <main className="min-w-0 flex-1 px-6 py-8 lg:px-10">
           <div className="mx-auto w-full max-w-[1320px] animate-fade-in">{children}</div>
         </main>

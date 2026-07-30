@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { getExpiryMs, isAuthenticated, redirectToLogin, IS_DEV_HOST } from "../lib/auth";
+import { getExpiryMs, isAuthenticated, redirectToLogin } from "../lib/auth";
 
 // Session-scoped so the splash shows once when the app is opened, but NOT
 // on a refresh within the same tab session. sessionStorage survives reloads
@@ -154,11 +154,8 @@ function Splash() {
 
 function AuthRedirectSplash({ reason }: { reason: "signed-out" | "expired" }) {
   const [secs, setSecs] = useState<number>(REDIRECT_SECONDS);
-  // Dev-only escape hatch: pause the redirect so a fresh token can be pasted.
-  const [paused, setPaused] = useState<boolean>(false);
 
   useEffect(() => {
-    if (paused) return;
     console.warn(
       reason === "expired"
         ? "[Pulse] Auth: session expired — redirecting to sign in."
@@ -170,36 +167,12 @@ function AuthRedirectSplash({ reason }: { reason: "signed-out" | "expired" }) {
       clearInterval(tick);
       clearTimeout(t);
     };
-  }, [paused, reason]);
+  }, [reason]);
 
   const subtitle =
     reason === "expired" ? "Your DataOS session has expired" : "You're not signed in to DataOS";
 
-  const footer = paused
-    ? "Redirect paused (dev) — paste a valid token, then reload."
-    : `Redirecting you to sign in… (${secs}s)`;
-
-  // The stop/reload controls are ONLY rendered on a dev host. In the deployed
-  // build (served from the DataOS FQDN) IS_DEV_HOST is false → strict redirect.
-  const action = IS_DEV_HOST ? (
-    paused ? (
-      <button
-        type="button"
-        onClick={() => window.location.reload()}
-        className="rounded-lg bg-action-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-      >
-        Reload app
-      </button>
-    ) : (
-      <button
-        type="button"
-        onClick={() => setPaused(true)}
-        className="rounded-lg border border-divider bg-bg-elevated px-4 py-2 text-sm font-medium text-fg-primary transition hover:opacity-80"
-      >
-        Stop redirect (dev)
-      </button>
-    )
-  ) : undefined;
+  const footer = `Redirecting you to sign in… (${secs}s)`;
 
   return (
     <SplashShell
@@ -207,8 +180,7 @@ function AuthRedirectSplash({ reason }: { reason: "signed-out" | "expired" }) {
       footer={footer}
       progressMs={REDIRECT_SECONDS * 1000}
       progressEasing="linear"
-      showProgress={!paused}
-      action={action}
+      showProgress
     />
   );
 }

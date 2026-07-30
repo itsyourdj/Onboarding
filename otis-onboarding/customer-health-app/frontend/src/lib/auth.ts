@@ -18,12 +18,12 @@ const hostDefault =
   typeof window !== "undefined"
     ? `${window.location.protocol}//${window.location.host}`
     : "https://clienttech.instance.dataos.cloud";
-export const DATAOS_FQDN =
-  (import.meta.env?.VITE_DATAOS_FQDN as string | undefined)?.replace(/\/+$/, "") ||
-  hostDefault;
+const configuredDataos =
+  (import.meta.env?.VITE_DATAOS_FQDN as string | undefined)?.replace(/\/+$/, "") || "";
+let resolvedDataosFqdn = configuredDataos || hostDefault;
 
 // The exact key DataOS writes for the signed-in user's OIDC session.
-const OIDC_KEY = `modern-oidc.user:${DATAOS_FQDN}/oidc:dataos_generic`;
+let oidcKey = `modern-oidc.user:${resolvedDataosFqdn}/oidc:dataos_generic`;
 
 // Dev host = Vite dev server or a localhost origin. ONLY on a dev host do we
 // expose a "stop redirect" control (so a token can be pasted manually). The
@@ -36,14 +36,30 @@ export const IS_DEV_HOST =
 
 interface OidcSession {
   expires_at?: number; // epoch SECONDS (oidc-client convention)
+  access_token?: string;
 }
 
 function readSession(): OidcSession | null {
   if (typeof window === "undefined") return null;
+  const candidateKeys = new Set<string>([oidcKey]);
+  // Fallback for local dev where the deployment host session may be present.
+  if (IS_DEV_HOST) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith("modern-oidc.user:") && k.endsWith("/oidc:dataos_generic")) {
+        candidateKeys.add(k);
+      }
+    }
+  }
   try {
-    const raw = localStorage.getItem(OIDC_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as OidcSession;
+    for (const key of candidateKeys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as OidcSession;
+      oidcKey = key;
+      return parsed;
+    }
+    return null;
   } catch (err) {
     console.warn("[Pulse] Auth: failed to parse session object —", err);
     return null;
@@ -62,13 +78,9 @@ export function isAuthenticated(): boolean {
   // No DOM (SSR/build) — don't block rendering.
   if (typeof window === "undefined") return true;
 
-  // Localhost development should remain usable without a DataOS browser session.
-  // Keep strict auth only for deployed hosts.
-  if (IS_DEV_HOST) return true;
-
   const s = readSession();
   if (!s) {
-    console.warn(`[Pulse] Auth: no DataOS session at "${OIDC_KEY}".`);
+    console.warn(`[Pulse] Auth: no DataOS session at "${oidcKey}".`);
     return false;
   }
 
@@ -80,7 +92,33 @@ export function isAuthenticated(): boolean {
   return true;
 }
 
-export function redirectToLogin(): void {
+export function getAccessToken(): string | null {
+  const s = readSession();
+  return typeof s?.access_token === "string" && s.access_token.trim() ? s.access_token.trim() : null;
+}
+
+async function resolveLoginUrl(): Promise<string> {
+  if (typeof window === "undefined") return resolvedDataosFqdn;
+  if (configuredDataos) return configuredDataos;
+  if (!IS_DEV_HOST) return resolvedDataosFqdn;
+
+  try {
+    const apiBase = new URL("api", document.baseURI).toString().replace(/\/+$/, "");
+    const response = await fetch(`${apiBase}/auth/context`, { method: "GET" });
+    if (response.ok) {
+      const body = (await response.json()) as { loginUrl?: string | null };
+      if (body?.loginUrl) {
+        resolvedDataosFqdn = String(body.loginUrl).replace(/\/+$/, "");
+      }
+    }
+  } catch (err) {
+    console.warn("[Pulse] Auth: failed to fetch login context, using fallback.", err);
+  }
+  return resolvedDataosFqdn;
+}
+
+export async function redirectToLogin(): Promise<void> {
   // replace() so the unauthenticated view isn't left in browser history.
-  window.location.replace(DATAOS_FQDN);
+  const target = await resolveLoginUrl();
+  window.location.replace(target);
 }

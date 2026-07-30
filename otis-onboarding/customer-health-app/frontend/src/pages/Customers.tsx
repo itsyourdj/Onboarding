@@ -5,10 +5,13 @@ import { fetchCustomers, fetchFilters } from "../lib/api";
 import { Card, HealthBadge, NpsBadge, Spinner } from "../components/ui";
 import { fmtCurrency, fmtDate, fmtNum } from "../lib/format";
 import { scoreColor, soft } from "../lib/health";
+import { AccessRestricted } from "../components/AccessRestricted";
 
 const FILTER_KEYS = ["category", "nps", "region", "gbo", "segment", "classification", "search", "sort"] as const;
 
-export default function Customers() {
+export default function Customers({ fullAccess }: { fullAccess: boolean }) {
+  if (!fullAccess) return <AccessRestricted tabName="Customers" />;
+
   const [params, setParams] = useSearchParams();
   const { data: filters } = useQuery({ queryKey: ["filters"], queryFn: fetchFilters });
 

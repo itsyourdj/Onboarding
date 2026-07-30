@@ -7,6 +7,26 @@ A modern dashboard for Sales & Service to spot at-risk customers, understand *wh
 - **Database:** PostgreSQL (CSVs are ingested locally).
 - **Pluggable data source:** the backend reads through a `DataAdapter` (`SemanticLayerAdapter` for live DataOS, `PostgresAdapter` for local CSVs). API and UI remain unchanged across both modes.
 
+## At a glance
+
+Pulse helps teams move from reactive support to proactive customer risk management:
+
+- **Overview:** portfolio health, at-risk counts, ARR exposure, trend signals.
+- **Customers:** searchable/filterable accounts with health, NPS, service, and financial context.
+- **Customer Detail:** deep drilldown into drivers, contracts, visits, feedback, AR, and open issues.
+- **Satisfaction Insights:** promoter/detractor themes and detractor concentration analysis.
+
+## Authentication and access (short)
+
+- If the user is not logged in to DataOS, the app redirects to DataOS login/home.
+- After login, app checks roles from platform tags.
+- Users get **full access** when they have any one of:
+  - `roles:id:tenant-admin`
+  - `roles:id:app-user`
+  - `roles:id:<tenant>-tenant-admin`
+  - `roles:id:<tenant>-app-user`
+- Other users can open `Overview`; restricted tabs show an **Access Denied** message with contact guidance (tenant admin or app owner).
+
 ## Architecture
 
 ```
@@ -103,14 +123,14 @@ Build and push an AMD64 image explicitly:
 docker buildx build \
   --platform linux/amd64 \
   --no-cache \
-  -t deepak2407/customer-health-app:0.0.2 \
+  -t deepak2407/customer-health-app:0.0.5 \
   --push .
 ```
 
 Verify architecture:
 
 ```bash
-docker buildx imagetools inspect deepak2407/customer-health-app:0.0.2
+docker buildx imagetools inspect deepak2407/customer-health-app:0.0.5
 ```
 
 Expected platform includes `linux/amd64`.
@@ -124,7 +144,7 @@ ds2 rs apply -f docker_secrets.yaml
 ```
 
 2. Set image tag in `container.yaml`:
-   - `image: deepak2407/customer-health-app:0.0.2`
+   - `image: deepak2407/customer-health-app:0.0.5`
 
 3. Ensure runtime envs are injected via `container.yaml` (or secret refs):
    - `SEMANTIC_API_URL`

@@ -1,5 +1,5 @@
 name: "customer-invoices-semantic"
-display_name: "Customer Invoices Semantic Insights"
+display_name: "Customer Invoices Insights Semantic"
 description: >
   Centralised Accounts Receivable data product for the Customer Invoices domain.
   Provides semantic governance, business metrics, AI-agent-ready context, and

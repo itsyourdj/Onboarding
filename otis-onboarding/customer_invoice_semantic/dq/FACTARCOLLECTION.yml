@@ -6,21 +6,21 @@ name: FactARCollection_dq
 depends_on: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
 
 profiles:
-  - TotalReceipts
-  - CashApplied
-  - CollectionEfficiency
-  - FiscalPeriodId
+  - TOTALRECEIPTS
+  - CASHAPPLIED
+  - COLLECTIONEFFICIENCY
+  - FISCALPERIODID
   - LOB
 
 rules:
 
   # ── Completeness ──────────────────────────────────────────────────────────────
-  - missing_count(FiscalPeriodId) = 0:
+  - missing_count(FISCALPERIODID) = 0:
       name: fiscal_period_required_in_collection_facts
       dimension: completeness
       description: >
-        FiscalPeriodId is the grain key and primary time dimension for CEI trend.
-        Null FiscalPeriodId = this customer's collection performance is not included
+        FISCALPERIODID is the grain key and primary time dimension for CEI trend.
+        Null FISCALPERIODID = this customer's collection performance is not included
         in any period-based KPI. Zero tolerance.
 
   - missing_count(LOB) = 0:
@@ -32,11 +32,11 @@ rules:
         Zero tolerance.
 
   # ── Uniqueness ────────────────────────────────────────────────────────────────
-  - duplicate_count(CompanyId, CustomerNumber, FiscalPeriodId, LOB) = 0:
+  - duplicate_count(COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB) = 0:
       name: collection_grain_must_be_unique
       dimension: uniqueness
       description: >
-        Duplicate grain rows double-count TotalReceipts and CashApplied in CEI.
+        Duplicate grain rows double-count TOTALRECEIPTS and CASHAPPLIED in CEI.
         A CEI of 92% from duplicated data may actually be 84% — a material misstatement
         of the primary AR health KPI. Zero tolerance.
 
@@ -45,15 +45,15 @@ rules:
       name: cash_applied_cannot_exceed_total_receipts
       dimension: validity
       fail query: |
-        SELECT CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-               TotalReceipts, CashApplied,
-               ROUND(CashApplied - TotalReceipts, 2) AS over_application_amount,
-               ROUND(CashApplied / NULLIF(TotalReceipts, 0) * 100, 1) AS applied_pct
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               TOTALRECEIPTS, CASHAPPLIED,
+               ROUND(CASHAPPLIED - TOTALRECEIPTS, 2) AS over_application_amount,
+               ROUND(CASHAPPLIED / NULLIF(TOTALRECEIPTS, 0) * 100, 1) AS applied_pct
         FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-        WHERE CashApplied > TotalReceipts * 1.005
+        WHERE CASHAPPLIED > TOTALRECEIPTS * 1.005
       samples limit: 20
       description: >
-        CashApplied > TotalReceipts is a JDE misposting error — impossible in real operations.
+        CASHAPPLIED > TOTALRECEIPTS is a JDE misposting error — impossible in real operations.
         Each row directly inflates CEI for that customer × period × LOB.
         Root cause: duplicate receipt entry or cross-period posting mismatch.
 
@@ -61,22 +61,22 @@ rules:
       name: total_receipts_must_not_be_negative
       dimension: validity
       fail query: |
-        SELECT CompanyId, CustomerNumber, FiscalPeriodId, LOB, TotalReceipts, CashApplied
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB, TOTALRECEIPTS, CASHAPPLIED
         FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-        WHERE TotalReceipts < -0.01
+        WHERE TOTALRECEIPTS < -0.01
       samples limit: 10
       description: >
-        Negative TotalReceipts indicates a reversed receipt not offset by a correcting entry.
+        Negative TOTALRECEIPTS indicates a reversed receipt not offset by a correcting entry.
         This makes unapplied cash % appear artificially high and may cause CEI > 1.0.
 
   - failed rows:
       name: collection_efficiency_in_valid_range
       dimension: accuracy
       fail query: |
-        SELECT CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-               CollectionEfficiency, TotalReceipts, CashApplied
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               COLLECTIONEFFICIENCY, TOTALRECEIPTS, CASHAPPLIED
         FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-        WHERE CollectionEfficiency < 0 OR CollectionEfficiency > 1.5
+        WHERE COLLECTIONEFFICIENCY < 0 OR COLLECTIONEFFICIENCY > 1.5
       samples limit: 10
       description: >
         Pre-computed CEI must be in range [0, 1.5]. Below 0 = data error. Above 1.5 =
@@ -88,13 +88,13 @@ rules:
       name: unapplied_cash_above_leakage_threshold
       dimension: accuracy
       fail query: |
-        SELECT CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-               TotalReceipts, CashApplied,
-               TotalReceipts - CashApplied AS unapplied_cash,
-               ROUND((TotalReceipts - CashApplied) / NULLIF(TotalReceipts, 0) * 100, 1) AS unapplied_pct
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               TOTALRECEIPTS, CASHAPPLIED,
+               TOTALRECEIPTS - CASHAPPLIED AS unapplied_cash,
+               ROUND((TOTALRECEIPTS - CASHAPPLIED) / NULLIF(TOTALRECEIPTS, 0) * 100, 1) AS unapplied_pct
         FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-        WHERE TotalReceipts > 0
-          AND (TotalReceipts - CashApplied) / TotalReceipts > 0.20
+        WHERE TOTALRECEIPTS > 0
+          AND (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS > 0.20
         ORDER BY unapplied_cash DESC
       samples limit: 20
       description: >
@@ -103,7 +103,7 @@ rules:
         failure. Collections team must investigate timing differences, mispostings, or disputes.
         [Estimated threshold: 20% — calibrate to your cash application cycle time]
 
-  - anomaly detection for avg(CollectionEfficiency):
+  - anomaly detection for avg(COLLECTIONEFFICIENCY):
       name: portfolio_cei_anomaly
       dimension: accuracy
       description: >
@@ -111,7 +111,7 @@ rules:
         A sudden drop triggers immediate investigation: real collections deterioration,
         a data quality event, or a seasonal effect?
 
-  - anomaly detection for sum(TotalReceipts):
+  - anomaly detection for sum(TOTALRECEIPTS):
       name: total_receipt_volume_anomaly
       dimension: accuracy
       description: >
@@ -125,11 +125,11 @@ rules:
       fail query: |
         WITH recent_lobs AS (
           SELECT DISTINCT LOB FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-          WHERE FiscalPeriodId >= (SELECT MAX(FiscalPeriodId) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION) - 3
+          WHERE FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION) - 3
         ),
         current_period_lobs AS (
           SELECT DISTINCT LOB FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-          WHERE FiscalPeriodId = (SELECT MAX(FiscalPeriodId) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
+          WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
         )
         SELECT r.LOB AS missing_lob,
                'LOB present in recent periods but absent in current period' AS impact
@@ -146,6 +146,6 @@ rules:
       name: collection_records_not_dropping
       dimension: timeliness
       description: >
-        A 15%+ drop in FactARCollection rows may signal that one or more companies or LOBs
+        A 15%+ drop in FACTARCOLLECTION rows may signal that one or more companies or LOBs
         were not loaded for the current period. Collections Manager will see incomplete CEI
         data for that period without any visible error indicator.

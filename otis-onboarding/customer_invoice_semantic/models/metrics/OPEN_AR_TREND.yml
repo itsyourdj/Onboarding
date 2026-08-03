@@ -3,12 +3,12 @@
 # Executive AR balance indicator for Finance and GM.
 kind: metric
 name: OPEN_AR_TREND
-measure: FactARDetails.OPEN_AMOUNT
-ts: FactARDetails.InsertDate
+measure: FACTARDETAILS.OPEN_AMOUNT
+ts: FACTARDETAILS.INSERTDATE
 granularity: day
 description: >
   Total outstanding Accounts Receivable balance tracked by load date (daily batch).
   A rising OPEN_AR_TREND alongside flat or declining COLLECTION_EFFICIENCY_TREND signals
   that AR is accumulating faster than it is being collected.
   Key Finance KPI for period-end reporting and write-off provisioning.
-  Time axis: InsertDate (load timestamp, equivalent to business date for daily batches).
+  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).

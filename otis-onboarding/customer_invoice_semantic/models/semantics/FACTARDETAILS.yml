@@ -2,12 +2,12 @@
 # Semantic wrapper for the Invoice Measures table (EXTERNAL — owned by JDE pipeline).
 # One row per invoice / pay-item. Financial KPIs: open amounts, reserves, forecasts, aging.
 kind: semantic
-name: FactARDetails
+name: FACTARDETAILS
 depends_on: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
 description: >
   Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item.
   Use this model for questions about amounts, reserves, aging, and forecasts.
-  For invoice attributes (collector, LOB, dispute status), JOIN to DimARDetails.
+  For invoice attributes (collector, LOB, dispute status), JOIN to DIMARDETAILS.
 
 tags:
   - accounts-receivable
@@ -25,8 +25,8 @@ ai_context:
       Use this model for questions about invoice amounts, reserves, forecasts, and aging.
       One row = one invoice / pay-item. Primary source for all financial KPIs.
     - >
-      Key leakage signals: ChangeinReserve (reserve movements), ForecastReserve30/60/90
-      (future exposure), ReserveCashApplied (reserve utilisation).
+      Key leakage signals: CHANGEINRESERVE (reserve movements), FORECASTRESERVE30/60/90
+      (future exposure), RESERVECASHAPPLIED (reserve utilisation).
   synonyms:
     - "AR facts"
     - "invoice measures"
@@ -38,70 +38,70 @@ ai_context:
       format: sql
       query: |
         SELECT d.LOB,
-               SUM(f.CurrentReserve) AS total_reserve,
-               SUM(f.ForecastReserve30) AS total_forecast_30,
-               SUM(f.CurrentReserve - f.ForecastReserve30) AS gap
+               SUM(f.CURRENTRESERVE) AS total_reserve,
+               SUM(f.FORECASTRESERVE30) AS total_forecast_30,
+               SUM(f.CURRENTRESERVE - f.FORECASTRESERVE30) AS gap
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
         JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
-          ON f.CompanyId = d.CompanyId AND f.DocNo = d.DocNo
-          AND f.DocType = d.DocType AND f.PayItm = d.PayItm
+          ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
+          AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
         GROUP BY d.LOB ORDER BY gap DESC
     - description: "Which invoices have the highest reserve change (top leakage risk)?"
       format: sql
       query: |
-        SELECT f.CompanyId, f.DocNo, f.ChangeinReserve, f.ForecastReserve30,
-               d.CustomerNumber, d.Collector,
-               ROUND(ABS(f.ChangeinReserve) / NULLIF(f.ForecastReserve30, 0) * 100, 1) AS change_pct
+        SELECT f.COMPANYID, f.DOCNO, f.CHANGEINRESERVE, f.FORECASTRESERVE30,
+               d.CUSTOMERNUMBER, d.COLLECTOR,
+               ROUND(ABS(f.CHANGEINRESERVE) / NULLIF(f.FORECASTRESERVE30, 0) * 100, 1) AS change_pct
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
         JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
-          ON f.CompanyId = d.CompanyId AND f.DocNo = d.DocNo
-          AND f.DocType = d.DocType AND f.PayItm = d.PayItm
-        WHERE f.ForecastReserve30 > 0
-          AND ABS(f.ChangeinReserve) / f.ForecastReserve30 > 0.20
-        ORDER BY ABS(f.ChangeinReserve) DESC LIMIT 50
+          ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
+          AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
+        WHERE f.FORECASTRESERVE30 > 0
+          AND ABS(f.CHANGEINRESERVE) / f.FORECASTRESERVE30 > 0.20
+        ORDER BY ABS(f.CHANGEINRESERVE) DESC LIMIT 50
 
 dimensions:
   # ── Grain keys ─────────────────────────────────────────────────────────────
-  - name: CompanyId
+  - name: COMPANYID
     behavior:
       type: identifier
-  - name: DocumentCompany
+  - name: DOCUMENTCOMPANY
     behavior:
       type: identifier
-  - name: DocNo
+  - name: DOCNO
     behavior:
       type: identifier
-  - name: DocType
+  - name: DOCTYPE
     behavior:
       type: identifier
-  - name: PayItm
+  - name: PAYITM
     behavior:
       type: identifier
   # ── Amount columns (needed as dimensions so measures can reference them) ──
-  - name: OpenAmount
-  - name: GrossAmount
-  - name: TaxAmount
-  - name: DisputedAmount
-  - name: CurrentReserve
-  - name: ARCurrentReserve
-  - name: PreviousForecastReserve
-  - name: ForecastReserve30
-  - name: ForecastReserve60
-  - name: ForecastReserve90
-  - name: ChangeinReserve
-  - name: DraftOpenAmount
-  - name: AdjustmentAmount
-  - name: ReserveCashApplied
+  - name: OPENAMOUNT
+  - name: GROSSAMOUNT
+  - name: TAXAMOUNT
+  - name: DISPUTEDAMOUNT
+  - name: CURRENTRESERVE
+  - name: ARCURRENTRESERVE
+  - name: PREVIOUSFORECASTRESERVE
+  - name: FORECASTRESERVE30
+  - name: FORECASTRESERVE60
+  - name: FORECASTRESERVE90
+  - name: CHANGEINRESERVE
+  - name: DRAFTOPENAMOUNT
+  - name: ADJUSTMENTAMOUNT
+  - name: RESERVECASHAPPLIED
   # ── Aging & Period ──────────────────────────────────────────────────────────
-  - name: AgingDays
+  - name: AGINGDAYS
     ai_context:
       synonyms:
         - "days overdue"
         - "age"
         - "days outstanding"
       caveats:
-        - "AgingDays is computed by JDE and stored as-is. > 0 = past due. > 30 = overdue. > 90 = high write-off risk. This data product does not recompute it."
-  - name: FiscalPeriodId
+        - "AGINGDAYS is computed by JDE and stored as-is. > 0 = past due. > 30 = overdue. > 90 = high write-off risk. This data product does not recompute it."
+  - name: FISCALPERIODID
     behavior:
       type: categorical
     ai_context:
@@ -110,19 +110,19 @@ dimensions:
         - "period"
         - "accounting period"
       caveats:
-        - "FiscalPeriodId is an INTEGER key: ((Century * 100 + Year) * 100) + Month. Example: 20260800 = August 2026. Do NOT sum or average this field — use it for filtering and grouping only."
+        - "FISCALPERIODID is an INTEGER key: ((Century * 100 + Year) * 100) + Month. Example: 20260800 = August 2026. Do NOT sum or average this field — use it for filtering and grouping only."
   # ── Date dimensions ─────────────────────────────────────────────────────────
-  - name: GLDate
-  - name: DueDate
-  - name: AgeAsOfDate
-  - name: LatestReceiptDate
-  - name: InsertDate
+  - name: GLDATE
+  - name: DUEDATE
+  - name: AGEASOFDATE
+  - name: LATESTRECEIPTDATE
+  - name: INSERTDATE
 
 measures:
   # ── Flow measures (additive within period) ──────────────────────────────────
   - name: OPEN_AMOUNT
     type: sum
-    expression: "{FactARDetails.OpenAmount}"
+    expression: "{FACTARDETAILS.OPENAMOUNT}"
     description: Total outstanding invoice balance. Primary AR exposure metric.
     behavior:
       type: flow
@@ -134,31 +134,31 @@ measures:
         - "amount due"
         - "receivable"
       caveats:
-        - "OpenAmount changes as payments are received and adjustments are posted. Always filter to a specific period for balance reporting."
+        - "OPENAMOUNT changes as payments are received and adjustments are posted. Always filter to a specific period for balance reporting."
       examples:
         - description: "Total open AR by company"
           format: sql
           query: |
-            SELECT MEASURE(FactARDetails.OPEN_AMOUNT), CompanyId
-            FROM FactARDetails GROUP BY CompanyId
+            SELECT MEASURE(FACTARDETAILS.OPEN_AMOUNT), COMPANYID
+            FROM FACTARDETAILS GROUP BY COMPANYID
 
   - name: GROSS_AMOUNT
     type: sum
-    expression: "{FactARDetails.GrossAmount}"
+    expression: "{FACTARDETAILS.GROSSAMOUNT}"
     description: Original invoice face value before any adjustments or credit memos.
     behavior:
       type: flow
 
   - name: TAX_AMOUNT
     type: sum
-    expression: "{FactARDetails.TaxAmount}"
+    expression: "{FACTARDETAILS.TAXAMOUNT}"
     description: Tax component of invoice amounts.
     behavior:
       type: flow
 
   - name: DISPUTED_AMOUNT
     type: sum
-    expression: "{FactARDetails.DisputedAmount}"
+    expression: "{FACTARDETAILS.DISPUTEDAMOUNT}"
     description: Amount formally under dispute. Rising trend = leakage risk.
     behavior:
       type: flow
@@ -169,7 +169,7 @@ measures:
 
   - name: CHANGE_IN_RESERVE
     type: sum
-    expression: "{FactARDetails.ChangeinReserve}"
+    expression: "{FACTARDETAILS.CHANGEINRESERVE}"
     description: >
       Net period-over-period change in doubtful debt reserve.
       Positive = more reserve provisioned; Negative = reserve released.
@@ -186,21 +186,21 @@ measures:
 
   - name: RESERVE_CASH_APPLIED
     type: sum
-    expression: "{FactARDetails.ReserveCashApplied}"
+    expression: "{FACTARDETAILS.RESERVECASHAPPLIED}"
     description: Reserve cash that has been applied to invoices. Zero on aged invoices = leakage signal L6.
     behavior:
       type: flow
 
   - name: ADJUSTMENT_AMOUNT
     type: sum
-    expression: "{FactARDetails.AdjustmentAmount}"
+    expression: "{FACTARDETAILS.ADJUSTMENTAMOUNT}"
     description: Sum of adjustment amounts posted against invoices.
     behavior:
       type: flow
 
   - name: DRAFT_OPEN_AMOUNT
     type: sum
-    expression: "{FactARDetails.DraftOpenAmount}"
+    expression: "{FACTARDETAILS.DRAFTOPENAMOUNT}"
     description: Draft / unconfirmed open amounts.
     behavior:
       type: flow
@@ -208,13 +208,13 @@ measures:
   # ── Stock measures (point-in-time balances — do NOT sum across periods) ──────
   - name: CURRENT_RESERVE
     type: sum
-    expression: "{FactARDetails.CurrentReserve}"
+    expression: "{FACTARDETAILS.CURRENTRESERVE}"
     description: >
       Current doubtful debt reserve held. Point-in-time balance.
-      DO NOT sum across fiscal periods — read at the latest FiscalPeriodId snapshot.
+      DO NOT sum across fiscal periods — read at the latest FISCALPERIODID snapshot.
     behavior:
       type: stock
-      time_dimension: InsertDate
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:
@@ -223,35 +223,35 @@ measures:
         - "bad debt reserve"
         - "doubtful debt reserve"
       caveats:
-        - "Point-in-time balance. Do NOT SUM across multiple fiscal periods — use the latest FiscalPeriodId snapshot."
+        - "Point-in-time balance. Do NOT SUM across multiple fiscal periods — use the latest FISCALPERIODID snapshot."
 
   - name: FORECAST_RESERVE_30
     type: sum
-    expression: "{FactARDetails.ForecastReserve30}"
+    expression: "{FACTARDETAILS.FORECASTRESERVE30}"
     description: 30-day forward reserve forecast. Denominator in Reserve Accuracy % and leakage signal L7.
     behavior:
       type: stock
-      time_dimension: InsertDate
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
 
   - name: FORECAST_RESERVE_60
     type: sum
-    expression: "{FactARDetails.ForecastReserve60}"
+    expression: "{FACTARDETAILS.FORECASTRESERVE60}"
     description: 60-day forward reserve forecast.
     behavior:
       type: stock
-      time_dimension: InsertDate
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
 
   - name: FORECAST_RESERVE_90
     type: sum
-    expression: "{FactARDetails.ForecastReserve90}"
+    expression: "{FACTARDETAILS.FORECASTRESERVE90}"
     description: 90-day forward reserve forecast. Used for IFRS/GAAP provisioning.
     behavior:
       type: stock
-      time_dimension: InsertDate
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
 
@@ -265,7 +265,7 @@ measures:
   - name: OVERDUE_INVOICE_COUNT
     type: count
     filters:
-      - "{FactARDetails.AgingDays} > 30"
+      - "{FACTARDETAILS.AGINGDAYS} > 30"
     description: >
       Count of invoices more than 30 days past due.
       Primary input for OVERDUE_INVOICE_TREND metric.
@@ -277,15 +277,15 @@ measures:
         - "past due invoices"
         - "aged invoices"
       caveats:
-        - "Uses AgingDays > 30 as the overdue threshold. This threshold is an assumption pending confirmation."
+        - "Uses AGINGDAYS > 30 as the overdue threshold. This threshold is an assumption pending confirmation."
 
   # ── Computed ratio measures ──────────────────────────────────────────────────
   - name: RESERVE_ACCURACY_PCT
     type: number
     expression: >
-      1 - AVG(ABS({FactARDetails.ChangeinReserve} / NULLIF({FactARDetails.ForecastReserve30}, 0)))
+      1 - AVG(ABS({FACTARDETAILS.CHANGEINRESERVE} / NULLIF({FACTARDETAILS.FORECASTRESERVE30}, 0)))
     description: >
-      Reserve forecast accuracy: 1 - ABS(ChangeinReserve / ForecastReserve30).
+      Reserve forecast accuracy: 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30).
       Values near 1.0 = accurate forecasting. Below 0.8 = recalibration needed.
     behavior:
       type: ratio
@@ -297,14 +297,14 @@ measures:
         - "forecast accuracy"
         - "reserve vs forecast"
       caveats:
-        - "Do not average pre-computed ratio values across periods. Query ChangeinReserve and ForecastReserve30 separately and compute at the correct grain."
+        - "Do not average pre-computed ratio values across periods. Query CHANGEINRESERVE and FORECASTRESERVE30 separately and compute at the correct grain."
 
 segments:
   - name: high_leakage_risk
     expression: >
-      {FactARDetails.AgingDays} > 30
-      AND {FactARDetails.ReserveCashApplied} = 0
-      AND {FactARDetails.CurrentReserve} > 0
+      {FACTARDETAILS.AGINGDAYS} > 30
+      AND {FACTARDETAILS.RESERVECASHAPPLIED} = 0
+      AND {FACTARDETAILS.CURRENTRESERVE} > 0
     description: >
       Invoices overdue >30 days with reserve held but no reserve cash applied.
       Highest-value leakage signal (Signal L6).
@@ -316,20 +316,20 @@ segments:
 
   - name: reserve_movement_alert
     expression: >
-      {FactARDetails.ForecastReserve30} > 0
-      AND ABS({FactARDetails.ChangeinReserve} / {FactARDetails.ForecastReserve30}) > 0.20
+      {FACTARDETAILS.FORECASTRESERVE30} > 0
+      AND ABS({FACTARDETAILS.CHANGEINRESERVE} / {FACTARDETAILS.FORECASTRESERVE30}) > 0.20
     description: >
       Invoices where reserve changed by >20% vs 30-day forecast (Signal L7).
       Signals potential reserve mis-estimation.
 
 joins:
-  - name: DimARDetails
+  - name: DIMARDETAILS
     type: many_to_one
     expression: >
-      {FactARDetails.CompanyId} = {DimARDetails.CompanyId}
-      AND {FactARDetails.DocumentCompany} = {DimARDetails.DocumentCompany}
-      AND {FactARDetails.DocNo} = {DimARDetails.DocNo}
-      AND {FactARDetails.DocType} = {DimARDetails.DocType}
-      AND {FactARDetails.PayItm} = {DimARDetails.PayItm}
+      {FACTARDETAILS.COMPANYID} = {DIMARDETAILS.COMPANYID}
+      AND {FACTARDETAILS.DOCUMENTCOMPANY} = {DIMARDETAILS.DOCUMENTCOMPANY}
+      AND {FACTARDETAILS.DOCNO} = {DIMARDETAILS.DOCNO}
+      AND {FACTARDETAILS.DOCTYPE} = {DIMARDETAILS.DOCTYPE}
+      AND {FACTARDETAILS.PAYITM} = {DIMARDETAILS.PAYITM}
     ai_context:
-      instructions: "Join to DimARDetails to access collector, LOB, dispute status, and credit hold attributes for each invoice."
+      instructions: "Join to DIMARDETAILS to access collector, LOB, dispute status, and credit hold attributes for each invoice."

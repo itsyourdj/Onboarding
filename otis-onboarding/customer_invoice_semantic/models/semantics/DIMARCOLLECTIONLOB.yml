@@ -2,11 +2,11 @@
 # Semantic wrapper for the LOB Reference Dimension (EXTERNAL — owned by JDE pipeline).
 # Maps GL Offset codes to Line of Business labels.
 kind: semantic
-name: DimARCollectionLOB
+name: DIMARCOLLECTIONLOB
 depends_on: JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
 description: >
   Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
-  One row per LOBKey (company + LOB code). Used to classify invoices and
+  One row per LOBKEY (company + LOB code). Used to classify invoices and
   collection records by business line across all fact tables.
 
 tags:
@@ -16,8 +16,8 @@ tags:
 
 ai_context:
   instructions: >
-    Use this model to look up the full description of a Line of Business code (LOBDescription).
-    Join from FactARCollection or DimARDetails on LOBCode / LOB column.
+    Use this model to look up the full description of a Line of Business code (LOBDESCRIPTION).
+    Join from FACTARCOLLECTION or DIMARDETAILS on LOBCODE / LOB column.
   synonyms:
     - "LOB reference"
     - "line of business reference"
@@ -26,18 +26,18 @@ ai_context:
     - description: "List all Lines of Business"
       format: sql
       query: |
-        SELECT LOBCode, LOBDescription, GLOffset
+        SELECT LOBCODE, LOBDESCRIPTION, GLOFFSET
         FROM JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
-        ORDER BY LOBDescription
+        ORDER BY LOBDESCRIPTION
 
 dimensions:
-  - name: LOBKey
+  - name: LOBKEY
     behavior:
       type: identifier
-  - name: CompanyId
+  - name: COMPANYID
     behavior:
       type: identifier
-  - name: LOBCode
+  - name: LOBCODE
     behavior:
       type: categorical
     ai_context:
@@ -45,7 +45,7 @@ dimensions:
         - "LOB"
         - "LOB code"
         - "line of business code"
-  - name: LOBDescription
+  - name: LOBDESCRIPTION
     behavior:
       type: categorical
     ai_context:
@@ -53,7 +53,7 @@ dimensions:
         - "LOB name"
         - "business line name"
         - "LOB label"
-  - name: GLOffset
+  - name: GLOFFSET
     behavior:
       type: categorical
     ai_context:

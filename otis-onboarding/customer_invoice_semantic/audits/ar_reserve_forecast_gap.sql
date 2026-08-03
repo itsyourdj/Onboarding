@@ -6,20 +6,20 @@
 AUDIT (name ar_reserve_forecast_gap, dialect snowflake);
 
 SELECT
-    CompanyId,
-    DocNo,
-    DocType,
-    PayItm,
-    OpenAmount,
-    AgingDays,
-    FiscalPeriodId,
-    ForecastReserve30,
-    ForecastReserve60,
-    ForecastReserve90
+    COMPANYID,
+    DOCNO,
+    DOCTYPE,
+    PAYITM,
+    OPENAMOUNT,
+    AGINGDAYS,
+    FISCALPERIODID,
+    FORECASTRESERVE30,
+    FORECASTRESERVE60,
+    FORECASTRESERVE90
 FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-WHERE OpenAmount         > 1000
-  AND AgingDays          > 0
-  AND ForecastReserve30  = 0
-  AND ForecastReserve60  = 0
-  AND ForecastReserve90  = 0
-ORDER BY OpenAmount DESC;
+WHERE OPENAMOUNT         > 1000
+  AND AGINGDAYS          > 0
+  AND FORECASTRESERVE30  = 0
+  AND FORECASTRESERVE60  = 0
+  AND FORECASTRESERVE90  = 0
+ORDER BY OPENAMOUNT DESC;

@@ -3,12 +3,12 @@
 # Operational early-warning KPI for Collections Manager and Dispute Resolver.
 kind: metric
 name: OVERDUE_INVOICE_TREND
-measure: FactARDetails.OVERDUE_INVOICE_COUNT
-ts: FactARDetails.InsertDate
+measure: FACTARDETAILS.OVERDUE_INVOICE_COUNT
+ts: FACTARDETAILS.INSERTDATE
 granularity: day
 description: >
-  Count of invoices with AgingDays > 30 (overdue), tracked by load date.
+  Count of invoices with AGINGDAYS > 30 (overdue), tracked by load date.
   A growing trend = collections backlog is building faster than it is being cleared.
-  Segment by Collector and LOB to identify concentration of the overdue backlog.
+  Segment by COLLECTOR and LOB to identify concentration of the overdue backlog.
   Drives daily collections prioritisation and escalation decisions.
-  Time axis: InsertDate (load timestamp, equivalent to business date for daily batches).
+  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).

@@ -6,29 +6,29 @@ name: FactARDetails_dq
 depends_on: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
 
 profiles:
-  - OpenAmount
-  - CurrentReserve
-  - ForecastReserve30
-  - ChangeinReserve
-  - AgingDays
+  - OPENAMOUNT
+  - CURRENTRESERVE
+  - FORECASTRESERVE30
+  - CHANGEINRESERVE
+  - AGINGDAYS
 
 rules:
 
   # ── Completeness ──────────────────────────────────────────────────────────────
-  - missing_count(FiscalPeriodId) = 0:
+  - missing_count(FISCALPERIODID) = 0:
       name: fiscal_period_required_for_all_invoices
       dimension: completeness
       description: >
-        FiscalPeriodId is the primary time key for all period-based trend metrics.
-        A null FiscalPeriodId = this invoice is excluded from every time-series KPI.
+        FISCALPERIODID is the primary time key for all period-based trend metrics.
+        A null FISCALPERIODID = this invoice is excluded from every time-series KPI.
         Zero tolerance.
 
   # ── Uniqueness ────────────────────────────────────────────────────────────────
-  - duplicate_count(CompanyId, DocumentCompany, DocNo, DocType, PayItm) = 0:
+  - duplicate_count(COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM) = 0:
       name: fact_invoice_grain_unique
       dimension: uniqueness
       description: >
-        Duplicate fact rows double-count OpenAmount, CurrentReserve, and all measures —
+        Duplicate fact rows double-count OPENAMOUNT, CURRENTRESERVE, and all measures —
         a direct financial misstatement. Zero tolerance.
 
   # ── Validity ──────────────────────────────────────────────────────────────────
@@ -36,13 +36,13 @@ rules:
       name: open_amount_must_not_be_negative_without_reason
       dimension: validity
       fail query: |
-        SELECT CompanyId, DocNo, DocType, PayItm,
-               OpenAmount, GrossAmount, AgingDays
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               OPENAMOUNT, GROSSAMOUNT, AGINGDAYS
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-        WHERE OpenAmount < -1 AND GrossAmount > 0
+        WHERE OPENAMOUNT < -1 AND GROSSAMOUNT > 0
       samples limit: 10
       description: >
-        OpenAmount < -1 on an invoice with positive GrossAmount indicates a JDE decimal
+        OPENAMOUNT < -1 on an invoice with positive GROSSAMOUNT indicates a JDE decimal
         encoding or sign error. Negative open amounts subtract from total AR exposure,
         making the portfolio look healthier than it actually is.
 
@@ -50,12 +50,12 @@ rules:
       name: aging_days_sanity_check
       dimension: validity
       fail query: |
-        SELECT CompanyId, DocNo, AgingDays, DueDate, AgeAsOfDate
+        SELECT COMPANYID, DOCNO, AGINGDAYS, DUEDATE, AGEASOFDATE
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-        WHERE AgingDays < -730
+        WHERE AGINGDAYS < -730
       samples limit: 10
       description: >
-        AgingDays < -730 (more than 2 years in the future) indicates a JDE Julian date
+        AGINGDAYS < -730 (more than 2 years in the future) indicates a JDE Julian date
         conversion error. Allow up to -730 for valid long-term contracts.
 
   # ── Accuracy: Reserve & Forecast Monitoring ───────────────────────────────────
@@ -63,17 +63,17 @@ rules:
       name: active_invoices_have_no_reserve_forecast
       dimension: accuracy
       fail query: |
-        SELECT CompanyId, DocNo, DocType, PayItm,
-               OpenAmount, AgingDays,
-               ForecastReserve30, ForecastReserve60, ForecastReserve90,
-               FiscalPeriodId
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               OPENAMOUNT, AGINGDAYS,
+               FORECASTRESERVE30, FORECASTRESERVE60, FORECASTRESERVE90,
+               FISCALPERIODID
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-        WHERE OpenAmount > 5000
-          AND AgingDays > 30
-          AND ForecastReserve30 = 0
-          AND ForecastReserve60 = 0
-          AND ForecastReserve90 = 0
-        ORDER BY OpenAmount DESC
+        WHERE OPENAMOUNT > 5000
+          AND AGINGDAYS > 30
+          AND FORECASTRESERVE30 = 0
+          AND FORECASTRESERVE60 = 0
+          AND FORECASTRESERVE90 = 0
+        ORDER BY OPENAMOUNT DESC
       samples limit: 20
       description: >
         DQ6: Active invoices >$5,000 and >30 days overdue with zero forecast reserves are
@@ -85,15 +85,15 @@ rules:
       name: reserve_change_exceeds_forecast_threshold
       dimension: accuracy
       fail query: |
-        SELECT CompanyId, DocNo, DocType, PayItm,
-               FiscalPeriodId, ChangeinReserve, ForecastReserve30,
-               ROUND(ABS(ChangeinReserve) / NULLIF(ForecastReserve30, 0) * 100, 1) AS reserve_change_pct,
-               OpenAmount
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               FISCALPERIODID, CHANGEINRESERVE, FORECASTRESERVE30,
+               ROUND(ABS(CHANGEINRESERVE) / NULLIF(FORECASTRESERVE30, 0) * 100, 1) AS reserve_change_pct,
+               OPENAMOUNT
         FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-        WHERE ForecastReserve30 > 0
-          AND ABS(ChangeinReserve) / ForecastReserve30 > 0.20
-          AND OpenAmount > 1000
-        ORDER BY ABS(ChangeinReserve) DESC
+        WHERE FORECASTRESERVE30 > 0
+          AND ABS(CHANGEINRESERVE) / FORECASTRESERVE30 > 0.20
+          AND OPENAMOUNT > 1000
+        ORDER BY ABS(CHANGEINRESERVE) DESC
       samples limit: 20
       description: >
         Leakage Signal L7: Reserve changed by >20% vs 30-day forecast. Each row here is a
@@ -101,7 +101,7 @@ rules:
         is responding correctly to collection events.
         [Estimated threshold: 20% — pending Analytics sign-off]
 
-  - anomaly detection for sum(OpenAmount):
+  - anomaly detection for sum(OPENAMOUNT):
       name: total_open_ar_anomaly
       dimension: accuracy
       description: >
@@ -109,7 +109,7 @@ rules:
         mass write-offs, data deletion, or a pipeline gap. A spike may indicate duplicate
         invoice loading. Either event requires Finance review before period-end reporting.
 
-  - anomaly detection for sum(CurrentReserve):
+  - anomaly detection for sum(CURRENTRESERVE):
       name: total_reserve_balance_anomaly
       dimension: accuracy
       description: >
@@ -121,6 +121,6 @@ rules:
       name: fact_invoice_count_not_dropping
       dimension: timeliness
       description: >
-        A 10%+ drop in FactARDetails rows signals that invoice measures were not loaded
+        A 10%+ drop in FACTARDETAILS rows signals that invoice measures were not loaded
         for a portion of the portfolio — those invoices will show $0 open amount on
         dashboards (they appear financially settled when they are not).

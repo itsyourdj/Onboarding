@@ -3,12 +3,12 @@
 # Finance KPI for IFRS/GAAP provision audits.
 kind: metric
 name: RESERVE_ACCURACY_TREND
-measure: FactARDetails.RESERVE_ACCURACY_PCT
-ts: FactARDetails.InsertDate
+measure: FACTARDETAILS.RESERVE_ACCURACY_PCT
+ts: FACTARDETAILS.INSERTDATE
 granularity: day
 description: >
-  Reserve forecast accuracy (1 - ABS(ChangeinReserve / ForecastReserve30)) tracked by load date.
+  Reserve forecast accuracy (1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30)) tracked by load date.
   Values close to 1.0 = accurate reserve provisioning.
   Values below 0.8 signal the JDE reserve model needs recalibration.
   Used by Finance for IFRS/GAAP provision audits and period-end reserve sign-off.
-  Time axis: InsertDate (load timestamp, equivalent to business date for daily batches).
+  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).

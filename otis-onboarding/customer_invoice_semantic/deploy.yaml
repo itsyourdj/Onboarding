@@ -1,6 +1,6 @@
-version: v1
 name: customer-invoices-semantic
-type: resource
+version: v1alpha
+type: vulcan
 tags:
   - accounts-receivable
   - collections

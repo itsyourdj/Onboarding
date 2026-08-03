@@ -1,0 +1,94 @@
+# Source: design spec > Section 1 Business Context + Section 12 Open Questions
+# Business-facing usage guidance for Customer Invoices Analysis data product.
+
+good_for:
+  - title: Collection Efficiency Index (CEI) tracking and trend analysis
+    details: >
+      Monitor monthly CEI by fiscal period, LOB, and collector. Track whether
+      collection efficiency is improving or deteriorating. Benchmark: CEI >= 0.85.
+
+  - title: Collection leakage detection
+    details: >
+      Identify and quantify unapplied cash (Signal L1), reserve inaccuracy (L2),
+      adjusted collection gaps (L3), overdue invoices without collection action (L4),
+      reserve cash not applied (L6), high reserve change (L7), and credit hold
+      open invoices (L8).
+
+  - title: Dispute tracking and resolution rate monitoring
+    details: >
+      Track open disputes by LOB, resolver, and aging. Monitor Dispute Resolution Rate
+      (resolved / total disputes) and Promise-to-Pay compliance.
+
+  - title: Reserve vs forecast accuracy analysis
+    details: >
+      Compare CurrentReserve against PreviousForecastReserve and ForecastReserve30/60/90.
+      Used by Finance for IFRS/GAAP doubtful debt provision sign-off.
+
+  - title: Payment term compliance analysis
+    details: >
+      Identify invoices where AgingDays > NetDays (payment term breached). Requires
+      joining DimARDetails to ARPaymentTerm on PaymentTermCode.
+
+  - title: Executive KPI dashboards (Collections, Finance, GM)
+    details: >
+      Roll-up summaries by CompanyId, FiscalPeriodId, and LOB for period-end reporting.
+      Covers open AR, CEI, reserve accuracy, and overdue aging.
+
+  - title: AI agent natural language AR queries (Cortex Analyst)
+    details: >
+      All 5 semantic models include synonyms, instructions, and example queries
+      enabling Snowflake Cortex Analyst to answer business questions in natural language.
+
+not_for:
+  - Real-time or near-real-time alerting — this product refreshes daily from the JDE pipeline
+  - Rebuilding the underlying star schema tables — DimARDetails, FactARDetails, FactARCollection, DimARCollectionLOB, and ARPaymentTerm are owned and managed by the JDE ERP pipeline, not by this data product
+  - Sub-invoice-line detail — the grain is invoice / pay-item level (not individual line items within an invoice)
+  - Multi-currency USD normalisation — local currency only in this version; USD-normalized amounts are a future phase
+
+caveats:
+  - title: SNOWFLAKE_DB placeholder in all SQL
+    details: >
+      All table references use "SNOWFLAKE_DB" as a placeholder for the actual Snowflake
+      database name. Replace "SNOWFLAKE_DB" with your database name in inputs.yaml,
+      all semantic model depends_on fields, all DQ depends_on fields, and all audit SQL files
+      before running vulcan plan.
+    severity: high
+
+  - title: Estimated DQ thresholds require calibration
+    details: >
+      DQ rules marked [Estimated threshold] (CEI range 0-1.5, unapplied cash >20%,
+      reserve change >20%, credit hold >$10,000 and 90 days, etc.) must be replaced with
+      data-driven thresholds derived from 30 days of baseline data post-deployment.
+      Do NOT use these estimates for production alerting.
+    severity: high
+
+  - title: InsertDate used as metric time axis
+    details: >
+      All 5 trend metrics use InsertDate (the daily load timestamp) as the time dimension,
+      since FiscalPeriodId is an INTEGER key (not a date) and business DATE columns cannot
+      be used as Vulcan TIMESTAMP time dimensions. InsertDate approximates business date
+      for a daily-refresh product.
+    severity: low
+
+  - title: CEI formula pending Finance sign-off
+    details: >
+      The Collection Efficiency Index uses CashApplied / TotalReceipts (simplified formula).
+      The full industry-standard formula CashApplied / (OpenAmount + TotalReceipts) requires
+      a cross-model join between FactARCollection and FactARDetails.
+      Finance to confirm the agreed formula before using CEI in executive reports.
+    severity: medium
+
+  - title: Workday email integration
+    details: >
+      WorkdayEmail in DimARDetails comes from a pre-loaded Workday reference table with
+      scheduled refresh (not a live SQL Server call). Confirm the Workday reference table
+      schema with Data Engineering before enabling email-based action triggers.
+    severity: low
+
+references:
+  - title: Design Document
+    url: ./Customer Invoice360-Design_Document.md
+    type: design
+  - title: Data Product Plan
+    url: ./data-product-plan.md
+    type: doc

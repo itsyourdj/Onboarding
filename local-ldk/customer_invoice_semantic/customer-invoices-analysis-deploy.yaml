@@ -1,0 +1,57 @@
+# DataOS Deployment Manifest — Customer Invoices Analysis
+# Generated: 2026-08-03
+# Source: design spec > Section 10 Consumption & Freshness
+#
+# INSTRUCTIONS:
+#   1. Replace all TODO placeholders below with your actual values.
+#   2. Review and apply with: dataos-ctl apply -f customer-invoices-analysis-deploy.yaml
+#   Reference: https://v2.dataos.info/references/resources/vulcan/deployment
+
+version: v1
+name: customer-invoices-analysis          # kebab-case — matches config.yaml name
+type: resource
+tags:
+  - accounts-receivable
+  - collections
+  - finance
+  - invoice
+  - snowflake
+description: >
+  Customer Invoices Analysis — centralised AR data product providing semantic governance,
+  business metrics (CEI trend, open AR trend, reserve accuracy, unapplied cash, overdue invoices),
+  AI-agent-ready context, and quality monitoring over the Invoice 360 star schema.
+
+resource:
+  refName: customer-invoices-analysis
+  workspace: public                        # TODO: replace with your DataOS workspace
+
+spec:
+  runAsUser: ar-data-owner                 # TODO: replace with your DataOS username
+  engine: snowflake
+  depot: dataos://snowflakevulcan2?purpose=rw   # TODO: replace with your DataOS depot reference
+
+  repo:
+    url: https://github.com/your-org/customer-invoices-analysis   # TODO: replace with your repo URL
+    syncFlags:
+      - --ref=main                         # TODO: replace with your branch
+    baseDir: /                             # root of repo is the Vulcan project
+    secretRef:
+      name: your-git-secret                # TODO: replace with your DataOS git credentials secret
+      workspace: public
+
+  workflow:
+    schedule:
+      crons:
+        - "0 6 * * *"                      # Daily at 06:00 UTC — matches freshness cadence
+      timezone: UTC
+      endOn: "2027-12-31T23:59:59+00:00"  # TODO: adjust end date if needed
+
+    dag:
+      - name: customer-invoices-analysis-run
+        spec:
+          stack: vulcan:0.228.1.28
+          logLevel: INFO
+          compute: runnable-default         # TODO: replace with your DataOS compute name
+          stackSpec:
+            name: customer-invoices-analysis
+            # No additional stackSpec needed for a semantic-only data product

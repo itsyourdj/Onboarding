@@ -1,0 +1,298 @@
+# Source: design spec > Section 13.1 External Model Definitions
+# All 5 tables exist in Snowflake under the RL_JDE schema — managed by the JDE pipeline.
+# Vulcan registers these as EXTERNAL metadata stubs. No transformation is applied.
+#
+# NOTE: Database references use JDE_PRODUCTION from config.yaml.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. DimARDetails — Invoice Dimension Table
+#    Grain: CompanyId + DocumentCompany + DocNo + DocType + PayItm
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+  description: >
+    Invoice Dimension Table — the descriptive backbone of Customer Invoices Analysis.
+    One row per invoice / pay-item. Carries all attributes: collector ownership,
+    dispute status, LOB, credit hold flag, and latest collection comments.
+    Source: JDE ERP pipeline (F03B11, F0101, F03012, F5803B2I/C, F0006, Workday).
+  grains:
+    - CompanyId
+    - DocumentCompany
+    - DocNo
+    - DocType
+    - PayItm
+  audits:
+    - name: ar_fact_dim_grain_integrity
+    - name: ar_dispute_co_population_integrity
+    - name: ar_payment_term_orphan
+  columns:
+    CompanyId:           VARCHAR(10)
+    DocumentCompany:     VARCHAR(10)
+    DocNo:               VARCHAR(20)
+    DocType:             VARCHAR(5)
+    PayItm:              VARCHAR(5)
+    CustomerNumber:      VARCHAR(20)
+    ParentCustomer:      VARCHAR(20)
+    SalesRep:            VARCHAR(50)
+    Collector:           VARCHAR(50)
+    CollectionManager:   VARCHAR(50)
+    GLOffset:            VARCHAR(10)
+    LOB:                 VARCHAR(50)
+    BusinessUnit:        VARCHAR(10)
+    BUDesc:              VARCHAR(100)
+    PaymentTermCode:     VARCHAR(10)
+    DisputeReasonCode:   VARCHAR(10)
+    DisputeStatus:       VARCHAR(20)
+    DisputeCodeDesc:     VARCHAR(100)
+    ResolverCode:        VARCHAR(10)
+    ResolverName:        VARCHAR(100)
+    InvoiceDate:         DATE
+    DueDate:             DATE
+    PromiseToPay:        DATE
+    AttachmentStartDate: DATE
+    AttachmentEndDate:   DATE
+    CurrencyCode:        VARCHAR(5)
+    HoldFlag:            VARCHAR(1)
+    WorkdayEmail:        VARCHAR(200)
+    ChargebackCode:      VARCHAR(20)
+    LastInvoiceComment:  VARCHAR(4000)
+    LastCustomerComment: VARCHAR(4000)
+    InsertDate:          TIMESTAMP_NTZ
+    ModifyDate:          TIMESTAMP_NTZ
+  column_descriptions:
+    CompanyId: "JDE company identifier; part of invoice grain key."
+    DocumentCompany: "Document company identifier; part of invoice grain key."
+    DocNo: "JDE document number; part of invoice grain key."
+    DocType: "JDE document type; part of invoice grain key."
+    PayItm: "Pay item suffix; part of invoice grain key."
+    CustomerNumber: "JDE customer number used for customer-level AR analysis."
+    Collector: "Collector responsible for recovery follow-up; owner field for collection operations."
+    LOB: "Line of Business derived via GLOffset mapping; key for LOB-level KPI reporting."
+    PaymentTermCode: "Payment term code used to join ARPaymentTerm for compliance checks."
+    DisputeStatus: "Current dispute state (Open/Resolved/null)."
+    DisputeReasonCode: "Dispute reason code; must co-populate with DisputeStatus."
+    HoldFlag: "Credit hold flag (Y/N); used in leakage signal L8."
+    DueDate: "Contractual due date used with AgingDays for overdue and compliance checks."
+    PromiseToPay: "Customer promised payment date tracked by collections team."
+    WorkdayEmail: "Collector or sales rep work email used for action triggers."
+    ModifyDate: "Last modification timestamp used for freshness monitoring."
+  column_tags:
+    CompanyId: ["grain", "identifier", "join_key"]
+    DocumentCompany: ["grain", "identifier"]
+    DocNo: ["grain", "identifier", "invoice_key"]
+    DocType: ["grain", "identifier"]
+    PayItm: ["grain", "identifier"]
+    CustomerNumber: ["dimension", "customer", "join_key", "kpi"]
+    Collector: ["dimension", "ownership", "kpi", "action_trigger"]
+    LOB: ["dimension", "lob", "kpi", "dashboard"]
+    PaymentTermCode: ["dimension", "compliance", "join_key"]
+    DisputeStatus: ["dimension", "dispute", "kpi"]
+    DisputeReasonCode: ["dimension", "dispute", "kpi"]
+    HoldFlag: ["flag", "leakage", "kpi", "action_trigger"]
+    DueDate: ["date", "compliance", "aging", "kpi"]
+    PromiseToPay: ["date", "collections", "action_trigger"]
+    WorkdayEmail: ["contact", "action_trigger"]
+    ModifyDate: ["audit", "freshness"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. FactARDetails — Invoice Measures Table
+#    Grain: CompanyId + DocumentCompany + DocNo + DocType + PayItm
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+  description: >
+    Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item.
+    Open amounts, doubtful debt reserves, 30/60/90-day forecasts, aging days,
+    and reserve cash applied. The financial heart of Customer Invoices Analysis.
+    Source: JDE ERP pipeline (F03B11, F59HQ084).
+  grains:
+    - CompanyId
+    - DocumentCompany
+    - DocNo
+    - DocType
+    - PayItm
+  audits:
+    - name: ar_fact_dim_grain_integrity
+    - name: ar_payment_term_orphan
+  columns:
+    CompanyId:               VARCHAR(10)
+    DocumentCompany:         VARCHAR(10)
+    DocNo:                   VARCHAR(20)
+    DocType:                 VARCHAR(5)
+    PayItm:                  VARCHAR(5)
+    OpenAmount:              DECIMAL(18, 2)
+    GrossAmount:             DECIMAL(18, 2)
+    TaxAmount:               DECIMAL(18, 2)
+    DisputedAmount:          DECIMAL(18, 2)
+    CurrentReserve:          DECIMAL(18, 2)
+    ARCurrentReserve:        DECIMAL(18, 2)
+    PreviousForecastReserve: DECIMAL(18, 2)
+    ForecastReserve30:       DECIMAL(18, 2)
+    ForecastReserve60:       DECIMAL(18, 2)
+    ForecastReserve90:       DECIMAL(18, 2)
+    ChangeinReserve:         DECIMAL(18, 2)
+    DraftOpenAmount:         DECIMAL(18, 2)
+    AdjustmentAmount:        DECIMAL(18, 2)
+    ReserveCashApplied:      DECIMAL(18, 2)
+    AgingDays:               INTEGER
+    FiscalPeriodId:          INTEGER
+    GLDate:                  DATE
+    DueDate:                 DATE
+    AgeAsOfDate:             DATE
+    LatestReceiptDate:       DATE
+    InsertDate:              TIMESTAMP_NTZ
+  column_descriptions:
+    CompanyId: "JDE company identifier; part of invoice grain key."
+    DocumentCompany: "Document company identifier; part of invoice grain key."
+    DocNo: "JDE document number; part of invoice grain key."
+    DocType: "JDE document type; part of invoice grain key."
+    PayItm: "Pay item suffix; part of invoice grain key."
+    OpenAmount: "Outstanding invoice balance; primary AR exposure metric."
+    GrossAmount: "Original invoice amount before adjustments."
+    DisputedAmount: "Amount currently under dispute."
+    CurrentReserve: "Current doubtful debt reserve balance."
+    ForecastReserve30: "30-day reserve forecast used in reserve accuracy and leakage checks."
+    ForecastReserve60: "60-day reserve forecast."
+    ForecastReserve90: "90-day reserve forecast."
+    ChangeinReserve: "Period-over-period reserve movement; leakage signal L2/L7."
+    ReserveCashApplied: "Reserve cash applied to invoices; leakage signal L6 when zero on aged invoices."
+    AgingDays: "Days outstanding beyond due date; >30 marks overdue."
+    FiscalPeriodId: "Fiscal period integer key ((Century*100+Year)*100+Month)."
+    AgeAsOfDate: "As-of date used for aging calculation."
+    InsertDate: "Load timestamp used for trend metric time axis."
+  column_tags:
+    CompanyId: ["grain", "identifier", "join_key"]
+    DocumentCompany: ["grain", "identifier"]
+    DocNo: ["grain", "identifier", "invoice_key"]
+    DocType: ["grain", "identifier"]
+    PayItm: ["grain", "identifier"]
+    OpenAmount: ["measure", "amount", "kpi", "finance"]
+    GrossAmount: ["measure", "amount", "finance"]
+    DisputedAmount: ["measure", "amount", "dispute", "leakage"]
+    CurrentReserve: ["measure", "reserve", "stock", "kpi", "finance"]
+    ForecastReserve30: ["measure", "reserve", "forecast", "kpi", "finance"]
+    ForecastReserve60: ["measure", "reserve", "forecast", "finance"]
+    ForecastReserve90: ["measure", "reserve", "forecast", "finance"]
+    ChangeinReserve: ["measure", "reserve", "leakage", "signal"]
+    ReserveCashApplied: ["measure", "reserve", "leakage", "signal"]
+    AgingDays: ["measure", "aging", "kpi", "overdue", "compliance"]
+    FiscalPeriodId: ["time_dimension", "period", "kpi"]
+    AgeAsOfDate: ["date", "time_dimension", "aging"]
+    InsertDate: ["audit", "freshness", "time_dimension"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. FactARCollection — Collection Facts Table
+#    Grain: CompanyId + CustomerNumber + FiscalPeriodId + LOB
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+  description: >
+    Collection Facts Table — aggregated collection performance per customer,
+    LOB, and fiscal period. Home of the Collection Efficiency Index (CEI),
+    unapplied cash, and receipt volume KPIs.
+    Source: JDE ERP pipeline (F03B14, F03B13, F0006).
+  grains:
+    - CompanyId
+    - CustomerNumber
+    - FiscalPeriodId
+    - LOB
+  audits:
+    - name: ar_cash_applied_exceeds_receipts
+  columns:
+    CompanyId:            VARCHAR(10)
+    CustomerNumber:       VARCHAR(20)
+    FiscalPeriodId:       INTEGER
+    LOB:                  VARCHAR(50)
+    BusinessUnit:         VARCHAR(10)
+    PaymentTermCode:      VARCHAR(10)
+    TotalReceipts:        DECIMAL(18, 2)
+    CashApplied:          DECIMAL(18, 2)
+    ReserveCash:          DECIMAL(18, 2)
+    AdjustedCollection:   DECIMAL(18, 2)
+    CollectionEfficiency: DECIMAL(10, 6)
+    InsertDate:           TIMESTAMP_NTZ
+  column_descriptions:
+    CompanyId: "JDE company identifier; part of collection grain key."
+    CustomerNumber: "Customer identifier; part of collection grain key."
+    FiscalPeriodId: "Fiscal period key used for trend analysis."
+    LOB: "Line of Business key for LOB-level CEI reporting."
+    PaymentTermCode: "Payment term code for compliance context joins."
+    TotalReceipts: "Total cash received in the customer-period-LOB bucket."
+    CashApplied: "Cash successfully applied to open invoices (CEI numerator)."
+    ReserveCash: "Reserve cash component within receipts."
+    AdjustedCollection: "Collection amount after adjustments; leakage signal L3."
+    CollectionEfficiency: "Stored CEI ratio from source; should be in business-valid range."
+    InsertDate: "Load timestamp used for trend metric time axis."
+  column_tags:
+    CompanyId: ["grain", "identifier", "join_key"]
+    CustomerNumber: ["grain", "customer", "identifier", "join_key"]
+    FiscalPeriodId: ["grain", "time_dimension", "period", "kpi"]
+    LOB: ["grain", "dimension", "lob", "kpi"]
+    PaymentTermCode: ["dimension", "compliance", "join_key"]
+    TotalReceipts: ["measure", "amount", "receipts", "kpi"]
+    CashApplied: ["measure", "amount", "receipts", "kpi", "cei"]
+    ReserveCash: ["measure", "amount", "reserve"]
+    AdjustedCollection: ["measure", "amount", "leakage", "signal"]
+    CollectionEfficiency: ["measure", "kpi", "cei", "dashboard", "stored_ratio"]
+    InsertDate: ["audit", "freshness", "time_dimension"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. DimARCollectionLOB — Line of Business Reference Dimension
+#    Grain: LOBKey
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
+  description: >
+    Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
+    One row per LOBKey. Used to classify invoices and collection records
+    by business line across all fact tables.
+    Source: JDE ERP pipeline (F0012 GL Offset descriptions).
+  grains:
+    - LOBKey
+  audits: []
+  columns:
+    LOBKey:         INTEGER
+    CompanyId:      VARCHAR(10)
+    LOBCode:        VARCHAR(20)
+    LOBDescription: VARCHAR(100)
+    GLOffset:       VARCHAR(10)
+  column_descriptions:
+    LOBKey: "Surrogate key for LOB reference records."
+    CompanyId: "Company identifier associated with LOB mapping."
+    LOBCode: "LOB code used by fact and dimension tables."
+    LOBDescription: "Human-readable line of business label."
+    GLOffset: "GL offset code used to derive LOB in invoice data."
+  column_tags:
+    LOBKey: ["grain", "surrogate_key"]
+    CompanyId: ["identifier"]
+    LOBCode: ["dimension", "lob", "join_key", "kpi"]
+    LOBDescription: ["dimension", "lob", "display"]
+    GLOffset: ["dimension", "lob", "join_key"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. ARPaymentTerm — Payment Term Reference Dimension
+#    Grain: PaymentTermKey
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM
+  description: >
+    Payment Term Reference Dimension — defines payment terms used across invoices.
+    One row per PaymentTermKey. NetDays drives payment term compliance analysis
+    (AgingDays > NetDays = invoice has breached its agreed payment term).
+    Source: JDE ERP pipeline (F0014 Payment Terms).
+  grains:
+    - PaymentTermKey
+  audits: []
+  columns:
+    PaymentTermKey:  INTEGER
+    CompanyId:       VARCHAR(10)
+    PaymentTermCode: VARCHAR(10)
+    Description:     VARCHAR(100)
+    NetDays:         INTEGER
+  column_descriptions:
+    PaymentTermKey: "Surrogate key for payment term records."
+    CompanyId: "Company identifier associated with payment term mapping."
+    PaymentTermCode: "Payment term code used by invoice and collection records."
+    Description: "Human-readable payment term text (e.g., Net 30)."
+    NetDays: "Allowed payment window in days; used for compliance checks."
+  column_tags:
+    PaymentTermKey: ["grain", "surrogate_key"]
+    CompanyId: ["identifier"]
+    PaymentTermCode: ["dimension", "compliance", "join_key"]
+    Description: ["dimension", "compliance", "display"]
+    NetDays: ["measure", "compliance", "threshold"]

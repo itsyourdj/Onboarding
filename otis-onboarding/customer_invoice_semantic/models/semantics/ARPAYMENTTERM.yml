@@ -1,0 +1,73 @@
+# Source: design spec > Section 13 Model Architecture
+# Semantic wrapper for the Payment Term Reference Dimension (EXTERNAL — owned by JDE pipeline).
+# Provides NetDays for payment term compliance analysis.
+kind: semantic
+name: ARPaymentTerm
+depends_on: JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM
+description: >
+  Payment Term Reference Dimension — defines payment terms used across invoices.
+  One row per PaymentTermKey. NetDays is the key business metric:
+  AgingDays > NetDays = invoice has breached its contractual payment term.
+
+tags:
+  - accounts-receivable
+  - reference
+  - payment-terms
+  - compliance
+
+ai_context:
+  instructions: >
+    Use this model to look up NetDays for a payment term code.
+    The primary use case is payment term compliance: join to DimARDetails or FactARDetails
+    on PaymentTermCode, then compare AgingDays > NetDays to find breached invoices.
+  synonyms:
+    - "payment terms"
+    - "payment conditions"
+    - "payment term reference"
+  examples:
+    - description: "Which invoices are breaching their payment terms?"
+      format: sql
+      query: |
+        SELECT d.CompanyId, d.DocNo, d.CustomerNumber, d.PaymentTermCode,
+               pt.NetDays, f.AgingDays,
+               f.AgingDays - pt.NetDays AS days_overdue
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
+          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
+        JOIN JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM pt
+          ON d.PaymentTermCode = pt.PaymentTermCode
+        WHERE f.AgingDays > pt.NetDays AND f.OpenAmount > 0
+        ORDER BY days_overdue DESC
+
+dimensions:
+  - name: PaymentTermKey
+    behavior:
+      type: identifier
+  - name: CompanyId
+    behavior:
+      type: identifier
+  - name: PaymentTermCode
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "payment term"
+        - "payment condition"
+        - "term code"
+  - name: Description
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "payment term description"
+        - "term description"
+        - "term name"
+  - name: NetDays
+    ai_context:
+      synonyms:
+        - "net days"
+        - "days to pay"
+        - "payment window"
+      caveats:
+        - "NetDays is the number of days from invoice date to payment due date. Use AgingDays > NetDays to identify invoices that have breached their agreed payment term."

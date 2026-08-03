@@ -1,0 +1,153 @@
+# Source: design spec > Section 15 Quality Rules
+# Business purpose: Monitor the Invoice Dimension — the descriptive backbone of Customer Invoices Analysis.
+# Without correct attribution (Collector, LOB, Customer), every AR KPI breaks silently.
+kind: dq
+name: DimARDetails_dq
+depends_on: JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+
+profiles:
+  - Collector
+  - LOB
+  - DisputeStatus
+  - HoldFlag
+  - ModifyDate
+
+rules:
+
+  # ── Completeness ──────────────────────────────────────────────────────────────
+  - missing_count(CustomerNumber) = 0:
+      name: every_invoice_has_a_customer
+      dimension: completeness
+      description: >
+        Every invoice must be attributed to a customer. Null CustomerNumber = the invoice
+        cannot appear in any customer-level AR report, Collector Performance dashboard,
+        or Parent Customer rollup. Zero tolerance.
+
+  - missing_count(Collector) = 0:
+      name: every_invoice_has_a_collector
+      dimension: completeness
+      description: >
+        Collector is the accountability field for AR follow-up. Null Collector = no one owns
+        this invoice — it will not appear in Collector Performance KPIs, and no email
+        escalation trigger will fire. Zero tolerance.
+
+  - missing_count(DueDate) = 0:
+      name: every_invoice_has_a_due_date
+      dimension: completeness
+      description: >
+        DueDate is required for AgingDays calculation and payment term compliance.
+        A null DueDate = AgingDays cannot be computed, making the invoice invisible in
+        overdue aging analysis.
+
+  - missing_percent(LOB) < 1:
+      name: lob_derived_for_99pct_of_invoices
+      dimension: coverage
+      description: >
+        LOB is derived from GLOffset via DimARCollectionLOB. Up to 1% null LOB is tolerated
+        for newly-added GL Offsets not yet in the reference table. Above 1% signals a
+        systematic GL Offset mapping failure — LOB-level CEI will have significant blind spots.
+        [Estimated threshold: 1% — calibrate after deployment]
+
+  # ── Uniqueness ────────────────────────────────────────────────────────────────
+  - duplicate_count(CompanyId, DocumentCompany, DocNo, DocType, PayItm) = 0:
+      name: invoice_grain_must_be_unique
+      dimension: uniqueness
+      description: >
+        Duplicate grain rows cause double-counting in OpenAmount totals and CEI.
+        This is a hard data integrity failure — every financial KPI will be inflated.
+        Zero tolerance.
+
+  # ── Validity ──────────────────────────────────────────────────────────────────
+  - failed rows:
+      name: dispute_status_and_reason_code_co_populated
+      dimension: validity
+      fail query: |
+        SELECT CompanyId, DocNo, DocType, PayItm,
+               CustomerNumber, Collector,
+               DisputeStatus, DisputeReasonCode,
+               CASE
+                 WHEN DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL
+                   THEN 'Status set, ReasonCode missing'
+                 WHEN DisputeStatus IS NULL AND DisputeReasonCode IS NOT NULL
+                   THEN 'ReasonCode set, Status missing'
+               END AS violation
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+        WHERE (DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL)
+           OR (DisputeStatus IS NULL AND DisputeReasonCode IS NOT NULL)
+      samples limit: 20
+      description: >
+        Dispute Resolution Rate KPI requires both fields populated together or both null.
+        Partial records inflate total_dispute_count without a matching resolved_dispute_count,
+        systematically understating the Dispute Resolution Rate.
+
+  - failed rows:
+      name: hold_flag_must_be_y_or_n
+      dimension: conformity
+      fail query: |
+        SELECT CompanyId, DocNo, CustomerNumber, HoldFlag
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+        WHERE HoldFlag IS NOT NULL AND HoldFlag NOT IN ('Y', 'N', '')
+      samples limit: 10
+      description: >
+        HoldFlag must be Y or N. Unexpected values corrupt the Credit Hold Open Invoices
+        leakage signal (L8) — causing false alerts or missed alerts on credit hold triggers.
+
+  - failed rows:
+      name: payment_term_code_in_reference_table
+      dimension: consistency
+      fail query: |
+        SELECT d.CompanyId, d.DocNo, d.PaymentTermCode, f.AgingDays
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
+          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
+        LEFT JOIN JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM pt
+          ON d.PaymentTermCode = pt.PaymentTermCode
+        WHERE d.PaymentTermCode IS NOT NULL
+          AND pt.PaymentTermCode IS NULL
+          AND f.OpenAmount > 0
+      samples limit: 20
+      description: >
+        Invoices with PaymentTermCode absent from ARPaymentTerm cannot be assessed for
+        payment term compliance. They are silently excluded from 'breaching payment terms'
+        reports — a compliance blind spot.
+
+  # ── Accuracy: Leakage Signal Monitoring ───────────────────────────────────────
+  - failed rows:
+      name: credit_hold_customers_with_aged_open_ar
+      dimension: accuracy
+      fail query: |
+        SELECT d.CompanyId, d.CustomerNumber, d.HoldFlag,
+               COUNT(*) AS invoice_count,
+               SUM(f.OpenAmount) AS total_open_amount,
+               MAX(f.AgingDays) AS max_aging_days
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
+          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
+        WHERE d.HoldFlag = 'Y' AND f.OpenAmount > 0 AND f.AgingDays > 90
+        GROUP BY d.CompanyId, d.CustomerNumber, d.HoldFlag
+        HAVING SUM(f.OpenAmount) > 10000
+      samples limit: 10
+      description: >
+        Leakage Signal L8: Customers on credit hold with >$10,000 open AR aged >90 days
+        are high write-off risk. Each row here should trigger immediate escalation to
+        Collections Manager for manual review.
+        [Estimated threshold: $10,000 and 90 days — adjust to company materiality threshold]
+
+  - anomaly detection for row_count:
+      name: invoice_dimension_row_count_anomaly
+      dimension: accuracy
+      description: >
+        Detects statistically unusual changes in invoice count. A sudden count drop
+        signals a pipeline truncation. A count spike signals potential duplicate loading.
+        Either triggers immediate pipeline investigation.
+
+  # ── Timeliness ────────────────────────────────────────────────────────────────
+  - change for row_count >= -10%:
+      name: invoice_count_not_dropping_unexpectedly
+      dimension: timeliness
+      description: >
+        A 10%+ drop in DimARDetails row count is a pipeline failure signal. Even a 5% drop
+        means a significant portion of AR is missing from all dashboards. Threshold of 10%
+        catches failures while tolerating normal period-end invoice closures.

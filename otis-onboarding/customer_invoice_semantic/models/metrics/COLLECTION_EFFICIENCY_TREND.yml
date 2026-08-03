@@ -1,0 +1,14 @@
+# Source: design spec > Section 7 Metrics
+# Business question: "Is our collection efficiency improving or deteriorating period-over-period?"
+# Primary AR health KPI for Collections Manager and GM.
+kind: metric
+name: COLLECTION_EFFICIENCY_TREND
+measure: FactARCollection.COLLECTION_EFFICIENCY
+ts: FactARCollection.InsertDate
+granularity: day
+description: >
+  Collection Efficiency Index (CEI) trend tracked by load date (daily batch).
+  Formula: SUM(CashApplied) / SUM(TotalReceipts).
+  Target: CEI >= 0.85 (industry standard for AR operations).
+  A declining trend triggers escalation to Collections Manager.
+  Time axis: InsertDate (load timestamp, equivalent to business date for daily batches).

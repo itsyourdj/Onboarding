@@ -87,8 +87,8 @@ caveats:
 
 references:
   - title: Design Document
-    url: ./Customer_Invoice360_Design_Document.md
+    url: https://github.com/itsyourdj/Onboarding/blob/main/otis-onboarding/customer_invoice_semantic/Customer_Invoice360_Design_Document.md
     type: design
   - title: Data Product Plan
-    url: 
+    url: https://github.com/itsyourdj/Onboarding/blob/main/otis-onboarding/customer_invoice_semantic/data-product-plan.md
     type: doc

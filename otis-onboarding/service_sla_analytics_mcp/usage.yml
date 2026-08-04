@@ -33,5 +33,5 @@ caveats:
 
 references:
   - title: Design spec
-    url: ./data-product-plan.md
+    url: https://github.com/itsyourdj/Onboarding/blob/main/otis-onboarding/service_sla_analytics_mcp/data-product-plan.md
     type: doc

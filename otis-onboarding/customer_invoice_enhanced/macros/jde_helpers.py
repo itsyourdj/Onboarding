@@ -28,8 +28,10 @@ def jde_to_date(evaluator, jde_sql):
     return (
         "CASE "
         f"WHEN {jde_sql} IS NULL OR {s} = '' THEN NULL "
-        # Standard date strings when present (e.g. YYYY-MM-DD / YYYYMMDD)
-        f"WHEN TRY_TO_DATE({s}) IS NOT NULL THEN TRY_TO_DATE({s}) "
+        # Standard ISO date strings
+        f"WHEN REGEXP_LIKE({s}, '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}$') THEN CAST({s} AS DATE) "
+        # Compact calendar date (YYYYMMDD)
+        f"WHEN REGEXP_LIKE({s}, '^[0-9]{{8}}$') THEN TO_DATE({s}, 'YYYYMMDD') "
         # 7-digit Julian-like value already in YYYYDDD (e.g. 2025001)
         f"WHEN REGEXP_LIKE({s}, '^[0-9]{{7}}$') THEN "
         f"DATEADD(DAY, CAST(SUBSTR({s}, 5, 3) AS INT) - 1, TO_DATE(SUBSTR({s}, 1, 4) || '0101', 'YYYYMMDD')) "

@@ -1,0 +1,151 @@
+# Source: design spec > Section 15 Quality Rules
+# Business purpose: Monitor collection performance facts — where CEI and leakage KPIs live.
+# Data errors here translate directly to incorrect CEI reported to Collections Manager and GM.
+kind: dq
+name: FACTARCOLLECTION_DQ
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+
+profiles:
+  - TOTALRECEIPTS
+  - CASHAPPLIED
+  - COLLECTIONEFFICIENCY
+  - FISCALPERIODID
+  - LOB
+
+rules:
+
+  # ── Completeness ──────────────────────────────────────────────────────────────
+  - missing_count(FISCALPERIODID) = 0:
+      name: fiscal_period_required_in_collection_facts
+      dimension: completeness
+      description: >
+        FISCALPERIODID is the grain key and primary time dimension for CEI trend.
+        Null FISCALPERIODID = this customer's collection performance is not included
+        in any period-based KPI. Zero tolerance.
+
+  - missing_count(LOB) = 0:
+      name: lob_required_in_collection_facts
+      dimension: completeness
+      description: >
+        LOB is the grain key for LOB-level CEI analysis and Exec KPI dashboard.
+        Null LOB = this collection record is excluded from all LOB performance reports.
+        Zero tolerance.
+
+  # ── Uniqueness ────────────────────────────────────────────────────────────────
+  - duplicate_count(COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB) = 0:
+      name: collection_grain_must_be_unique
+      dimension: uniqueness
+      description: >
+        Duplicate grain rows double-count TOTALRECEIPTS and CASHAPPLIED in CEI.
+        A CEI of 92% from duplicated data may actually be 84% — a material misstatement
+        of the primary AR health KPI. Zero tolerance.
+
+  # ── Validity ──────────────────────────────────────────────────────────────────
+  - failed rows:
+      name: cash_applied_cannot_exceed_total_receipts
+      dimension: validity
+      fail query: |
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               TOTALRECEIPTS, CASHAPPLIED,
+               ROUND(CASHAPPLIED - TOTALRECEIPTS, 2) AS over_application_amount,
+               ROUND(CASHAPPLIED / NULLIF(TOTALRECEIPTS, 0) * 100, 1) AS applied_pct
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+        WHERE CASHAPPLIED > TOTALRECEIPTS * 1.005
+      samples limit: 20
+      description: >
+        CASHAPPLIED > TOTALRECEIPTS is a JDE misposting error — impossible in real operations.
+        Each row directly inflates CEI for that customer × period × LOB.
+        Root cause: duplicate receipt entry or cross-period posting mismatch.
+
+  - failed rows:
+      name: total_receipts_must_not_be_negative
+      dimension: validity
+      fail query: |
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB, TOTALRECEIPTS, CASHAPPLIED
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+        WHERE TOTALRECEIPTS < -0.01
+      samples limit: 10
+      description: >
+        Negative TOTALRECEIPTS indicates a reversed receipt not offset by a correcting entry.
+        This makes unapplied cash % appear artificially high and may cause CEI > 1.0.
+
+  - failed rows:
+      name: collection_efficiency_in_valid_range
+      dimension: accuracy
+      fail query: |
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               COLLECTIONEFFICIENCY, TOTALRECEIPTS, CASHAPPLIED
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+        WHERE COLLECTIONEFFICIENCY < 0 OR COLLECTIONEFFICIENCY > 1.5
+      samples limit: 10
+      description: >
+        Pre-computed CEI must be in range [0, 1.5]. Below 0 = data error. Above 1.5 =
+        probable duplicate receipt or mis-applied prepayment.
+        [Estimated threshold: 1.5 — calibrate after deployment]
+
+  # ── Accuracy: Leakage Signal Monitoring ───────────────────────────────────────
+  - failed rows:
+      name: unapplied_cash_above_leakage_threshold
+      dimension: accuracy
+      fail query: |
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               TOTALRECEIPTS, CASHAPPLIED,
+               TOTALRECEIPTS - CASHAPPLIED AS unapplied_cash,
+               ROUND((TOTALRECEIPTS - CASHAPPLIED) / NULLIF(TOTALRECEIPTS, 0) * 100, 1) AS unapplied_pct
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+        WHERE TOTALRECEIPTS > 0
+          AND (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS > 0.20
+        ORDER BY unapplied_cash DESC
+      samples limit: 20
+      description: >
+        Leakage Signal L1: Customer × period × LOB rows where >20% of receipts are unapplied.
+        Each row represents cash received not reducing open AR — a direct collection process
+        failure. Collections team must investigate timing differences, mispostings, or disputes.
+        [Estimated threshold: 20% — calibrate to your cash application cycle time]
+
+  - anomaly detection for avg(COLLECTIONEFFICIENCY):
+      name: portfolio_cei_anomaly
+      dimension: accuracy
+      description: >
+        Detects statistically unusual shifts in average CEI across the portfolio.
+        A sudden drop triggers immediate investigation: real collections deterioration,
+        a data quality event, or a seasonal effect?
+
+  - anomaly detection for sum(TOTALRECEIPTS):
+      name: total_receipt_volume_anomaly
+      dimension: accuracy
+      description: >
+        Monitors total cash receipt volume. A sudden drop signals missed receipt postings
+        or a pipeline failure. A spike may indicate duplicate F03B14 table loading.
+
+  # ── Coverage ──────────────────────────────────────────────────────────────────
+  - failed rows:
+      name: all_active_lobs_present_in_current_period
+      dimension: coverage
+      fail query: |
+        WITH recent_lobs AS (
+          SELECT DISTINCT LOB FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+          WHERE FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION) - 3
+        ),
+        current_period_lobs AS (
+          SELECT DISTINCT LOB FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+          WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION)
+        )
+        SELECT r.LOB AS missing_lob,
+               'LOB present in recent periods but absent in current period' AS impact
+        FROM recent_lobs r
+        LEFT JOIN current_period_lobs c ON r.LOB = c.LOB
+        WHERE c.LOB IS NULL
+      samples limit: 10
+      description: >
+        All Lines of Business active in recent periods must appear in the current period.
+        A missing LOB creates a gap in LOB-level CEI invisible unless explicitly checked.
+
+  # ── Timeliness ────────────────────────────────────────────────────────────────
+  - change for row_count >= -15%:
+      name: collection_records_not_dropping
+      dimension: timeliness
+      description: >
+        A 15%+ drop in FACTARCOLLECTION rows may signal that one or more companies or LOBs
+        were not loaded for the current period. Collections Manager will see incomplete CEI
+        data for that period without any visible error indicator.

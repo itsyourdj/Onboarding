@@ -1,0 +1,64 @@
+name: "customer-invoices-enhanced"
+display_name: "Customer Invoices Insights (Enhanced)"
+description: >
+  Centralised Accounts Receivable data product for the Customer Invoices domain.
+  Provides semantic governance, business metrics, AI-agent-ready context, and
+  quality monitoring over the Invoice 360 star schema (DimARDetails, FactARDetails,
+  FactARCollection, DimARCollectionLOB, ARPaymentTerm). Enables CEI tracking,
+  collection leakage detection, dispute management, reserve vs forecast analysis,
+  and natural language AR queries for Collections, Finance, and GM personas.
+discoverable: true
+version: "0.0.1"
+alignment: consumer_aligned
+domain: "finance"
+vde: true
+
+tags:
+  - "accounts-receivable"
+  - "collections"
+  - "finance"
+  - "invoice"
+  - "snowflake"
+terms:
+  - "finance.accounts_receivable"
+  - "finance.collection_efficiency_index"
+  - "finance.reserve"
+
+gateways:
+  default:
+    connection:
+      type: depot
+      address: dataos://jdeproduction?purpose=rw
+
+default_gateway: default
+
+model_defaults:
+  dialect: "snowflake"
+  start: "2020-01-01"
+  cron: "30 6 * * *"
+
+notification_targets:
+  - type: teams_webhook
+    url: "https://default2e22bdde3ec243f5bf9278e9f35a44.fb.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/17/workflows/9076978b80e545a99cc9d3570c5b350f/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-BCV8UQ2_jbXI8kH2ye0nT3oEGY7Txlruq8n2tCX_Rk"
+    notify_on:
+      - apply_start
+      - apply_end
+      - run_start
+      - run_end
+      - migration_start
+      - migration_end
+      - apply_failure
+      - run_failure
+      - audit_failure
+      - migration_failure
+      - plan_change
+      - dq_start
+      - dq_end
+
+users:
+  - username: manishagrawaltmdcio
+    email: manish.agrawal@tmdc.io
+    type: OWNER
+  - username: deepakjaiswaltmdcio
+    email: deepak.jaiswal@tmdc.io
+    type: DEVELOPER

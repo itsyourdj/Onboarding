@@ -1,0 +1,31 @@
+test_fact_dim_join_integrity:
+  model: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+  inputs:
+    STAGING.F03B11:
+      rows:
+        - COMPANYID: "100"
+          DOCUMENTCOMPANY: "100"
+          DOCNO: "INV1"
+          DOCTYPE: "RI"
+          PAYITM: "001"
+          OPENAMOUNT: 500
+          GROSSAMOUNT: 550
+    STAGING.F59HQ084:
+      rows:
+        - COMPANYID: "100"
+          DOCUMENTCOMPANY: "100"
+          DOCNO: "INV1"
+          DOCTYPE: "RI"
+          PAYITM: "001"
+          CURRENTRESERVE: 50
+          FORECASTRESERVE30: 60
+          CHANGEINRESERVE: 5
+          AGINGDAYS: 20
+          FISCALPERIODID: 202608
+  outputs:
+    query:
+      partial: true
+      rows:
+        - COMPANYID: "100"
+          DOCNO: "INV1"
+          OPENAMOUNT: 500

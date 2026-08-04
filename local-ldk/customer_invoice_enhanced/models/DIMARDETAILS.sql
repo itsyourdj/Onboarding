@@ -1,0 +1,145 @@
+MODEL (
+  name JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS,
+  kind INCREMENTAL_BY_UNIQUE_KEY (
+    unique_key (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM)
+  ),
+  grains (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM),
+  tags ('ACCOUNTS_RECEIVABLE', 'DIMENSION', 'INVOICE', 'GOLD'),
+  column_descriptions (
+    COMPANYID = 'JDE company identifier.',
+    DOCUMENTCOMPANY = 'Document company identifier.',
+    DOCNO = 'Document number.',
+    DOCTYPE = 'Document type.',
+    PAYITM = 'Pay item identifier.',
+    CUSTOMERNUMBER = 'Customer identifier.',
+    COLLECTOR = 'Assigned collector.',
+    LOB = 'Line of business.',
+    PAYMENTTERMCODE = 'Payment term code.',
+    DISPUTESTATUS = 'Dispute status.',
+    ARCODE = 'AR classification code.',
+    MODIFYDATE = 'Row modification timestamp.'
+  ),
+  column_tags (
+    COMPANYID = ('GRAIN', 'JOIN_KEY'),
+    DOCUMENTCOMPANY = ('GRAIN', 'JOIN_KEY'),
+    DOCNO = ('GRAIN', 'JOIN_KEY'),
+    DOCTYPE = ('GRAIN', 'JOIN_KEY'),
+    PAYITM = ('GRAIN', 'JOIN_KEY'),
+    CUSTOMERNUMBER = ('DIMENSION', 'CUSTOMER'),
+    COLLECTOR = ('DIMENSION', 'OWNER'),
+    LOB = ('DIMENSION', 'LOB'),
+    DISPUTESTATUS = ('DIMENSION', 'DISPUTE'),
+    HOLDFLAG = ('DIMENSION', 'RISK_FLAG')
+  ),
+  assertions (
+    not_null(columns := (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM, CUSTOMERNUMBER)),
+    unique_combination_of_columns(columns := (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM)),
+    ar_dispute_co_population_integrity
+  )
+);
+
+WITH LATEST_INVOICE_COMMENT AS (
+  SELECT
+    @normalize_key(CICO) AS COMPANYID,
+    @normalize_key(CIDOC) AS DOCNO,
+    @normalize_key(CIDCT) AS DOCTYPE,
+    @normalize_key(CISFX) AS PAYITM,
+    TRIM(CITXTX) AS LASTINVOICECOMMENT,
+    ROW_NUMBER() OVER (
+      PARTITION BY @normalize_key(CICO), @normalize_key(CIDOC), @normalize_key(CIDCT), @normalize_key(CISFX)
+      ORDER BY CAST(CIUPMJ AS BIGINT) DESC, CAST(CITXLN AS BIGINT) DESC
+    ) AS RN
+  FROM STAGING.F5803B2I
+),
+LATEST_CUSTOMER_COMMENT AS (
+  SELECT
+    @normalize_key(CCAN8) AS CUSTOMERNUMBER,
+    TRIM(CCTXTX) AS LASTCUSTOMERCOMMENT,
+    ROW_NUMBER() OVER (
+      PARTITION BY @normalize_key(CCAN8)
+      ORDER BY CAST(CCUPMJ AS BIGINT) DESC, CAST(CCTXLN AS BIGINT) DESC
+    ) AS RN
+  FROM STAGING.F5803B2C
+),
+WORKDAY_EMAIL AS (
+  SELECT
+    @normalize_key(WORKER_ID) AS COLLECTOR,
+    TRIM(DOMAIN_USERNAME) AS WORKDAYEMAIL
+  FROM STAGING.WORKDAY
+),
+LOB_MAP AS (
+  SELECT
+    @normalize_key(GACO) AS COMPANYID,
+    @normalize_key(GAID) AS GLOFFSET,
+    @normalize_key(GAID) AS LOBCODE
+  FROM STAGING.F0012
+)
+SELECT
+  @normalize_key(B.RPCO) AS COMPANYID,
+  @normalize_key(B.RPKCO) AS DOCUMENTCOMPANY,
+  @normalize_key(B.RPDOC) AS DOCNO,
+  @normalize_key(B.RPDCT) AS DOCTYPE,
+  @normalize_key(B.RPSFX) AS PAYITM,
+  @normalize_key(B.RPAN8) AS CUSTOMERNUMBER,
+  TRIM(A.ABALPH) AS CUSTOMERNAME,
+  @normalize_key(A.ABPA8) AS PARENTCUSTOMER,
+  @normalize_key(A.ABAC05) AS CUSTOMERSEGMENT,
+  TRY_CAST(NULL AS VARCHAR) AS SALESREP,
+  @normalize_key(A.ABAC04) AS COLLECTOR,
+  @normalize_key(A.ABAC04) AS COLLECTIONMANAGER,
+  @normalize_key(B.RPAID) AS GLOFFSET,
+  COALESCE(@normalize_key(LOB.LOBCODE), @normalize_key(B.RPAID)) AS LOB,
+  @normalize_key(B.RPMCU) AS BUSINESSUNIT,
+  TRIM(BU.MCDL01) AS BUDESC,
+  @normalize_key(BU.MCRP01) AS BUREGION,
+  @normalize_key(B.RPPTC) AS PAYMENTTERMCODE,
+  NULLIF(@normalize_key(B.RPASTS), '') AS DISPUTEREASONCODE,
+  CASE
+    WHEN COALESCE(NULLIF(@normalize_key(B.RPASTS), ''), '') IN ('D', 'OPEN') THEN 'OPEN'
+    WHEN NULLIF(@normalize_key(B.RPASTS), '') IS NOT NULL THEN 'RESOLVED'
+    ELSE NULL
+  END AS DISPUTESTATUS,
+  TRIM(B.RPRMK) AS DISPUTECODEDESC,
+  @normalize_key(A.ABAC04) AS RESOLVERCODE,
+  TRY_CAST(NULL AS VARCHAR) AS RESOLVERNAME,
+  @normalize_key(C.ACAPTS2) AS ARCODE,
+  TRY_CAST(NULL AS DATE) AS DISPUTEDATE,
+  @jde_to_date(B.RPIVD) AS INVOICEDATE,
+  @jde_to_date(B.RPDDJ) AS DUEDATE,
+  @jde_to_date(B.RPDGJ) AS GLDATE,
+  TRY_CAST(NULL AS DATE) AS PROMISETOPAY,
+  @normalize_key(B.RPCRCD) AS CURRENCYCODE,
+  CAST(B.RPCRR AS DECIMAL(10,7)) AS EXCHANGERATE,
+  @normalize_key(C.ACHCR) AS HOLDFLAG,
+  CAST(C.ACACL AS DECIMAL(15,2)) AS CREDITLIMIT,
+  @normalize_key(B.RPASTS) AS PAYMENTSTATUS,
+  TRY_CAST(NULL AS DATE) AS ATTACHMENTSTARTDATE,
+  TRY_CAST(NULL AS DATE) AS ATTACHMENTENDDATE,
+  TRY_CAST(NULL AS VARCHAR) AS CHARGEBACKCODE,
+  TRIM(IC.LASTINVOICECOMMENT) AS LASTINVOICECOMMENT,
+  TRIM(CC.LASTCUSTOMERCOMMENT) AS LASTCUSTOMERCOMMENT,
+  WD.WORKDAYEMAIL AS WORKDAYEMAIL,
+  CURRENT_TIMESTAMP() AS INSERTDATE,
+  CURRENT_TIMESTAMP() AS MODIFYDATE
+FROM STAGING.F03B11 B
+LEFT JOIN STAGING.F0101 A
+  ON @normalize_key(B.RPAN8) = @normalize_key(A.ABAN8)
+LEFT JOIN STAGING.F03012 C
+  ON @normalize_key(B.RPAN8) = @normalize_key(C.ACAN8)
+  AND @normalize_key(B.RPCO) = @normalize_key(C.ACCO)
+LEFT JOIN LATEST_INVOICE_COMMENT IC
+  ON @normalize_key(B.RPCO) = IC.COMPANYID
+  AND @normalize_key(B.RPDOC) = IC.DOCNO
+  AND @normalize_key(B.RPDCT) = IC.DOCTYPE
+  AND @normalize_key(B.RPSFX) = IC.PAYITM
+  AND IC.RN = 1
+LEFT JOIN LATEST_CUSTOMER_COMMENT CC
+  ON @normalize_key(B.RPAN8) = @normalize_key(CC.CUSTOMERNUMBER)
+  AND CC.RN = 1
+LEFT JOIN STAGING.F0006 BU
+  ON @normalize_key(B.RPMCU) = @normalize_key(BU.MCMCU)
+LEFT JOIN LOB_MAP LOB
+  ON @normalize_key(B.RPCO) = LOB.COMPANYID
+  AND @normalize_key(B.RPAID) = LOB.GLOFFSET
+LEFT JOIN WORKDAY_EMAIL WD
+  ON WD.COLLECTOR = @normalize_key(A.ABAC04);

@@ -1,0 +1,40 @@
+test_factarcollection_cei:
+  model: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+  inputs:
+    STAGING.F03B14:
+      rows:
+        - COMPANYID: "100"
+          DOCNO: "R1"
+          CUSTOMERNUMBER: "C1"
+          FISCALPERIODID: 202608
+          GLOFFSET: "MNT"
+          BUSINESSUNIT: "BU1"
+          PAYMENTTERMCODE: "N30"
+          TOTALRECEIPTS: 1000
+          CASHAPPLIED: 800
+          RESERVECASH: 20
+          ADJUSTEDCOLLECTION: 790
+    STAGING.F03B13:
+      rows:
+        - DOCNO: "R1"
+          CUSTOMERNUMBER: "C1"
+    JDE_PRODUCTION.STAGING.F03B11:
+      rows:
+        - COMPANYID: "100"
+          CUSTOMERNUMBER: "C1"
+          GLDATE: "2026-08-01"
+          OPENAMOUNT: 0
+    JDE_PRODUCTION.RL_JDE_VULCAN.DIMARCOLLECTIONLOB:
+      rows:
+        - LOBKEY: 1
+          COMPANYID: "100"
+          LOBCODE: "MAINTENANCE"
+          LOBDESCRIPTION: "MAINTENANCE"
+          GLOFFSET: "MNT"
+  outputs:
+    query:
+      partial: true
+      rows:
+        - COMPANYID: "100"
+          CUSTOMERNUMBER: "C1"
+          COLLECTIONEFFICIENCY: 0.8

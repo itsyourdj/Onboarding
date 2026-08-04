@@ -1,0 +1,62 @@
+test_dimardetails_grain:
+  model: JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS
+  inputs:
+    STAGING.F03B11:
+      rows:
+        - COMPANYID: "100"
+          DOCUMENTCOMPANY: "100"
+          DOCNO: "INV1"
+          DOCTYPE: "RI"
+          PAYITM: "001"
+          CUSTOMERNUMBER: "C1"
+          GLOFFSET: "MNT"
+        - COMPANYID: "100"
+          DOCUMENTCOMPANY: "100"
+          DOCNO: "INV2"
+          DOCTYPE: "RI"
+          PAYITM: "001"
+          CUSTOMERNUMBER: "C2"
+          GLOFFSET: "MNT"
+    STAGING.F0101:
+      rows:
+        - CUSTOMERNUMBER: "C1"
+          COLLECTOR: "COL_A"
+        - CUSTOMERNUMBER: "C2"
+          COLLECTOR: "COL_B"
+    STAGING.F03012:
+      rows:
+        - CUSTOMERNUMBER: "C1"
+          HOLDFLAG: "N"
+          ARCODE: "A"
+        - CUSTOMERNUMBER: "C2"
+          HOLDFLAG: "Y"
+          ARCODE: "B"
+    STAGING.F5803B2I:
+      rows: []
+    STAGING.F5803B2C:
+      rows: []
+    STAGING.F0006:
+      rows: []
+    JDE_PRODUCTION.STAGING.WORKDAY:
+      rows:
+        - COMPANYID: "100"
+          COLLECTOR: "COL_A"
+          WORKDAYEMAIL: "col_a@example.com"
+        - COMPANYID: "100"
+          COLLECTOR: "COL_B"
+          WORKDAYEMAIL: "col_b@example.com"
+    JDE_PRODUCTION.RL_JDE_VULCAN.DIMARCOLLECTIONLOB:
+      rows:
+        - LOBKEY: 1
+          COMPANYID: "100"
+          LOBCODE: "MAINTENANCE"
+          LOBDESCRIPTION: "MAINTENANCE"
+          GLOFFSET: "MNT"
+  outputs:
+    query:
+      partial: true
+      rows:
+        - COMPANYID: "100"
+          DOCNO: "INV1"
+        - COMPANYID: "100"
+          DOCNO: "INV2"

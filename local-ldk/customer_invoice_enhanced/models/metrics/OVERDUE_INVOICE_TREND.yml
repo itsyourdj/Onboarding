@@ -1,0 +1,14 @@
+# Source: design spec > Section 7 Metrics
+# Business question: "Is the volume of overdue invoices growing or shrinking?"
+# Operational early-warning KPI for Collections Manager and Dispute Resolver.
+kind: metric
+name: OVERDUE_INVOICE_TREND
+measure: FACTARDETAILS.OVERDUE_INVOICE_COUNT
+ts: FACTARDETAILS.INSERTDATE
+granularity: day
+description: >
+  Count of invoices with AGINGDAYS > 30 (overdue), tracked by load date.
+  A growing trend = collections backlog is building faster than it is being cleared.
+  Segment by COLLECTOR and LOB to identify concentration of the overdue backlog.
+  Drives daily collections prioritisation and escalation decisions.
+  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).

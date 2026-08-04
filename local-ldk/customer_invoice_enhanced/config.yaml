@@ -1,0 +1,86 @@
+name: "customer-invoices"
+display_name: "Customer Invoices Semantic Insights"
+tenant: "default"
+description: >
+  Centralised Accounts Receivable data product for the Customer Invoices domain.
+  Provides semantic governance, business metrics, AI-agent-ready context, and
+  quality monitoring over the Invoice 360 star schema (DimARDetails, FactARDetails,
+  FactARCollection, DimARCollectionLOB, ARPaymentTerm). Enables CEI tracking,
+  collection leakage detection, dispute management, reserve vs forecast analysis,
+  and natural language AR queries for Collections, Finance, and GM personas.
+discoverable: true
+version: "1.0.0"
+alignment: consumer_aligned
+domain: "finance"
+vde: false
+
+tags:
+  - "accounts-receivable"
+  - "collections"
+  - "finance"
+  - "invoice"
+  - "snowflake"
+terms:
+  - "finance.accounts_receivable"
+  - "finance.collection_efficiency_index"
+  - "finance.reserve"
+
+users:
+  - username: "deepak_jaiswal"
+    github_username: "itsyourdj"
+    email: "deepak.jaiswal@tmdc.io"
+    type: "OWNER"
+
+
+# --- Gateway Connection ---
+gateways:
+  snowflake:
+    connection:
+      type: snowflake
+      account: BKSFOCJ-MM27667
+      # concurrent_tasks: 4
+      # register_comments: True
+      # pre_ping: False
+      # pretty_sql: False
+      # schema_differ_overrides: 
+      # catalog_type_overrides: 
+      # user_agent: 
+      user: YASHTMDC
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      warehouse: COMPUTE_WH
+      database: JDE_PRODUCTION
+      role: ONBOARDING
+      # authenticator: 
+      # token: 
+      # host: 
+      # port: 
+      # application: DataOS_Vulcan
+      # private_key: 
+      # private_key_path: 
+      # private_key_passphrase: 
+      # session_parameters: 
+
+    # State sync - use DuckDB by default for local projects
+    state_connection:
+      type: duckdb
+      database: ./.state.db
+
+model_defaults:
+  dialect: snowflake
+  start: 2020-01-01         # Start date for backfill history
+  cron: '@daily'            # Run models daily at 12am UTC (can override per model)
+
+# --- Linting Rules ---
+# Enforce standards for your team
+linter:
+  enabled: true
+  rules:
+    - ambiguousorinvalidcolumn
+    - invalidselectstarexpansion
+    - noambiguousprojections
+
+ignore_patterns:
+  - "*-deploy.yaml"
+  - "dpbs-docs/**"
+  - ".venv/**"
+

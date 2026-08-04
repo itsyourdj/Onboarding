@@ -1,0 +1,71 @@
+name: customer-invoices-enhanced
+version: v1alpha
+type: vulcan
+tags:
+  - accounts-receivable
+  - collections
+  - finance
+  - invoice
+  - snowflake
+description: >
+  Customer Invoices Enhanced — centralised AR data product providing semantic governance,
+  business metrics (CEI trend, open AR trend, reserve accuracy, unapplied cash, overdue invoices),
+  AI-agent-ready context, and quality monitoring over the Invoice 360 star schema.
+
+spec:
+  runAsUser: "deepakjaiswaltmdcio"
+  compute: otis-compute
+  engine: snowflake
+  repo:
+    url: https://github.com/itsyourdj/Onboarding
+    syncFlags:
+      - "--ref=main"
+      - "--submodules=off"
+    baseDir: Onboarding/otis-onboarding/customer_invoice_enhanced
+    secretId: otis-onboarding:onboarding-repo-access
+  depots:
+    - dataos://jdeproduction?purpose=rw
+  workflow:
+    type: schedule
+    schedule:
+      crons:
+        - "0 12 * * *"
+      timezone: "Asia/Kolkata"
+      endOn: "2027-01-01T00:00:00Z"
+      concurrencyPolicy: Forbid
+    logLevel: INFO
+    resource:
+      request:
+        cpu: "500m"
+        memory: "512Mi"
+      limit:
+        cpu: "1000m"
+        memory: "1Gi"
+    migrate:
+      command:
+        - vulcan
+      arguments:
+        - migrate
+    plan:
+      command:
+        - vulcan
+      arguments:
+        - --log-to-stdout
+        - plan
+        - --auto-apply
+    run:
+      command:
+        - vulcan
+      arguments:
+        - --log-to-stdout
+        - run
+  api:
+    replicas: 1
+    logLevel: INFO
+    resource:
+      request:
+        cpu: "500m"
+        memory: "512Mi"
+      limit:
+        cpu: "1000m"
+        memory: "1Gi"

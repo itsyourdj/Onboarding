@@ -1,0 +1,14 @@
+# Source: design spec > Section 7 Metrics
+# Business question: "What % of receipts remain unapplied period-over-period — is leakage worsening?"
+# Primary collection leakage trend for Collections Manager and Finance.
+kind: metric
+name: UNAPPLIED_CASH_TREND
+measure: FACTARCOLLECTION.UNAPPLIED_CASH_PCT
+ts: FACTARCOLLECTION.INSERTDATE
+granularity: day
+description: >
+  Percentage of total receipts not yet applied to open invoices, tracked by load date.
+  Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS.
+  A rising trend without a corresponding dispute volume spike = cash posting process failure.
+  Primary leakage detection signal (L1) — triggers Cash Application team investigation.
+  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).

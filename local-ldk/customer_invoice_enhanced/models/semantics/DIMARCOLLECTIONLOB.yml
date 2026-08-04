@@ -1,0 +1,62 @@
+# Source: design spec > Section 13 Model Architecture
+# Semantic wrapper for the LOB Reference Dimension (VULCAN MODELED IN RL_JDE_VULCAN).
+# Maps GL Offset codes to Line of Business labels.
+kind: semantic
+name: DIMARCOLLECTIONLOB
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.DIMARCOLLECTIONLOB
+description: >
+  Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
+  One row per LOBKEY (company + LOB code). Used to classify invoices and
+  collection records by business line across all fact tables.
+
+tags:
+  - accounts-receivable
+  - reference
+  - lob
+
+ai_context:
+  instructions: >
+    Use this model to look up the full description of a Line of Business code (LOBDESCRIPTION).
+    Join from FACTARCOLLECTION or DIMARDETAILS on LOBCODE / LOB column.
+  synonyms:
+    - "LOB reference"
+    - "line of business reference"
+    - "LOB lookup"
+  examples:
+    - description: "List all Lines of Business"
+      format: sql
+      query: |
+        SELECT LOBCODE, LOBDESCRIPTION, GLOFFSET
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.DIMARCOLLECTIONLOB
+        ORDER BY LOBDESCRIPTION
+
+dimensions:
+  - name: LOBKEY
+    behavior:
+      type: identifier
+  - name: COMPANYID
+    behavior:
+      type: identifier
+  - name: LOBCODE
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "LOB"
+        - "LOB code"
+        - "line of business code"
+  - name: LOBDESCRIPTION
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "LOB name"
+        - "business line name"
+        - "LOB label"
+  - name: GLOFFSET
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "GL offset"
+        - "offset code"

@@ -1,0 +1,126 @@
+# Source: design spec > Section 15 Quality Rules
+# Business purpose: Monitor the Invoice Measures table — where every financial KPI lives.
+# Amount errors here propagate directly to Exec KPI dashboards and Finance period-end reports.
+kind: dq
+name: FACTARDETAILS_DQ
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+
+profiles:
+  - OPENAMOUNT
+  - CURRENTRESERVE
+  - FORECASTRESERVE30
+  - CHANGEINRESERVE
+  - AGINGDAYS
+
+rules:
+
+  # ── Completeness ──────────────────────────────────────────────────────────────
+  - missing_count(FISCALPERIODID) = 0:
+      name: fiscal_period_required_for_all_invoices
+      dimension: completeness
+      description: >
+        FISCALPERIODID is the primary time key for all period-based trend metrics.
+        A null FISCALPERIODID = this invoice is excluded from every time-series KPI.
+        Zero tolerance.
+
+  # ── Uniqueness ────────────────────────────────────────────────────────────────
+  - duplicate_count(COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM) = 0:
+      name: fact_invoice_grain_unique
+      dimension: uniqueness
+      description: >
+        Duplicate fact rows double-count OPENAMOUNT, CURRENTRESERVE, and all measures —
+        a direct financial misstatement. Zero tolerance.
+
+  # ── Validity ──────────────────────────────────────────────────────────────────
+  - failed rows:
+      name: open_amount_must_not_be_negative_without_reason
+      dimension: validity
+      fail query: |
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               OPENAMOUNT, GROSSAMOUNT, AGINGDAYS
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+        WHERE OPENAMOUNT < -1 AND GROSSAMOUNT > 0
+      samples limit: 10
+      description: >
+        OPENAMOUNT < -1 on an invoice with positive GROSSAMOUNT indicates a JDE decimal
+        encoding or sign error. Negative open amounts subtract from total AR exposure,
+        making the portfolio look healthier than it actually is.
+
+  - failed rows:
+      name: aging_days_sanity_check
+      dimension: validity
+      fail query: |
+        SELECT COMPANYID, DOCNO, AGINGDAYS, DUEDATE, AGEASOFDATE
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+        WHERE AGINGDAYS < -730
+      samples limit: 10
+      description: >
+        AGINGDAYS < -730 (more than 2 years in the future) indicates a JDE Julian date
+        conversion error. Allow up to -730 for valid long-term contracts.
+
+  # ── Accuracy: Reserve & Forecast Monitoring ───────────────────────────────────
+  - failed rows:
+      name: active_invoices_have_no_reserve_forecast
+      dimension: accuracy
+      fail query: |
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               OPENAMOUNT, AGINGDAYS,
+               FORECASTRESERVE30, FORECASTRESERVE60, FORECASTRESERVE90,
+               FISCALPERIODID
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+        WHERE OPENAMOUNT > 5000
+          AND AGINGDAYS > 30
+          AND FORECASTRESERVE30 = 0
+          AND FORECASTRESERVE60 = 0
+          AND FORECASTRESERVE90 = 0
+        ORDER BY OPENAMOUNT DESC
+      samples limit: 20
+      description: >
+        DQ6: Active invoices >$5,000 and >30 days overdue with zero forecast reserves are
+        unprovisioned credit risk on the balance sheet. Finance cannot include them in
+        IFRS/GAAP doubtful debt provisions.
+        [Estimated threshold: $5,000 — adjust to materiality]
+
+  - failed rows:
+      name: reserve_change_exceeds_forecast_threshold
+      dimension: accuracy
+      fail query: |
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               FISCALPERIODID, CHANGEINRESERVE, FORECASTRESERVE30,
+               ROUND(ABS(CHANGEINRESERVE) / NULLIF(FORECASTRESERVE30, 0) * 100, 1) AS reserve_change_pct,
+               OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS
+        WHERE FORECASTRESERVE30 > 0
+          AND ABS(CHANGEINRESERVE) / FORECASTRESERVE30 > 0.20
+          AND OPENAMOUNT > 1000
+        ORDER BY ABS(CHANGEINRESERVE) DESC
+      samples limit: 20
+      description: >
+        Leakage Signal L7: Reserve changed by >20% vs 30-day forecast. Each row here is a
+        reserve mis-estimation event — Finance needs to investigate whether the reserve model
+        is responding correctly to collection events.
+        [Estimated threshold: 20% — pending Analytics sign-off]
+
+  - anomaly detection for sum(OPENAMOUNT):
+      name: total_open_ar_anomaly
+      dimension: accuracy
+      description: >
+        Detects unusual movements in total open AR. A sudden 10%+ drop may indicate
+        mass write-offs, data deletion, or a pipeline gap. A spike may indicate duplicate
+        invoice loading. Either event requires Finance review before period-end reporting.
+
+  - anomaly detection for sum(CURRENTRESERVE):
+      name: total_reserve_balance_anomaly
+      dimension: accuracy
+      description: >
+        Monitors total doubtful debt reserve. Unexpected reserve movements before Finance
+        has approved them may indicate JDE reserve recalculation errors.
+
+  # ── Timeliness ────────────────────────────────────────────────────────────────
+  - change for row_count >= -10%:
+      name: fact_invoice_count_not_dropping
+      dimension: timeliness
+      description: >
+        A 10%+ drop in FACTARDETAILS rows signals that invoice measures were not loaded
+        for a portion of the portfolio — those invoices will show $0 open amount on
+        dashboards (they appear financially settled when they are not).

@@ -1,0 +1,227 @@
+# Source: design spec > Section 13 Model Architecture + Section 15.5 AI Context + Section 15.6 Behavior
+# Semantic wrapper for the Collection Facts table (VULCAN MODELED IN RL_JDE_VULCAN).
+# One row per customer × fiscal period × LOB. Home of CEI and unapplied cash KPIs.
+kind: semantic
+name: FACTARCOLLECTION
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+description: >
+  Collection Facts Table — aggregated collection performance per customer, LOB,
+  and fiscal period. Primary source for CEI, unapplied cash, and receipt volume KPIs.
+  Use for "how are we collecting?" questions.
+  For invoice-level detail or dispute context, JOIN to DIMARDETAILS.
+
+tags:
+  - accounts-receivable
+  - collections
+  - cei
+  - finance
+terms:
+  - finance.collection_efficiency_index
+
+ai_context:
+  instructions:
+    - >
+      Use this model for questions about collection performance — CEI, receipts,
+      cash applied, and unapplied cash. One row = one customer × fiscal period × LOB.
+    - >
+      FISCALPERIODID is the time dimension — filter to a specific period for
+      point-in-time analysis, or group by period for trend analysis.
+  synonyms:
+    - "collection facts"
+    - "collections data"
+    - "receipt facts"
+    - "CEI data"
+    - "cash collection"
+  examples:
+    - description: "What is our CEI for the current month by LOB?"
+      format: sql
+      query: |
+        SELECT LOB,
+               SUM(CASHAPPLIED) / NULLIF(SUM(TOTALRECEIPTS), 0) AS collection_efficiency
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+        WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION)
+        GROUP BY LOB ORDER BY collection_efficiency ASC
+    - description: "Who are the top 10 collectors by cash collected this quarter?"
+      format: sql
+      query: |
+        SELECT d.COLLECTOR, SUM(c.CASHAPPLIED) AS total_cash_applied
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION c
+        JOIN JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS d
+          ON c.COMPANYID = d.COMPANYID AND c.CUSTOMERNUMBER = d.CUSTOMERNUMBER
+        WHERE c.FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION) - 2
+        GROUP BY d.COLLECTOR ORDER BY total_cash_applied DESC LIMIT 10
+
+dimensions:
+  # ── Grain keys ─────────────────────────────────────────────────────────────
+  - name: COMPANYID
+    behavior:
+      type: identifier
+  - name: CUSTOMERNUMBER
+    behavior:
+      type: identifier
+    ai_context:
+      synonyms:
+        - "customer"
+        - "customer ID"
+        - "account number"
+  - name: FISCALPERIODID
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "fiscal period"
+        - "period"
+        - "accounting period"
+        - "month"
+      caveats:
+        - "FISCALPERIODID is an INTEGER key: ((Century * 100 + Year) * 100) + Month. Use for grouping and filtering only — do not aggregate arithmetically."
+  - name: LOB
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "line of business"
+        - "business line"
+        - "division"
+  # ── Organisational ─────────────────────────────────────────────────────────
+  - name: BUSINESSUNIT
+    behavior:
+      type: categorical
+  - name: PAYMENTTERMCODE
+    behavior:
+      type: categorical
+  # ── Amount columns (needed as dimension refs for measures) ──────────────────
+  - name: TOTALRECEIPTS
+  - name: CASHAPPLIED
+  - name: RESERVECASH
+  - name: ADJUSTEDCOLLECTION
+  - name: COLLECTIONEFFICIENCY
+  # ── Audit ──────────────────────────────────────────────────────────────────
+  - name: INSERTDATE
+
+measures:
+  - name: TOTAL_RECEIPTS
+    type: sum
+    expression: "{FACTARCOLLECTION.TOTALRECEIPTS}"
+    description: Total cash receipts posted for this customer × period × LOB.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "receipts"
+        - "cash received"
+        - "total cash"
+
+  - name: CASH_APPLIED
+    type: sum
+    expression: "{FACTARCOLLECTION.CASHAPPLIED}"
+    description: Cash receipts matched and applied against open invoices. Numerator in CEI.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "applied cash"
+        - "cash matched"
+        - "cash allocated"
+
+  - name: RESERVE_CASH
+    type: sum
+    expression: "{FACTARCOLLECTION.RESERVECASH}"
+    description: Reserve cash component of total receipts.
+    behavior:
+      type: flow
+
+  - name: ADJUSTED_COLLECTION
+    type: sum
+    expression: "{FACTARCOLLECTION.ADJUSTEDCOLLECTION}"
+    description: Collection amount after adjustments (discounts, write-offs, credit memos). Leakage signal L3.
+    behavior:
+      type: flow
+
+  - name: COLLECTION_EFFICIENCY
+    type: number
+    expression: >
+      SUM({FACTARCOLLECTION.CASHAPPLIED}) / NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
+    description: >
+      Collection Efficiency Index (CEI) — simplified as CASHAPPLIED / TOTALRECEIPTS.
+      Industry standard target: CEI >= 0.85.
+    behavior:
+      type: ratio
+      numerator: CASH_APPLIED
+      denominator: TOTAL_RECEIPTS
+    ai_context:
+      synonyms:
+        - "CEI"
+        - "collection efficiency index"
+        - "collection rate"
+        - "efficiency"
+      caveats:
+        - "CEI = CASHAPPLIED / TOTALRECEIPTS (simplified). Full formula requires OPENAMOUNT from FACTARDETAILS."
+        - "Do NOT average pre-computed CEI values across periods. Query CASHAPPLIED and TOTALRECEIPTS separately and divide the sums."
+      examples:
+        - description: "What is CEI by fiscal period?"
+          format: sql
+          query: |
+            SELECT FISCALPERIODID,
+                   SUM(CASHAPPLIED) / NULLIF(SUM(TOTALRECEIPTS), 0) AS cei
+            FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
+            GROUP BY FISCALPERIODID ORDER BY FISCALPERIODID DESC
+
+  - name: UNAPPLIED_CASH_AMT
+    type: number
+    expression: >
+      SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})
+    description: Absolute unapplied cash amount. Key leakage signal L1.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "unapplied cash"
+        - "unmatched cash"
+        - "unallocated receipts"
+
+  - name: UNAPPLIED_CASH_PCT
+    type: number
+    expression: >
+      (SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})) /
+      NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
+    description: >
+      Percentage of receipts not yet applied to open invoices.
+      Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS.
+      Rising trend = cash posting process failure (leakage signal L1).
+    behavior:
+      type: ratio
+      numerator: UNAPPLIED_CASH_AMT
+      denominator: TOTAL_RECEIPTS
+    ai_context:
+      synonyms:
+        - "unapplied cash percent"
+        - "unmatched receipts pct"
+      caveats:
+        - "Do NOT average pre-computed percentage values. Query TOTALRECEIPTS and CASHAPPLIED separately and compute at the target grain."
+
+segments:
+  - name: unapplied_cash_alert
+    expression: >
+      {FACTARCOLLECTION.TOTALRECEIPTS} > 0
+      AND ({FACTARCOLLECTION.TOTALRECEIPTS} - {FACTARCOLLECTION.CASHAPPLIED}) / {FACTARCOLLECTION.TOTALRECEIPTS} > 0.20
+    description: >
+      Customer × period × LOB where >20% of receipts are unapplied.
+      Leakage Signal L1 — direct collection process failure.
+    ai_context:
+      synonyms:
+        - "unapplied cash signal"
+        - "leakage signal"
+
+joins:
+  - name: DIMARCOLLECTIONLOB
+    type: many_to_one
+    expression: "{FACTARCOLLECTION.LOB} = {DIMARCOLLECTIONLOB.LOBCODE}"
+    ai_context:
+      instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description for reporting."
+
+  - name: ARPAYMENTTERM
+    type: many_to_one
+    expression: "{FACTARCOLLECTION.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
+    ai_context:
+      instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance context on collection records."

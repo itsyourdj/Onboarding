@@ -1,62 +1,69 @@
 test_dimardetails_grain:
   model: JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS
   inputs:
-    STAGING.F03B11:
+    JDE_PRODUCTION.STAGING.F03B11:
       rows:
-        - COMPANYID: "100"
-          DOCUMENTCOMPANY: "100"
-          DOCNO: "INV1"
-          DOCTYPE: "RI"
-          PAYITM: "001"
-          CUSTOMERNUMBER: "C1"
-          GLOFFSET: "MNT"
-        - COMPANYID: "100"
-          DOCUMENTCOMPANY: "100"
-          DOCNO: "INV2"
-          DOCTYPE: "RI"
-          PAYITM: "001"
-          CUSTOMERNUMBER: "C2"
-          GLOFFSET: "MNT"
-    STAGING.F0101:
+        - RPCO: "100"
+          RPKCO: "100"
+          RPDOC: 1
+          RPDCT: "RI"
+          RPSFX: "001"
+          RPAN8: 101
+          RPAID: "MNT"
+          RPPTC: "N30"
+          RPMCU: "BU1"
+          RPCRCD: "USD"
+          RPCRR: 1
+          RPASTS: "OPEN"
+        - RPCO: "100"
+          RPKCO: "100"
+          RPDOC: 2
+          RPDCT: "RI"
+          RPSFX: "001"
+          RPAN8: 102
+          RPAID: "MNT"
+          RPPTC: "N30"
+          RPMCU: "BU1"
+          RPCRCD: "USD"
+          RPCRR: 1
+          RPASTS: "OPEN"
+    JDE_PRODUCTION.STAGING.F0101:
       rows:
-        - CUSTOMERNUMBER: "C1"
-          COLLECTOR: "COL_A"
-        - CUSTOMERNUMBER: "C2"
-          COLLECTOR: "COL_B"
-    STAGING.F03012:
+        - ABAN8: 101
+          ABAC04: "COL_A"
+        - ABAN8: 102
+          ABAC04: "COL_B"
+    JDE_PRODUCTION.STAGING.F03012:
       rows:
-        - CUSTOMERNUMBER: "C1"
-          HOLDFLAG: "N"
-          ARCODE: "A"
-        - CUSTOMERNUMBER: "C2"
-          HOLDFLAG: "Y"
-          ARCODE: "B"
-    STAGING.F5803B2I:
+        - ACAN8: 101
+          ACCO: "100"
+          ACHCR: "N"
+          ACAPTS2: "A"
+        - ACAN8: 102
+          ACCO: "100"
+          ACHCR: "Y"
+          ACAPTS2: "B"
+    JDE_PRODUCTION.STAGING.F5803B2I:
       rows: []
-    STAGING.F5803B2C:
+    JDE_PRODUCTION.STAGING.F5803B2C:
       rows: []
-    STAGING.F0006:
+    JDE_PRODUCTION.STAGING.F0006:
       rows: []
     JDE_PRODUCTION.STAGING.WORKDAY:
       rows:
-        - COMPANYID: "100"
-          COLLECTOR: "COL_A"
-          WORKDAYEMAIL: "col_a@example.com"
-        - COMPANYID: "100"
-          COLLECTOR: "COL_B"
-          WORKDAYEMAIL: "col_b@example.com"
-    JDE_PRODUCTION.RL_JDE_VULCAN.DIMARCOLLECTIONLOB:
+        - WORKER_ID: "COL_A"
+          DOMAIN_USERNAME: "col_a@example.com"
+        - WORKER_ID: "COL_B"
+          DOMAIN_USERNAME: "col_b@example.com"
+    JDE_PRODUCTION.STAGING.F0012:
       rows:
-        - LOBKEY: 1
-          COMPANYID: "100"
-          LOBCODE: "MAINTENANCE"
-          LOBDESCRIPTION: "MAINTENANCE"
-          GLOFFSET: "MNT"
+        - GACO: "100"
+          GAID: "MNT"
   outputs:
     query:
       partial: true
       rows:
         - COMPANYID: "100"
-          DOCNO: "INV1"
+          DOCNO: "1"
         - COMPANYID: "100"
-          DOCNO: "INV2"
+          DOCNO: "2"

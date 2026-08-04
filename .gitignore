@@ -1,8 +1,49 @@
+# OS / editor
 .DS_Store
-.tmp_pylib/
 .vscode/
-# Track local-ldk sources but skip local/runtime artifacts
-local-ldk/**/.env
-local-ldk/**/.cache/
-local-ldk/**/.logs/
-local-ldk/**/.state.db
+.idea/
+*.swp
+
+# Local runtime / temp artifacts (any subdirectory)
+**/.vulcan/
+**/.cache/
+**/.logs/
+**/logs/
+**/tmp/
+**/temp/
+**/.tmp_pylib/
+
+# Local state / db artifacts
+**/.state.db
+**/.state.db.*
+**/*.db
+**/*.duckdb
+
+# Environment / secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/.envrc
+**/.python-version
+**/.npmrc
+**/.yarnrc*
+**/.netrc
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Build / dependency outputs
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+**/*.whl
+
+# Local docs/vendor bundles not required in repo
+local-ldk/**/dpbs-docs/

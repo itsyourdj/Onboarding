@@ -4,8 +4,8 @@ test_factarcollection_cei:
     JDE_PRODUCTION.STAGING.F03B14:
       rows:
         - RCCO: "100"
-          RCDOC: 9001
-          RCAN8: 101
+          RCDOC: "9001"
+          RCAN8: "101"
           RCRP: 202608
           RCAID: "MNT"
           RCMCU: "BU1"
@@ -13,8 +13,8 @@ test_factarcollection_cei:
     JDE_PRODUCTION.STAGING.F03B13:
       rows:
         - RNCO: "100"
-          RNDOC: 9001
-          RNAN8: 101
+          RNDOC: "9001"
+          RNAN8: "101"
     JDE_PRODUCTION.STAGING.F0012:
       rows:
         - GACO: "100"
@@ -22,7 +22,7 @@ test_factarcollection_cei:
     JDE_PRODUCTION.STAGING.F03B11:
       rows:
         - RPCO: "100"
-          RPAN8: 101
+          RPAN8: "101"
           RPDGJ: 126214
           RPAAP: 200
   outputs:

@@ -18,7 +18,8 @@ def fiscal_period_id(evaluator, century_sql, year_sql, month_sql):
 
 @macro()
 def normalize_key(evaluator, col_sql):
-    return f"TRIM({col_sql})"
+    # Cast to string first so key normalization is engine-safe (DuckDB/Snowflake)
+    return f"TRIM(CAST({col_sql} AS VARCHAR))"
 
 
 @macro()

@@ -5,7 +5,7 @@ test_fact_dim_join_integrity:
       rows:
         - RPCO: "100"
           RPKCO: "100"
-          RPDOC: 1
+          RPDOC: "1"
           RPDCT: "RI"
           RPSFX: "001"
           RPAAP: 500
@@ -15,7 +15,7 @@ test_fact_dim_join_integrity:
     JDE_PRODUCTION.STAGING.F59HQ084:
       rows:
         - HQCO: "100"
-          HQDOC: 1
+          HQDOC: "1"
           HQDCT: "RI"
           HQSFX: "001"
           HQCRSV: 50

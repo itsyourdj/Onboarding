@@ -5,10 +5,10 @@ test_dimardetails_grain:
       rows:
         - RPCO: "100"
           RPKCO: "100"
-          RPDOC: 1
+          RPDOC: "1"
           RPDCT: "RI"
           RPSFX: "001"
-          RPAN8: 101
+          RPAN8: "101"
           RPAID: "MNT"
           RPPTC: "N30"
           RPMCU: "BU1"
@@ -17,10 +17,10 @@ test_dimardetails_grain:
           RPASTS: "OPEN"
         - RPCO: "100"
           RPKCO: "100"
-          RPDOC: 2
+          RPDOC: "2"
           RPDCT: "RI"
           RPSFX: "001"
-          RPAN8: 102
+          RPAN8: "102"
           RPAID: "MNT"
           RPPTC: "N30"
           RPMCU: "BU1"
@@ -29,17 +29,17 @@ test_dimardetails_grain:
           RPASTS: "OPEN"
     JDE_PRODUCTION.STAGING.F0101:
       rows:
-        - ABAN8: 101
+        - ABAN8: "101"
           ABAC04: "COL_A"
-        - ABAN8: 102
+        - ABAN8: "102"
           ABAC04: "COL_B"
     JDE_PRODUCTION.STAGING.F03012:
       rows:
-        - ACAN8: 101
+        - ACAN8: "101"
           ACCO: "100"
           ACHCR: "N"
           ACAPTS2: "A"
-        - ACAN8: 102
+        - ACAN8: "102"
           ACCO: "100"
           ACHCR: "Y"
           ACAPTS2: "B"

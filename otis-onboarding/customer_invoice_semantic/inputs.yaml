@@ -35,6 +35,7 @@
     COLLECTIONMANAGER:   VARCHAR(50)
     GLOFFSET:            VARCHAR(10)
     LOB:                 VARCHAR(50)
+    LOBCODE:             VARCHAR(50)
     BUSINESSUNIT:        VARCHAR(10)
     BUDESC:              VARCHAR(100)
     PAYMENTTERMCODE:     VARCHAR(10)
@@ -70,6 +71,7 @@
     COLLECTIONMANAGER: "Collection manager category code overseeing the collector."
     GLOFFSET: "GL offset code; join key to DIMARCOLLECTIONLOB for LOB derivation."
     LOB: "Line of Business derived via GLOFFSET mapping; key for LOB-level KPI reporting."
+    LOBCODE: "LOB code for symmetric join to DIMARCOLLECTIONLOB (same value as LOB)."
     BUSINESSUNIT: "JDE business unit code on the invoice."
     BUDESC: "Business unit description from F0006."
     PAYMENTTERMCODE: "Payment term code used to join ARPAYMENTTERM for compliance checks."
@@ -101,6 +103,7 @@
     COLLECTOR: ["dimension", "ownership", "kpi", "action_trigger"]
     COLLECTIONPRIORITY: ["dimension", "collections", "priority", "kpi"]
     LOB: ["dimension", "lob", "kpi", "dashboard"]
+    LOBCODE: ["dimension", "lob", "join_key", "kpi"]
     PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
     DISPUTESTATUS: ["dimension", "dispute", "kpi"]
     DISPUTEREASONCODE: ["dimension", "dispute", "kpi"]
@@ -219,6 +222,7 @@
     CUSTOMERNUMBER:       VARCHAR(20)
     FISCALPERIODID:       INTEGER
     LOB:                  VARCHAR(50)
+    LOBCODE:              VARCHAR(50)
     BUSINESSUNIT:         VARCHAR(10)
     PAYMENTTERMCODE:      VARCHAR(10)
     TOTALRECEIPTS:        DECIMAL(18, 2)
@@ -232,6 +236,7 @@
     CUSTOMERNUMBER: "Customer identifier; part of collection grain key."
     FISCALPERIODID: "Fiscal period key used for trend analysis."
     LOB: "Line of Business key for LOB-level CEI reporting."
+    LOBCODE: "LOB code for symmetric join to DIMARCOLLECTIONLOB (same value as LOB)."
     BUSINESSUNIT: "Primary business unit for this customer-period-LOB bucket."
     PAYMENTTERMCODE: "Payment term code for compliance context joins."
     TOTALRECEIPTS: "Total cash received in the customer-period-LOB bucket."
@@ -245,6 +250,7 @@
     CUSTOMERNUMBER: ["grain", "customer", "identifier", "join_key"]
     FISCALPERIODID: ["grain", "time_dimension", "period", "kpi"]
     LOB: ["grain", "dimension", "lob", "kpi"]
+    LOBCODE: ["dimension", "lob", "join_key", "kpi"]
     PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
     TOTALRECEIPTS: ["measure", "amount", "receipts", "kpi"]
     CASHAPPLIED: ["measure", "amount", "receipts", "kpi", "cei"]

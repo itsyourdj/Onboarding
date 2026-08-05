@@ -15,6 +15,7 @@ MODEL (
     COLLECTOR = 'Assigned collector.',
     COLLECTIONPRIORITY = 'Collection priority H/M/L/NONE from F03012.',
     LOB = 'Line of business.',
+    LOBCODE = 'Line of business code (join key to DIMARCOLLECTIONLOB).',
     PAYMENTTERMCODE = 'Payment term code.',
     DISPUTESTATUS = 'Dispute status.',
     ARCODE = 'AR classification code.',
@@ -29,6 +30,7 @@ MODEL (
     CUSTOMERNUMBER = ('DIMENSION', 'CUSTOMER'),
     COLLECTOR = ('DIMENSION', 'OWNER'),
     LOB = ('DIMENSION', 'LOB'),
+    LOBCODE = ('DIMENSION', 'LOB'),
     DISPUTESTATUS = ('DIMENSION', 'DISPUTE'),
     HOLDFLAG = ('DIMENSION', 'RISK_FLAG')
   ),
@@ -90,6 +92,7 @@ SELECT
   @normalize_key(A.ABAC03) AS COLLECTOR,
   @normalize_key(A.ABAC04) AS COLLECTIONMANAGER,
   @normalize_key(B.RPAID) AS GLOFFSET,
+  COALESCE(@normalize_key(LOB.LOBCODE), @normalize_key(B.RPAID)) AS LOBCODE,
   COALESCE(@normalize_key(LOB.LOBCODE), @normalize_key(B.RPAID)) AS LOB,
   @normalize_key(B.RPMCU) AS BUSINESSUNIT,
   TRIM(BU.MCDL01) AS BUDESC,

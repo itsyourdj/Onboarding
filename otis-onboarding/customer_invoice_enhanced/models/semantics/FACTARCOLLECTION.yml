@@ -78,6 +78,16 @@ dimensions:
         - "line of business"
         - "business line"
         - "division"
+
+  - name: LOBCODE
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "LOB code"
+        - "line of business code"
+      caveats:
+        - "Symmetric join key to DIMARCOLLECTIONLOB.LOBCODE; same value as LOB."
   - name: BUSINESSUNIT
     behavior:
       type: categorical
@@ -201,12 +211,12 @@ segments:
 joins:
   - name: DIMARCOLLECTIONLOB
     type: many_to_one
-    on: LOB
+    expression: "{FACTARCOLLECTION.LOBCODE} = {DIMARCOLLECTIONLOB.LOBCODE}"
     ai_context:
       instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description for reporting."
 
   - name: ARPAYMENTTERM
     type: many_to_one
-    on: PAYMENTTERMCODE
+    expression: "{FACTARCOLLECTION.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
     ai_context:
       instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance context on collection records."

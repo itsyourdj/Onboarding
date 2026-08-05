@@ -132,6 +132,16 @@ dimensions:
         - "segment"
       caveats:
         - "LOB is derived from GLOFFSET via DIMARCOLLECTIONLOB. A null LOB means the GL Offset was unrecognised — exclude null LOB rows from LOB-level CEI reports"
+
+  - name: LOBCODE
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "LOB code"
+        - "line of business code"
+      caveats:
+        - "Symmetric join key to DIMARCOLLECTIONLOB.LOBCODE; same value as LOB."
   - name: BUSINESSUNIT
     behavior:
       type: categorical
@@ -315,12 +325,12 @@ segments:
 joins:
   - name: DIMARCOLLECTIONLOB
     type: many_to_one
-    on: LOB
+    expression: "{DIMARDETAILS.LOBCODE} = {DIMARCOLLECTIONLOB.LOBCODE}"
     ai_context:
       instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description (LOBDESCRIPTION field)."
 
   - name: ARPAYMENTTERM
     type: many_to_one
-    on: PAYMENTTERMCODE
+    expression: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
     ai_context:
       instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance analysis (AGINGDAYS > NETDAYS)."

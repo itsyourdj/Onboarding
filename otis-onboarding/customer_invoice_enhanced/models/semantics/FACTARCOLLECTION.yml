@@ -127,6 +127,8 @@ measures:
 
   - name: COLLECTION_EFFICIENCY
     type: number
+    expression: >
+      SUM({FACTARCOLLECTION.CASHAPPLIED}) / NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
     description: "Collection Efficiency Index (CEI) — simplified as CASHAPPLIED / TOTALRECEIPTS. Industry standard target: CEI >= 0.85."
     behavior:
       type: ratio
@@ -165,6 +167,9 @@ measures:
 
   - name: UNAPPLIED_CASH_PCT
     type: number
+    expression: >
+      (SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})) /
+      NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
     description: "Percentage of receipts not yet applied to open invoices. Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS. Rising trend = cash posting process failure (leakage signal L1)."
     behavior:
       type: ratio

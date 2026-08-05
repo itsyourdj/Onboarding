@@ -271,6 +271,7 @@ measures:
 
   - name: DISPUTE_RESOLUTION_RATE
     type: number
+    expression: "SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} = 'Resolved' THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} IS NOT NULL THEN 1 ELSE 0 END), 0)"
     description: "Fraction of disputes that have been resolved. Formula: COUNT(Resolved) / COUNT(any dispute status). Target: >= 0.80 (80% resolution rate)."
     behavior:
       type: ratio

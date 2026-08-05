@@ -141,7 +141,7 @@ measures:
         - "gross invoiced"
         - "invoiced gross"
 
-  - name: DSO
+  - name: AVG_DSO
     type: avg
     expression: "{FACTDSO.DSO}"
     description: "Days Sales Outstanding from gold layer: (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod. Uses native DSO column maintained by JDE stored procedure."
@@ -243,7 +243,7 @@ measures:
       caveats:
         - "Stakeholder 'amount payer owes / total disputed' = 1 - DisputeRecoveryRatio."
 
-  - name: CEI
+  - name: UNIFIED_CEI
     type: avg
     expression: "{FACTDSO.CEI}"
     description: "Unified Collection Effectiveness Index for this priority segment."
@@ -255,7 +255,7 @@ measures:
         - "collection effectiveness"
         - "collection efficiency index"
       caveats:
-        - "Prefer FactDSO.CEI for portfolio-level CEI; FactARCollection for invoice-level CEI components."
+        - "Prefer FactDSO.UNIFIED_CEI for portfolio-level CEI; FactARCollection for invoice-level CEI components."
 
   - name: INVOICE_COUNT
     type: sum

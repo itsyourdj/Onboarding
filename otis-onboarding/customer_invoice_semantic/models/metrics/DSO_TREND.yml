@@ -2,7 +2,7 @@
 # Business question: "How long does it take to collect cash?"
 kind: metric
 name: DSO_TREND
-measure: FACTDSO.DSO
+measure: FACTDSO.AVG_DSO
 ts: FACTDSO.INSERTDATE
 granularity: month
 description: >

@@ -2,7 +2,7 @@
 # Business question: "What is our unified collection effectiveness by priority?"
 kind: metric
 name: CEI_TREND
-measure: FACTDSO.CEI
+measure: FACTDSO.UNIFIED_CEI
 ts: FACTDSO.INSERTDATE
 granularity: month
 description: >

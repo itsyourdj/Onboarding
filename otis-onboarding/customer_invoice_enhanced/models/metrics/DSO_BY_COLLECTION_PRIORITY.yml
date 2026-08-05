@@ -2,7 +2,7 @@
 # Business question: "Is collection prioritization working?" — DSO by prioritized vs not.
 kind: metric
 name: DSO_BY_COLLECTION_PRIORITY
-measure: FACTDSO.DSO
+measure: FACTDSO.AVG_DSO
 ts: FACTDSO.INSERTDATE
 granularity: month
 description: >

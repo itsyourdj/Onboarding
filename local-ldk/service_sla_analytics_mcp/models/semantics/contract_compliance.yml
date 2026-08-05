@@ -56,7 +56,7 @@ measures:
 joins:
   - name: units
     type: many_to_one
-    on: "{contract_compliance.UNIT_ID} = {units.UNIT_ID}"
+    on: UNIT_ID
     ai_context:
       instructions: >
         Bridge join to the units dimension. Chain through here to connect
@@ -64,7 +64,7 @@ joins:
         unit_health_daily on shared unit attributes.
   - name: contracts
     type: many_to_one
-    on: "{contract_compliance.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+    on: CONTRACT_ID
   - name: customers
     type: many_to_one
-    on: "{contract_compliance.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
+    on: CUSTOMER_ID

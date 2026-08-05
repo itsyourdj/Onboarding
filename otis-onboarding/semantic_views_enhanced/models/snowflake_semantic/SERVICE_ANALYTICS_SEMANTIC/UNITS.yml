@@ -163,22 +163,22 @@ segments:
 joins:
   - name: CALLBACKS
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {CALLBACKS.UNIT_ID}"
+    on: UNIT_ID
   - name: MAINTENANCE_PROCEDURES
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {MAINTENANCE_PROCEDURES.UNIT_ID}"
+    on: UNIT_ID
   - name: MCP_COMPLIANCE
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {MCP_COMPLIANCE.UNIT_ID}"
+    on: UNIT_ID
   - name: MECHANIC_NOTES
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {MECHANIC_NOTES.UNIT_ID}"
+    on: UNIT_ID
   - name: OPEN_ORDERS
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {OPEN_ORDERS.UNIT_ID}"
+    on: UNIT_ID
   - name: OTIS_ONE_UNIT_HEALTH
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {OTIS_ONE_UNIT_HEALTH.UNIT_ID}"
+    on: UNIT_ID
   - name: SVC_CONTRACT_COMPLIANCE
     type: one_to_many
-    on: "{UNITS.UNIT_ID} = {SVC_CONTRACT_COMPLIANCE.UNIT_ID}"
+    on: UNIT_ID

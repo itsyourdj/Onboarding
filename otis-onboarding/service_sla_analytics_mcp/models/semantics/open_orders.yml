@@ -67,7 +67,9 @@ measures:
 joins:
   - name: contract_compliance
     type: many_to_one
-    on: "{open_orders.CONTRACT_ID} = {contract_compliance.CONTRACT_ID} AND {open_orders.UNIT_ID} = {contract_compliance.UNIT_ID}"
+    on:
+      - CONTRACT_ID
+      - UNIT_ID
     ai_context:
       instructions: >
         Join to pull contract visit-compliance context (contract_visit_compliance_rate)
@@ -76,7 +78,7 @@ joins:
         safe many_to_one, no fan-out risk.
   - name: units
     type: many_to_one
-    on: "{open_orders.UNIT_ID} = {units.UNIT_ID}"
+    on: UNIT_ID
     ai_context:
       instructions: >
         Bridge join to the units dimension. Chain through here to connect
@@ -84,7 +86,7 @@ joins:
         unit attributes (Vulcan does not support many_to_many joins directly).
   - name: contracts
     type: many_to_one
-    on: "{open_orders.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+    on: CONTRACT_ID
   - name: customers
     type: many_to_one
-    on: "{open_orders.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
+    on: CUSTOMER_ID

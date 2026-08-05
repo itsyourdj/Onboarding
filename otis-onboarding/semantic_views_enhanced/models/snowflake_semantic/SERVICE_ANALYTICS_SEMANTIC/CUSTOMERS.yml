@@ -87,7 +87,7 @@ segments:
 joins:
   - name: CONTRACTS
     type: one_to_many
-    on: "{CUSTOMERS.CUSTOMER_ID} = {CONTRACTS.CUSTOMER_ID}"
+    on: CUSTOMER_ID
   - name: NPS_SURVEYS
     type: one_to_many
-    on: "{CUSTOMERS.CUSTOMER_ID} = {NPS_SURVEYS.CUSTOMER_ID}"
+    on: CUSTOMER_ID

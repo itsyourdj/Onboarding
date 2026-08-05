@@ -329,12 +329,14 @@ segments:
 joins:
   - name: DimARCollectionLOB
     type: many_to_one
-    on: "{DimARDetails.LOB} = {DimARCollectionLOB.LOBCode}"
+    on:
+      - - LOB
+        - LOBCode
     ai_context:
       instructions: "Join to DimARCollectionLOB to access full LOB description (LOBDescription field)."
 
   - name: ARPaymentTerm
     type: many_to_one
-    on: "{DimARDetails.PaymentTermCode} = {ARPaymentTerm.PaymentTermCode}"
+    on: PaymentTermCode
     ai_context:
       instructions: "Join to ARPaymentTerm to access NetDays for payment term compliance analysis (AgingDays > NetDays)."

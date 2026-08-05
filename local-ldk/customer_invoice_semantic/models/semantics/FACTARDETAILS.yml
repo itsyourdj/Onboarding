@@ -325,11 +325,11 @@ segments:
 joins:
   - name: DimARDetails
     type: many_to_one
-    on: >
-      {FactARDetails.CompanyId} = {DimARDetails.CompanyId}
-      AND {FactARDetails.DocumentCompany} = {DimARDetails.DocumentCompany}
-      AND {FactARDetails.DocNo} = {DimARDetails.DocNo}
-      AND {FactARDetails.DocType} = {DimARDetails.DocType}
-      AND {FactARDetails.PayItm} = {DimARDetails.PayItm}
+    on:
+      - CompanyId
+      - DocumentCompany
+      - DocNo
+      - DocType
+      - PayItm
     ai_context:
       instructions: "Join to DimARDetails to access collector, LOB, dispute status, and credit hold attributes for each invoice."

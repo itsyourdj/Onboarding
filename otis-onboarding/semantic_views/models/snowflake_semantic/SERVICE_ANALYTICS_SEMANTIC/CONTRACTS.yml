@@ -30,10 +30,10 @@ measures:
 joins:
 - name: AR_OPENAR
   type: one_to_many
-  on: '{CONTRACTS.CONTRACT_ID} = {AR_OPENAR.CONTRACT_ID}'
+  on: CONTRACT_ID
 - name: UNITS
   type: one_to_many
-  on: '{CONTRACTS.CONTRACT_ID} = {UNITS.CONTRACT_ID}'
+  on: CONTRACT_ID
 dimensions:
 - name: BUILDING_ID
   description: Building covered by the contract (FK to BUILDINGS).

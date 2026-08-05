@@ -4,11 +4,12 @@ description: >
   Centralised Accounts Receivable data product for the Customer Invoices domain.
   Provides semantic governance, business metrics, AI-agent-ready context, and
   quality monitoring over the Invoice 360 star schema (DimARDetails, FactARDetails,
-  FactARCollection, DimARCollectionLOB, ARPaymentTerm). Enables CEI tracking,
+  FactARCollection, FactDSO, DimARCollectionLOB, ARPaymentTerm). Enables native DSO,
+  dispute rolling trends, dispute recovery, unified CEI by collection priority,
   collection leakage detection, dispute management, reserve vs forecast analysis,
   and natural language AR queries for Collections, Finance, and GM personas.
 discoverable: true
-version: "0.0.1"
+version: "0.0.2"
 alignment: consumer_aligned
 domain: "finance"
 vde: true

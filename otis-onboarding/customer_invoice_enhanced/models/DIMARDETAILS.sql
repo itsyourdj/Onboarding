@@ -13,6 +13,7 @@ MODEL (
     PAYITM = 'Pay item identifier.',
     CUSTOMERNUMBER = 'Customer identifier.',
     COLLECTOR = 'Assigned collector.',
+    COLLECTIONPRIORITY = 'Collection priority H/M/L/NONE from F03012.',
     LOB = 'Line of business.',
     PAYMENTTERMCODE = 'Payment term code.',
     DISPUTESTATUS = 'Dispute status.',
@@ -34,7 +35,8 @@ MODEL (
   assertions (
     not_null(columns := (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM, CUSTOMERNUMBER)),
     unique_combination_of_columns(columns := (COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM)),
-    ar_dispute_co_population_integrity
+    ar_dispute_co_population_integrity,
+    ar_collector_unassigned_on_overdue
   )
 );
 
@@ -85,7 +87,7 @@ SELECT
   @normalize_key(A.ABPA8) AS PARENTCUSTOMER,
   @normalize_key(A.ABAC05) AS CUSTOMERSEGMENT,
   TRY_CAST(NULL AS VARCHAR) AS SALESREP,
-  @normalize_key(A.ABAC04) AS COLLECTOR,
+  @normalize_key(A.ABAC03) AS COLLECTOR,
   @normalize_key(A.ABAC04) AS COLLECTIONMANAGER,
   @normalize_key(B.RPAID) AS GLOFFSET,
   COALESCE(@normalize_key(LOB.LOBCODE), @normalize_key(B.RPAID)) AS LOB,
@@ -93,17 +95,17 @@ SELECT
   TRIM(BU.MCDL01) AS BUDESC,
   @normalize_key(BU.MCRP01) AS BUREGION,
   @normalize_key(B.RPPTC) AS PAYMENTTERMCODE,
-  NULLIF(@normalize_key(B.RPASTS), '') AS DISPUTEREASONCODE,
+  NULLIF(@normalize_key(B.RPADSC), '') AS DISPUTEREASONCODE,
   CASE
-    WHEN COALESCE(NULLIF(@normalize_key(B.RPASTS), ''), '') IN ('D', 'OPEN') THEN 'OPEN'
-    WHEN NULLIF(@normalize_key(B.RPASTS), '') IS NOT NULL THEN 'RESOLVED'
+    WHEN NULLIF(@normalize_key(B.RPADSC), '') IS NOT NULL AND @normalize_key(B.RPASTS) = 'D' THEN 'OPEN'
+    WHEN NULLIF(@normalize_key(B.RPADSC), '') IS NOT NULL THEN 'RESOLVED'
     ELSE NULL
   END AS DISPUTESTATUS,
   TRIM(B.RPRMK) AS DISPUTECODEDESC,
-  @normalize_key(A.ABAC04) AS RESOLVERCODE,
+  @normalize_key(A.ABAC03) AS RESOLVERCODE,
   TRY_CAST(NULL AS VARCHAR) AS RESOLVERNAME,
-  @normalize_key(C.ACAPTS2) AS ARCODE,
-  TRY_CAST(NULL AS DATE) AS DISPUTEDATE,
+  TRY_CAST(NULL AS VARCHAR) AS ARCODE,
+  @jde_to_date(B.RPDPDT) AS DISPUTEDATE,
   @jde_to_date(B.RPIVD) AS INVOICEDATE,
   @jde_to_date(B.RPDDJ) AS DUEDATE,
   @jde_to_date(B.RPDGJ) AS GLDATE,
@@ -118,6 +120,7 @@ SELECT
   TRY_CAST(NULL AS VARCHAR) AS CHARGEBACKCODE,
   TRIM(IC.LASTINVOICECOMMENT) AS LASTINVOICECOMMENT,
   TRIM(CC.LASTCUSTOMERCOMMENT) AS LASTCUSTOMERCOMMENT,
+  COALESCE(NULLIF(@normalize_key(C.ACAPTS2), ''), 'NONE') AS COLLECTIONPRIORITY,
   WD.WORKDAYEMAIL AS WORKDAYEMAIL,
   CURRENT_TIMESTAMP() AS INSERTDATE,
   CURRENT_TIMESTAMP() AS MODIFYDATE

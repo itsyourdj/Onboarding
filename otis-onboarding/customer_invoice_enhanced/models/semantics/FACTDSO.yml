@@ -1,0 +1,295 @@
+# Source: design spec > Section 13 Model Architecture + MCP discovery (RL_JDE.FACTDSO)
+# Semantic wrapper for DSO & Dispute Analytics fact (Vulcan FULL model aligned with SP_LOAD_FACTDSO).
+# One row per company × fiscal year × fiscal month × collection priority.
+kind: semantic
+name: FACTDSO
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+description: >
+  DSO & Dispute Analytics Fact — pre-aggregated collection performance snapshot.
+  Native DSO, DSO vs contractual terms, calendar-day disputed rolling totals (30/60/90/180),
+  dispute recovery ratio, and unified CEI by collection priority segment.
+  Rolling columns use DisputeDate >= DATEADD(day, -N, CURRENT_DATE()) in FACTDSO.sql.
+  Use for executive DSO/dispute/CEI trends; JOIN to DIMARDETAILS for invoice drill-down.
+
+tags:
+  - accounts-receivable
+  - collections
+  - dso
+  - disputes
+  - finance
+terms:
+  - finance.collection_efficiency_index
+
+ai_context:
+  instructions:
+    - >
+      Use this model for DSO, DSO vs payment terms, disputed rolling trends,
+      dispute recovery, and unified CEI questions. One row = company × fiscal period × collection priority.
+    - >
+      COLLECTIONPRIORITY values: H (high), M (medium), L (low), NONE (not prioritized).
+      Compare DSO and CEI across priority segments to assess prioritization effectiveness.
+    - >
+      DSO denominator uses invoiced gross (TOTALGROSSINVOICED / RPAAP), not F4211 sales orders.
+    - >
+      DisputedAmountRolling30/60/90/180 are point-in-time sums (not monthly averages):
+      disputed invoices where COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - N days.
+      Sum across fiscal periods for portfolio totals; filter to latest FISCALYEAR/FISCALMONTH
+      for current-period snapshot reporting.
+  synonyms:
+    - "DSO fact"
+    - "dispute analytics"
+    - "collection performance snapshot"
+    - "Fact DSO"
+  examples:
+    - description: "What is DSO by collection priority for the latest fiscal month?"
+      format: sql
+      query: |
+        SELECT COLLECTIONPRIORITY, DSO, CEI, TOTALOPENAR, TOTALGROSSINVOICED
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+        WHERE FISCALYEAR = (SELECT MAX(FISCALYEAR) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO)
+          AND FISCALMONTH = (SELECT MAX(FISCALMONTH) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+                             WHERE FISCALYEAR = (SELECT MAX(FISCALYEAR) FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO))
+        ORDER BY COLLECTIONPRIORITY
+    - description: "Show DSO variance from contractual terms trend"
+      format: sql
+      query: |
+        SELECT FISCALYEAR, FISCALMONTH,
+               AVG(DSO) AS avg_dso,
+               AVG(DSOVARIANCEFROMTERMS) AS avg_variance_from_terms
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+        GROUP BY FISCALYEAR, FISCALMONTH
+        ORDER BY FISCALYEAR DESC, FISCALMONTH DESC
+    - description: "Portfolio disputed exposure in last 30/60/90 days by collection priority"
+      format: sql
+      query: |
+        SELECT COLLECTIONPRIORITY,
+               SUM(DISPUTEDAMOUNTROLLING30) AS disputed_last_30d,
+               SUM(DISPUTEDAMOUNTROLLING60) AS disputed_last_60d,
+               SUM(DISPUTEDAMOUNTROLLING90) AS disputed_last_90d
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+        GROUP BY COLLECTIONPRIORITY
+        ORDER BY COLLECTIONPRIORITY
+
+dimensions:
+  - name: COMPANYID
+    behavior:
+      type: identifier
+  - name: FISCALYEAR
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "fiscal year"
+        - "year"
+  - name: FISCALMONTH
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "fiscal month"
+        - "month"
+        - "period"
+      caveats:
+        - "Use with FISCALYEAR for trend analysis. Values 1-12."
+  - name: COLLECTIONPRIORITY
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "collection priority"
+        - "priority segment"
+        - "priority band"
+      caveats:
+        - "H/M/L/NONE from F03012. NONE = not collection-prioritized."
+  - name: TOTALOPENAR
+  - name: TOTALGROSSINVOICED
+  - name: DAYSINPERIOD
+  - name: DSO
+  - name: AVGCONTRACTUALNETDAYS
+  - name: DSOVARIANCEFROMTERMS
+  - name: DISPUTEDAMOUNTTOTAL
+  - name: DISPUTEDAMOUNTROLLING30
+  - name: DISPUTEDAMOUNTROLLING60
+  - name: DISPUTEDAMOUNTROLLING90
+  - name: DISPUTEDAMOUNTROLLING180
+  - name: RESOLVEDDISPUTEGROSS
+  - name: RESOLVEDDISPUTERECOVERED
+  - name: DISPUTERECOVERYRATIO
+  - name: CEI
+  - name: INVOICECOUNT
+
+measures:
+  - name: TOTAL_OPEN_AR
+    type: sum
+    expression: "{FACTDSO.TOTALOPENAR}"
+    description: Total open AR in this company × period × priority segment.
+    behavior:
+      type: stock
+    ai_context:
+      synonyms:
+        - "open AR"
+        - "outstanding AR"
+
+  - name: TOTAL_GROSS_INVOICED
+    type: sum
+    expression: "{FACTDSO.TOTALGROSSINVOICED}"
+    description: Total gross invoiced in period (DSO denominator).
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "gross invoiced"
+        - "invoiced gross"
+
+  - name: DSO
+    type: avg
+    expression: "{FACTDSO.DSO}"
+    description: >
+      Days Sales Outstanding from gold layer: (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod.
+      Uses native DSO column maintained by JDE stored procedure.
+    behavior:
+      type: ratio
+    ai_context:
+      synonyms:
+        - "days sales outstanding"
+        - "DSO"
+        - "collection cycle"
+      caveats:
+        - "Denominator is invoiced gross (RPAAP), not F4211 sales orders."
+
+  - name: DSO_VARIANCE_FROM_TERMS
+    type: avg
+    expression: "{FACTDSO.DSOVARIANCEFROMTERMS}"
+    description: DSO minus average contractual net days. Positive = collecting slower than terms.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "DSO vs terms"
+        - "variance from payment terms"
+
+  - name: AVG_CONTRACTUAL_NET_DAYS
+    type: avg
+    expression: "{FACTDSO.AVGCONTRACTUALNETDAYS}"
+    description: Average contractual net days from F0014 payment terms.
+    behavior:
+      type: flow
+
+  - name: DISPUTED_AMOUNT_ROLLING_30
+    type: sum
+    expression: "{FACTDSO.DISPUTEDAMOUNTROLLING30}"
+    description: >
+      Total disputed amount in the last 30 calendar days (load snapshot).
+      Gold logic: SUM where DisputeCode IS NOT NULL
+      AND COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE()).
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "disputed last 30 days"
+        - "30 day rolling disputed"
+      caveats:
+        - "Point-in-time as of SP load — not a historical monthly average. Sum across periods for portfolio total."
+
+  - name: DISPUTED_AMOUNT_ROLLING_60
+    type: sum
+    expression: "{FACTDSO.DISPUTEDAMOUNTROLLING60}"
+    description: Total disputed amount where dispute date >= CURRENT_DATE - 60 days.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "disputed last 60 days"
+
+  - name: DISPUTED_AMOUNT_ROLLING_90
+    type: sum
+    expression: "{FACTDSO.DISPUTEDAMOUNTROLLING90}"
+    description: Total disputed amount where dispute date >= CURRENT_DATE - 90 days.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "disputed last 90 days"
+
+  - name: DISPUTED_AMOUNT_ROLLING_180
+    type: sum
+    expression: "{FACTDSO.DISPUTEDAMOUNTROLLING180}"
+    description: Total disputed amount where dispute date >= CURRENT_DATE - 180 days.
+    behavior:
+      type: flow
+    ai_context:
+      synonyms:
+        - "disputed last 180 days"
+
+  - name: DISPUTE_RECOVERY_RATIO
+    type: avg
+    expression: "{FACTDSO.DISPUTERECOVERYRATIO}"
+    description: Proportion recovered on resolved disputes (Recovered / Gross).
+      Remaining obligation (amount still owed / disputed) = 1 - DisputeRecoveryRatio.
+    behavior:
+      type: ratio
+    ai_context:
+      synonyms:
+        - "dispute recovery"
+        - "recovery ratio"
+        - "dispute recovery rate"
+        - "proportion disputed invoice recovered"
+      caveats:
+        - "Stakeholder 'amount payer owes / total disputed' = 1 - DisputeRecoveryRatio."
+
+  - name: CEI
+    type: avg
+    expression: "{FACTDSO.CEI}"
+    description: Unified Collection Effectiveness Index for this priority segment.
+    behavior:
+      type: ratio
+    ai_context:
+      synonyms:
+        - "CEI"
+        - "collection effectiveness"
+        - "collection efficiency index"
+      caveats:
+        - "Prefer FactDSO.CEI for portfolio-level CEI; FactARCollection for invoice-level CEI components."
+
+  - name: INVOICE_COUNT
+    type: sum
+    expression: "{FACTDSO.INVOICECOUNT}"
+    description: Number of invoices in this segment/period.
+    behavior:
+      type: flow
+
+segments:
+  - name: collection_prioritized
+    expression: "{FACTDSO.COLLECTIONPRIORITY} IN ('H', 'M', 'L')"
+    description: >
+      Collection-prioritized segments (H/M/L). Compare DSO and CEI against not_prioritized
+      to assess whether prioritization improves collection effectiveness.
+  - name: priority_high
+    expression: "{FACTDSO.COLLECTIONPRIORITY} = 'H'"
+    description: High collection priority segment.
+  - name: priority_medium
+    expression: "{FACTDSO.COLLECTIONPRIORITY} = 'M'"
+    description: Medium collection priority segment.
+  - name: priority_low
+    expression: "{FACTDSO.COLLECTIONPRIORITY} = 'L'"
+    description: Low collection priority segment.
+  - name: not_prioritized
+    expression: "{FACTDSO.COLLECTIONPRIORITY} = 'NONE' OR {FACTDSO.COLLECTIONPRIORITY} IS NULL"
+    description: Not collection-prioritized (NONE or null).
+
+joins:
+  - name: DIMARDETAILS
+    type: one_to_many
+    expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
+    ai_context:
+      instructions: >
+        Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY
+        to match FactDSO segment when comparing prioritized vs not-prioritized performance.
+
+  - name: ARPAYMENTTERM
+    type: many_to_one
+    expression: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
+    ai_context:
+      instructions: >
+        Join via DIMARDETAILS when AvgContractualNetDays on FactDSO is insufficient
+        for payment-term detail analysis.

@@ -2,7 +2,7 @@
 # Business purpose: Monitor collection performance facts — where CEI and leakage KPIs live.
 # Data errors here translate directly to incorrect CEI reported to Collections Manager and GM.
 kind: dq
-name: FACTARCOLLECTION_DQ
+name: FactARCollection_dq
 depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
 
 profiles:
@@ -69,20 +69,6 @@ rules:
         Negative TOTALRECEIPTS indicates a reversed receipt not offset by a correcting entry.
         This makes unapplied cash % appear artificially high and may cause CEI > 1.0.
 
-  - failed rows:
-      name: collection_efficiency_in_valid_range
-      dimension: accuracy
-      fail query: |
-        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
-               COLLECTIONEFFICIENCY, TOTALRECEIPTS, CASHAPPLIED
-        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARCOLLECTION
-        WHERE COLLECTIONEFFICIENCY < 0 OR COLLECTIONEFFICIENCY > 1.5
-      samples limit: 10
-      description: >
-        Pre-computed CEI must be in range [0, 1.5]. Below 0 = data error. Above 1.5 =
-        probable duplicate receipt or mis-applied prepayment.
-        [Estimated threshold: 1.5 — calibrate after deployment]
-
   # ── Accuracy: Leakage Signal Monitoring ───────────────────────────────────────
   - failed rows:
       name: unapplied_cash_above_leakage_threshold
@@ -102,14 +88,6 @@ rules:
         Each row represents cash received not reducing open AR — a direct collection process
         failure. Collections team must investigate timing differences, mispostings, or disputes.
         [Estimated threshold: 20% — calibrate to your cash application cycle time]
-
-  - anomaly detection for avg(COLLECTIONEFFICIENCY):
-      name: portfolio_cei_anomaly
-      dimension: accuracy
-      description: >
-        Detects statistically unusual shifts in average CEI across the portfolio.
-        A sudden drop triggers immediate investigation: real collections deterioration,
-        a data quality event, or a seasonal effect?
 
   - anomaly detection for sum(TOTALRECEIPTS):
       name: total_receipt_volume_anomaly

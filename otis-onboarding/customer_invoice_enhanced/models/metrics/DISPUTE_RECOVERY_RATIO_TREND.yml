@@ -1,0 +1,10 @@
+# Source: design spec > Section 7 Metrics
+# Business question: "What proportion of resolved disputes was recovered?"
+kind: metric
+name: DISPUTE_RECOVERY_RATIO_TREND
+measure: FACTDSO.DISPUTE_RECOVERY_RATIO
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Proportion recovered on resolved disputes = Recovered / Gross.
+  Native FactDSO.DisputeRecoveryRatio column from gold stored procedure.

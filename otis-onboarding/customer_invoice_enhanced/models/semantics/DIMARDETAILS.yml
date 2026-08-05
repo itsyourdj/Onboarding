@@ -1,5 +1,5 @@
 # Source: design spec > Section 13 Model Architecture + Section 15.5 AI Context
-# Semantic wrapper for the Invoice Dimension table (VULCAN MODELED IN RL_JDE_VULCAN).
+# Semantic wrapper for the Invoice Dimension table (EXTERNAL — owned by JDE pipeline).
 # One row per invoice / pay-item. Attributes only — no financial amounts.
 kind: semantic
 name: DIMARDETAILS
@@ -111,7 +111,18 @@ dimensions:
         - "AR collector"
         - "collections person"
       caveats:
-        - "COLLECTOR is the individual responsible for chasing payment; COLLECTIONMANAGER is their manager — do not confuse the two when grouping for performance reports"
+        - "COLLECTOR is required when COLLECTIONPRIORITY != 'NONE' and invoice is overdue (tiered DQ)."
+        - "COLLECTIONMANAGER is their manager — do not confuse when grouping for performance reports"
+  - name: COLLECTIONPRIORITY
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "collection priority"
+        - "priority segment"
+        - "priority band"
+      caveats:
+        - "H/M/L/NONE from F03012. NONE = not collection-prioritized."
   - name: COLLECTIONMANAGER
     behavior:
       type: categorical
@@ -165,12 +176,6 @@ dimensions:
     behavior:
       type: categorical
   - name: RESOLVERNAME
-    behavior:
-      type: categorical
-  - name: ARCODE
-    behavior:
-      type: categorical
-  - name: DISPUTEDATE
     behavior:
       type: categorical
   # ── Dates ─────────────────────────────────────────────────────────────────────
@@ -252,7 +257,7 @@ measures:
         - "resolved disputes"
         - "closed disputes"
       caveats:
-        - "Numerator of DISPUTE_RESOLUTION_RATE — query this and TOTAL_DISPUTE_COUNT separately to compute the rate at the correct grain"
+        - "Invoice-level resolved count. For portfolio recovery rate use FACTDSO.DISPUTE_RECOVERY_RATIO."
 
   - name: TOTAL_DISPUTE_COUNT
     type: count
@@ -266,7 +271,7 @@ measures:
         - "all disputes"
         - "disputed invoices"
       caveats:
-        - "Denominator of DISPUTE_RESOLUTION_RATE — includes both open and resolved disputes"
+        - "Invoice-level dispute count. Portfolio recovery uses FACTDSO.DISPUTE_RECOVERY_RATIO."
 
   - name: CREDIT_HOLD_INVOICE_COUNT
     type: count
@@ -279,27 +284,6 @@ measures:
       synonyms:
         - "credit hold count"
         - "hold invoices"
-
-  - name: DISPUTE_RESOLUTION_RATE
-    type: number
-    expression: >
-      SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} = 'Resolved' THEN 1 ELSE 0 END) /
-      NULLIF(SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} IS NOT NULL THEN 1 ELSE 0 END), 0)
-    description: >
-      Fraction of disputes that have been resolved.
-      Formula: COUNT(Resolved) / COUNT(any dispute status).
-      Target: >= 0.80 (80% resolution rate).
-    behavior:
-      type: ratio
-      numerator: RESOLVED_DISPUTE_COUNT
-      denominator: TOTAL_DISPUTE_COUNT
-    ai_context:
-      synonyms:
-        - "dispute resolution rate"
-        - "resolution rate"
-        - "disputes resolved"
-      caveats:
-        - "Query RESOLVED_DISPUTE_COUNT and TOTAL_DISPUTE_COUNT separately when a time grain is present; do not average pre-computed ratio values"
 
 segments:
   - name: overdue_no_dispute

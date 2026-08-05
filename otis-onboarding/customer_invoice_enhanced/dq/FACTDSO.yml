@@ -1,0 +1,81 @@
+# Source: design spec > Section 15 Quality Rules
+# Business purpose: Monitor FactDSO gold-layer KPIs — DSO, gross invoiced, unified CEI.
+kind: dq
+name: FactDSO_dq
+depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+
+profiles:
+  - DSO
+  - TOTALGROSSINVOICED
+  - CEI
+  - COLLECTIONPRIORITY
+
+rules:
+
+  # ── Completeness ──────────────────────────────────────────────────────────────
+  - missing_count(COMPANYID) = 0:
+      name: company_required_for_dso_segments
+      dimension: completeness
+      description: >
+        COMPANYID is part of the FactDSO grain key. Null company = segment excluded from DSO reporting.
+
+  - missing_count(FISCALYEAR) = 0:
+      name: fiscal_year_required
+      dimension: completeness
+      description: >
+        FISCALYEAR is required for period-based DSO and dispute trend metrics.
+
+  - missing_count(FISCALMONTH) = 0:
+      name: fiscal_month_required
+      dimension: completeness
+      description: >
+        FISCALMONTH is the primary time axis for FactDSO trend metrics.
+
+  # ── Uniqueness ────────────────────────────────────────────────────────────────
+  - duplicate_count(COMPANYID, FISCALYEAR, FISCALMONTH, COLLECTIONPRIORITY) = 0:
+      name: factdso_grain_unique
+      dimension: uniqueness
+      description: >
+        Duplicate FactDSO grain rows double-count DSO and CEI — zero tolerance.
+
+  # ── Validity ──────────────────────────────────────────────────────────────────
+  - failed rows:
+      name: collection_priority_valid_values
+      dimension: validity
+      fail query: |
+        SELECT COMPANYID, FISCALYEAR, FISCALMONTH, COLLECTIONPRIORITY
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+        WHERE COLLECTIONPRIORITY IS NOT NULL
+          AND COLLECTIONPRIORITY NOT IN ('H', 'M', 'L', 'NONE')
+      samples limit: 20
+      description: >
+        CollectionPriority must be H, M, L, or NONE when populated.
+
+  # ── Accuracy: Anomaly Monitoring ──────────────────────────────────────────────
+  - anomaly detection for avg(DSO):
+      name: dso_spike
+      dimension: accuracy
+      description: >
+        Detects statistically unusual period-over-period shifts in average DSO.
+        Sudden spikes may indicate pipeline errors or genuine collection deterioration.
+
+  - anomaly detection for sum(TOTALGROSSINVOICED):
+      name: gross_invoiced_spike
+      dimension: accuracy
+      description: >
+        Detects unusual spikes or drops in total gross invoiced amount.
+        Sudden spikes may indicate duplicate loading; drops may signal pipeline truncation.
+
+  - anomaly detection for avg(CEI):
+      name: portfolio_cei_anomaly
+      dimension: accuracy
+      description: >
+        Detects statistically unusual shifts in unified CEI from FactDSO.
+        Consolidated portfolio CEI check — no row-level CEI range enforcement.
+
+  # ── Timeliness ────────────────────────────────────────────────────────────────
+  - change for row_count >= -15%:
+      name: factdso_row_count_not_dropping
+      dimension: timeliness
+      description: >
+        A 15%+ drop in FactDSO rows may signal stored-proc failure for a company or period.

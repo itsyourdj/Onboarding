@@ -1,0 +1,10 @@
+# Source: design spec > Section 7 Metrics
+kind: metric
+name: DISPUTED_AMOUNT_ROLLING_30_TREND
+measure: FACTDSO.DISPUTED_AMOUNT_ROLLING_30
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Rolling 30-day disputed exposure from FactDSO gold layer.
+  Logic: SUM(disputed) WHERE COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE()).
+  Sum across fiscal periods for portfolio total; refreshes on each SP load.

@@ -14,7 +14,9 @@
     RPAG: DECIMAL(18,2)
     RPAAP: DECIMAL(18,2)
     RPSTAM: DECIMAL(18,2)
-    RPADSC: DECIMAL(18,2)
+    RPADSC: VARCHAR
+    RPDPAM: DECIMAL(18,2)
+    RPDPDT: DECIMAL(38,0)
     RPDGJ: DECIMAL(38,0)
     RPDDJ: DECIMAL(38,0)
     RPIVD: DECIMAL(38,0)
@@ -28,16 +30,36 @@
     RPUPMJ: DECIMAL(38,0)
     RPCRR: DECIMAL(18,7)
   column_descriptions:
-    RPCO: JDE COMPANY IDENTIFIER.
-    RPDOC: JDE DOCUMENT NUMBER.
-    RPAN8: JDE CUSTOMER IDENTIFIER.
-    RPAAP: OUTSTANDING OPEN AMOUNT.
-    RPAID: GL OFFSET USED FOR LOB DERIVATION.
-    RPPTC: PAYMENT TERM CODE ON INVOICE.
+    RPCO: JDE company identifier; part of invoice grain key.
+    RPDOC: JDE document number; part of invoice grain key.
+    RPDCT: JDE document type code (e.g. RI, RM); part of invoice grain key.
+    RPSFX: Pay item suffix; part of invoice grain key.
+    RPKCO: Document company identifier; part of invoice grain key.
+    RPAN8: JDE customer address number (customer identifier).
+    RPSBL: Subledger type code for the invoice line.
+    RPAG: Open amount (outstanding balance) on the invoice pay-item.
+    RPAAP: Gross amount (original invoiced amount before adjustments).
+    RPSTAM: Tax amount on the invoice.
+    RPADSC: Dispute reason code; co-populates with dispute status when under dispute.
+    RPDPAM: Disputed amount (explicit dispute dollars from JDE).
+    RPDPDT: Dispute date in JDE Julian format; anchor for FactDSO rolling windows.
+    RPDGJ: GL posting date in JDE Julian format.
+    RPDDJ: Payment due date in JDE Julian format.
+    RPIVD: Invoice date in JDE Julian format.
+    RPCRCD: Transaction currency code (USD, EUR, etc.).
+    RPASTS: Payment status (P=Paid, A=Open, D=Disputed, H=Hold).
+    RPMCU: Business unit code from JDE.
+    RPPTC: Payment term code; join key to F0014 payment terms.
+    RPAID: GL offset account code; used to derive LOB via F0012.
+    RPRMK: Remark / dispute description text on the invoice.
+    RPUSER: JDE user id that last updated the invoice record.
+    RPUPMJ: Julian date of last update to the invoice record.
+    RPCRR: Exchange rate at time of posting.
   column_tags:
     RPCO: ['IDENTIFIER', 'JOIN_KEY']
     RPDOC: ['IDENTIFIER', 'DOCUMENT']
     RPAN8: ['IDENTIFIER', 'CUSTOMER']
+    RPAG: ['MEASURE', 'FINANCIAL']
     RPAAP: ['MEASURE', 'FINANCIAL']
     RPAID: ['DIMENSION', 'LOB_KEY']
     RPPTC: ['DIMENSION', 'TERM_KEY']
@@ -66,10 +88,26 @@
     HQLRDT: DECIMAL(38,0)
     HQUSER: VARCHAR
   column_descriptions:
-    HQCRSV: CURRENT RESERVE AMOUNT.
-    HQFR30: 30-DAY FORECAST RESERVE.
-    HQCHRV: DELTA IN RESERVE.
-    HQRP: FISCAL PERIOD KEY.
+    HQCO: JDE company identifier; join key to invoice header.
+    HQDOC: Document number; join key to invoice header.
+    HQDCT: Document type; join key to invoice header.
+    HQSFX: Pay item suffix; join key to invoice header.
+    HQAN8: Customer address number on the reserve record.
+    HQCRSV: Current doubtful debt reserve amount for the invoice.
+    HQARSV: AR-specific current reserve calculation.
+    HQPRSV: Previous period forecast reserve (for variance analysis).
+    HQFR30: 30-day forward reserve forecast.
+    HQFR60: 60-day forward reserve forecast.
+    HQFR90: 90-day forward reserve forecast.
+    HQCHRV: Period-over-period change in reserve (leakage signal L2/L7).
+    HQDFTO: Draft open amount on provisional invoices.
+    HQADJA: Manual reserve adjustment amount.
+    HQRSCA: Reserve cash applied against the invoice (leakage signal L6).
+    HQAGDY: Aging days computed by JDE reserve process.
+    HQRP: Fiscal period integer key for the reserve snapshot.
+    HQAOFD: As-of Julian date used for aging calculation.
+    HQLRDT: Latest receipt Julian date applied to the invoice.
+    HQUSER: JDE user id that last updated the reserve record.
   column_tags:
     HQCRSV: ['MEASURE', 'RESERVE']
     HQFR30: ['MEASURE', 'FORECAST']
@@ -96,9 +134,22 @@
     RCUSER: VARCHAR
     RCUPMJ: DECIMAL(38,0)
   column_descriptions:
-    RCAG: TOTAL/APPLIED RECEIPT VALUE.
-    RCRP: FISCAL PERIOD KEY.
-    RCAID: GL OFFSET USED FOR LOB DERIVATION.
+    RCCO: JDE company identifier for the receipt.
+    RCDOC: Receipt document number.
+    RCDCT: Receipt document type.
+    RCSFX: Receipt pay item suffix.
+    RCAN8: Customer address number receiving the payment.
+    RCAG: Receipt amount (cash received).
+    RCDGJ: GL Julian date of the receipt.
+    RCDMTJ: Date-matching Julian date for the receipt.
+    RCCRCD: Currency code of the receipt.
+    RCMCU: Business unit code on the receipt.
+    RCAID: GL offset code; used for LOB derivation on collection facts.
+    RCVR01: Invoice document number reference for cash application matching.
+    RCVR02: Secondary voucher reference for receipt matching.
+    RCRP: Fiscal period integer key for the receipt.
+    RCUSER: JDE user id that posted the receipt.
+    RCUPMJ: Julian date of last update to the receipt record.
   column_tags:
     RCAG: ['MEASURE', 'FINANCIAL']
     RCRP: ['TIME_DIMENSION', 'PERIOD']
@@ -124,8 +175,22 @@
     RNUSER: VARCHAR
     RNUPMJ: DECIMAL(38,0)
   column_descriptions:
-    RNDOC: DOCUMENT NUMBER.
-    RNAN8: CUSTOMER IDENTIFIER.
+    RNCO: JDE company identifier for the payment header.
+    RNDOC: Payment document number.
+    RNDCT: Payment document type.
+    RNSFX: Payment pay item suffix.
+    RNKCO: Document company for the payment.
+    RNAN8: Customer address number on the payment.
+    RNCKAM: Check / payment amount.
+    RNDGJ: GL Julian date of the payment.
+    RNDMTJ: Date-matching Julian date for the payment.
+    RNCRCD: Currency code of the payment.
+    RNRMK: Payment remark text.
+    RNCKNU: Check number from the payer.
+    RNVR01: Primary voucher reference linking payment to receipts.
+    RNPYIN: Payment instrument type code.
+    RNUSER: JDE user id that posted the payment.
+    RNUPMJ: Julian date of last update to the payment record.
   column_tags:
     RNDOC: ['IDENTIFIER']
     RNAN8: ['IDENTIFIER', 'CUSTOMER']
@@ -147,12 +212,22 @@
     ABUSER: VARCHAR
     ABUPMJ: DECIMAL(38,0)
   column_descriptions:
-    ABAN8: CUSTOMER IDENTIFIER.
-    ABAC04: COLLECTION OWNER CODE.
-    ABAC05: CUSTOMER SEGMENT.
+    ABAN8: Address book number (customer / entity identifier).
+    ABALPH: Alpha name (customer or entity display name).
+    ABAC02: Sales representative category code.
+    ABAC03: Collector category code assigned to the customer.
+    ABCM: Credit message / credit management code.
+    ABAT1: Address book search type (e.g. E=Employee, C=Customer).
+    ABAC04: Collection manager category code.
+    ABAC05: Customer segment code (ENT/MID/SMB/GOV/EDU).
+    ABPA8: Parent customer address number for corporate roll-up.
+    ABCO: Company code associated with the address book record.
+    ABTAX: Tax identification / tax-related code.
+    ABUSER: JDE user id that last updated the address book record.
+    ABUPMJ: Julian date of last update to the address book record.
   column_tags:
     ABAN8: ['IDENTIFIER', 'CUSTOMER']
-    ABAC04: ['DIMENSION', 'OWNER']
+    ABAC03: ['DIMENSION', 'OWNER']
     ABAC05: ['DIMENSION', 'SEGMENT']
 
 - name: JDE_PRODUCTION.STAGING.F03012
@@ -170,11 +245,20 @@
     ACUSER: VARCHAR
     ACUPMJ: DECIMAL(38,0)
   column_descriptions:
-    ACHCR: CREDIT HOLD FLAG.
-    ACAPTS2: AR CLASSIFICATION CODE.
+    ACAN8: Customer address number; join key to F0101 and invoices.
+    ACCO: JDE company code for the credit record.
+    ACAPTS: Payment terms code on the customer credit profile.
+    ACHCDT: Hold code date in Julian format.
+    ACHCR: Credit hold flag (Y/N); leakage signal L8 when combined with open AR.
+    ACACL: Customer credit limit amount.
+    ACABAL: Customer account balance on the credit profile.
+    ACAPTS2: Collection priority segment (H/M/L); maps to COLLECTIONPRIORITY on dim.
+    ACAID: AR classification / category code on the credit profile.
+    ACUSER: JDE user id that last updated the credit record.
+    ACUPMJ: Julian date of last update to the credit record.
   column_tags:
     ACHCR: ['DIMENSION', 'RISK_FLAG']
-    ACAPTS2: ['DIMENSION', 'RISK_CODE']
+    ACAPTS2: ['DIMENSION', 'PRIORITY']
 
 - name: JDE_PRODUCTION.STAGING.F5803B2I
   description: INVOICE COMMENTS SOURCE.
@@ -191,7 +275,17 @@
     CISTRT: DECIMAL(38,0)
     CIEND: DECIMAL(38,0)
   column_descriptions:
-    CITXTX: INVOICE COMMENT TEXT.
+    CICO: JDE company identifier on the invoice comment.
+    CIDOC: Invoice document number for the comment.
+    CIDCT: Invoice document type for the comment.
+    CISFX: Pay item suffix for the comment.
+    CIAN8: Customer address number on the comment record.
+    CITXLN: Comment line number (used for latest-comment ranking).
+    CITXTX: Invoice-level collection comment text.
+    CIUSER: JDE user id that entered the comment.
+    CIUPMJ: Julian date of last update to the comment.
+    CISTRT: Attachment start Julian date for the comment period.
+    CIEND: Attachment end Julian date for the comment period.
   column_tags:
     CITXTX: ['TEXT', 'COMMENT']
 
@@ -207,7 +301,14 @@
     CCSTRT: DECIMAL(38,0)
     CCEND: DECIMAL(38,0)
   column_descriptions:
-    CCTXTX: CUSTOMER COMMENT TEXT.
+    CCCO: JDE company identifier on the customer comment.
+    CCAN8: Customer address number for the comment.
+    CCTXLN: Comment line number (used for latest-comment ranking).
+    CCTXTX: Customer-level collection comment text.
+    CCUSER: JDE user id that entered the comment.
+    CCUPMJ: Julian date of last update to the comment.
+    CCSTRT: Attachment start Julian date for the comment period.
+    CCEND: Attachment end Julian date for the comment period.
   column_tags:
     CCTXTX: ['TEXT', 'COMMENT']
 
@@ -225,8 +326,16 @@
     MCUSER: VARCHAR
     MCUPMT: DECIMAL(38,0)
   column_descriptions:
-    MCMCU: BUSINESS UNIT CODE.
-    MCDL01: BUSINESS UNIT DESCRIPTION.
+    MCMCU: Business unit code (MCU); join key from invoice RPMCU.
+    MCDL01: Business unit description (human-readable name).
+    MCCO: JDE company code associated with the business unit.
+    MCAN8: Address number linked to the business unit (if any).
+    MCSTYL: Business unit type / style code.
+    MCRP01: Business unit region category code (BU region).
+    MCRP02: Secondary reporting category for the business unit.
+    MCRP03: Tertiary reporting category for the business unit.
+    MCUSER: JDE user id that last updated the business unit record.
+    MCUPMT: Time of last update to the business unit record.
   column_tags:
     MCMCU: ['DIMENSION', 'ORG_KEY']
     MCDL01: ['DIMENSION', 'ORG_LABEL']
@@ -243,9 +352,14 @@
     GAUSER: VARCHAR
     GAUPMT: DECIMAL(38,0)
   column_descriptions:
-    GAID: GL OFFSET CODE / ACCOUNT ID.
-    GADL01: LINE OF BUSINESS LABEL.
-    GACO: JDE COMPANY IDENTIFIER.
+    GAID: GL offset account id; maps invoice RPAID to LOB label.
+    GADL01: Line of business description (human-readable LOB name).
+    GACO: JDE company identifier for the GL offset record.
+    GAOBJ: GL object account number.
+    GASUB: GL subsidiary account number.
+    GAANI: Additional account identifier on the GL offset record.
+    GAUSER: JDE user id that last updated the GL offset record.
+    GAUPMT: Time of last update to the GL offset record.
   column_tags:
     GAID: ['DIMENSION', 'LOB']
     GADL01: ['DIMENSION', 'LOB_LABEL']
@@ -263,9 +377,14 @@
     PTUSER: VARCHAR
     PTUPMT: DECIMAL(38,0)
   column_descriptions:
-    PTC: PAYMENT TERM CODE.
-    PTDSC: PAYMENT TERM DESCRIPTION.
-    PTNDDY: NUMBER OF NET DAYS.
+    PTC: Payment term code (e.g. N30, N60); join key from invoices.
+    PTDSC: Payment term description (human-readable).
+    PTNDDY: Net days until payment is due (compliance threshold).
+    PTDP: Early payment discount percentage.
+    PTDDDY: Days within which discount is available.
+    PTCOMP: JDE company code for the payment term record.
+    PTUSER: JDE user id that last updated the payment term.
+    PTUPMT: Time of last update to the payment term record.
   column_tags:
     PTC: ['DIMENSION', 'JOIN_KEY']
     PTNDDY: ['DIMENSION', 'THRESHOLD']
@@ -294,10 +413,91 @@
     MAJOR_BUS_NODE_CODE: VARCHAR
     MAJOR_BUS_NODE_NAME: VARCHAR
   column_descriptions:
-    WORKER_ID: WORKDAY WORKER IDENTIFIER.
-    DOMAIN_USERNAME: WORKDAY USERNAME / EMAIL HANDLE.
-    LEGAL_FULL_NAME: EMPLOYEE FULL NAME.
+    WORKER_ID: Workday worker identifier; matched to collector via address book.
+    AMERICAS_GBO: Americas global business organization label from Workday.
+    BUS_NODE_CODE: Business node code in Workday org hierarchy.
+    BUS_NODE_NAME: Business node name in Workday org hierarchy.
+    COST_CENTER_CODE: Cost center code for the employee.
+    COST_CENTER_NAME: Cost center name for the employee.
+    DEPARTMENT: Department name from Workday.
+    DOMAIN_USERNAME: Workday domain username / email handle for action triggers.
+    EMPLOYEE_ID: Employee identifier in Workday.
+    EMPLOYEE_TYPE: Employment type (e.g. full-time, contractor).
+    HIRE_DATE: Employee hire date from Workday.
+    JOB_CODE: Job code in Workday.
+    JOB_DESCRIPTION: Job description text from Workday.
+    JOB_FAMILY: Job family classification from Workday.
+    JOB_FAMILY_GROUP: Job family group from Workday.
+    JOB_TITLE: Job title from Workday.
+    LEGAL_FULL_NAME: Employee legal full name from Workday.
+    LOCATION_COUNTRY: Country of the employee work location.
+    MAJOR_BUS_NODE_CODE: Major business node code from Workday hierarchy.
+    MAJOR_BUS_NODE_NAME: Major business node name from Workday hierarchy.
   column_tags:
     WORKER_ID: ['IDENTIFIER', 'OWNER_KEY']
     DOMAIN_USERNAME: ['DIMENSION', 'CONTACT']
     LEGAL_FULL_NAME: ['DIMENSION', 'PERSON']
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GOLD OUTPUT: FACTDSO — built by models/FACTDSO.sql (Vulcan FULL)
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
+  description: >
+    DSO & Dispute Analytics — company × fiscal period × collection-priority grain.
+    Calendar-day disputed rolling (DATEADD windows). Built by Vulcan from staging.
+  grains:
+    - COMPANYID
+    - FISCALYEAR
+    - FISCALMONTH
+    - COLLECTIONPRIORITY
+  columns:
+    COMPANYID: VARCHAR(10)
+    FISCALYEAR: INTEGER
+    FISCALMONTH: INTEGER
+    COLLECTIONPRIORITY: VARCHAR(10)
+    TOTALOPENAR: DECIMAL(18, 2)
+    TOTALGROSSINVOICED: DECIMAL(18, 2)
+    DAYSINPERIOD: INTEGER
+    DSO: DECIMAL(18, 4)
+    AVGCONTRACTUALNETDAYS: DECIMAL(18, 4)
+    DSOVARIANCEFROMTERMS: DECIMAL(18, 4)
+    DISPUTEDAMOUNTTOTAL: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING30: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING60: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING90: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING180: DECIMAL(18, 2)
+    RESOLVEDDISPUTEGROSS: DECIMAL(18, 2)
+    RESOLVEDDISPUTERECOVERED: DECIMAL(18, 2)
+    DISPUTERECOVERYRATIO: DECIMAL(10, 6)
+    CEI: DECIMAL(10, 6)
+    INVOICECOUNT: INTEGER
+    DISPUTEDINVOICECOUNT: INTEGER
+    INSERTDATE: TIMESTAMP_NTZ
+  column_descriptions:
+    COMPANYID: JDE company identifier; part of FactDSO grain key.
+    FISCALYEAR: Fiscal year from invoice GL date; part of FactDSO grain key.
+    FISCALMONTH: Fiscal month (1-12); part of grain key and trend time axis.
+    COLLECTIONPRIORITY: Collection priority segment (H/M/L/NONE from F03012).
+    TOTALOPENAR: Sum of open amounts for invoices in this segment and period.
+    TOTALGROSSINVOICED: Sum of gross invoiced amounts in period (DSO denominator).
+    DAYSINPERIOD: Calendar days in the fiscal month.
+    DSO: Days Sales Outstanding = (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod.
+    AVGCONTRACTUALNETDAYS: Average contractual net days from F0014 payment terms.
+    DSOVARIANCEFROMTERMS: DSO minus avg contractual net days; positive = slower than terms.
+    DISPUTEDAMOUNTTOTAL: Total disputed amount for disputes in this period.
+    DISPUTEDAMOUNTROLLING30: Sum disputed where COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - 30 days.
+    DISPUTEDAMOUNTROLLING60: Sum disputed where dispute date anchor >= CURRENT_DATE - 60 days.
+    DISPUTEDAMOUNTROLLING90: Sum disputed where dispute date anchor >= CURRENT_DATE - 90 days.
+    DISPUTEDAMOUNTROLLING180: Sum disputed where dispute date anchor >= CURRENT_DATE - 180 days.
+    RESOLVEDDISPUTEGROSS: Total gross amount of resolved disputed invoices.
+    RESOLVEDDISPUTERECOVERED: Amount recovered on resolved disputes.
+    DISPUTERECOVERYRATIO: Proportion recovered = Recovered / Gross for resolved disputes.
+    CEI: Unified collection effectiveness index for this priority segment.
+    INVOICECOUNT: Number of invoices in this segment and period.
+    DISPUTEDINVOICECOUNT: Number of disputed invoices in this segment and period.
+    INSERTDATE: Vulcan load timestamp for the FactDSO snapshot.
+  column_tags:
+    COMPANYID: ['GRAIN', 'JOIN_KEY']
+    COLLECTIONPRIORITY: ['GRAIN', 'PRIORITY']
+    DSO: ['MEASURE', 'KPI']
+    CEI: ['MEASURE', 'KPI']

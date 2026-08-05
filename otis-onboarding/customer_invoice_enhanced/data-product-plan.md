@@ -18,15 +18,18 @@
   - AI Agents (Cortex Analyst / NL Query) → natural language KPI queries, anomaly alerts, recommended actions
   - Action Layer → email triggers, alert pushes, workflow initiations
 - **Key Questions / Metrics**:
-  - "What is our CEI for this month?" → FactARCollection.CollectionEfficiency
-  - "Which customers have overdue invoices with no dispute?" → DimARDetails + FactARDetails
-  - "Show reserve vs forecast gap for LOB Maintenance" → FactARDetails + DimARCollectionLOB
-  - "Who are the top 10 collectors by cash collected?" → FactARCollection + DimARDetails
-  - "Which invoices are breaching payment terms?" → FactARDetails + DimARDetails + ARPaymentTerm
-  - "Which invoices are at risk of write-off?" → FactARDetails + DimARDetails (high aging + no reserve coverage)
-  - "Show collection efficiency by LOB this quarter" → FactARCollection + DimARCollectionLOB
-  - "How much unapplied cash do we have?" → FactARCollection (TotalReceipts vs CashApplied)
-  - "Show reserve accuracy trend" → FactARDetails (CurrentReserve vs PreviousForecastReserve)
+  - "What is our CEI for this month?" → FACTARCOLLECTION (cash-application CEI) or FACTDSO.CEI (portfolio by priority)
+  - "What is our Days Sales Outstanding (DSO)?" → FACTDSO.DSO
+  - "How does DSO compare to contractual payment terms?" → FACTDSO.DSOVARIANCEFROMTERMS
+  - "How much disputed amount is accumulating?" → FACTDSO.DisputedAmountRolling30/60/90/180
+  - "What proportion of resolved disputes was recovered?" → FACTDSO.DisputeRecoveryRatio
+  - "Is collection prioritization working?" → FACTDSO.DSO / CEI by COLLECTIONPRIORITY
+  - "Which customers have overdue invoices with no dispute?" → DIMARDETAILS + FACTARDETAILS
+  - "Show reserve vs forecast gap for LOB" → FACTARDETAILS + DIMARCOLLECTIONLOB
+  - "Who are the top 10 collectors by cash collected?" → FACTARCOLLECTION + DIMARDETAILS
+  - "Which invoices are breaching payment terms?" → FACTARDETAILS + DIMARDETAILS + ARPAYMENTTERM
+  - "How much unapplied cash do we have?" → FACTARCOLLECTION (TOTALRECEIPTS vs CASHAPPLIED)
+  - "Show reserve accuracy trend" → FACTARDETAILS (CURRENTRESERVE vs FORECASTRESERVE30)
 
 ---
 
@@ -61,6 +64,7 @@
 3. **Collection** — aggregated collection performance per customer, LOB, and fiscal period.
 4. **Line of Business (LOB)** — classifies invoices and collection records by business line via GL Offset mapping.
 5. **Payment Term** — defines payment terms used across invoices; drives compliance analysis.
+6. **Collection Performance Snapshot** — pre-aggregated DSO, dispute rolling, recovery, and CEI by company × fiscal period × collection priority (FACTDSO grain).
 
 ---
 
@@ -74,6 +78,9 @@
 | FactARCollection → ARPaymentTerm | FactARCollection | ARPaymentTerm | PaymentTermCode | Enrich collection facts with net days |
 | DimARDetails → DimARCollectionLOB | DimARDetails | DimARCollectionLOB | GLOffset | Derive LOB label for invoice dimension |
 | DimARDetails → ARPaymentTerm | DimARDetails | ARPaymentTerm | PaymentTermCode | Enrich invoice dimension with net days for compliance |
+| FactDSO → DimARDetails | FactDSO | DimARDetails | CompanyId + CollectionPriority | Drill from portfolio DSO/dispute KPIs to invoices |
+| FactDSO → FactARDetails | FactDSO | FactARDetails | CompanyId + FiscalPeriodId = (FiscalYear×100+FiscalMonth)×100 | Align FactDSO period to invoice measures |
+| FactDSO → FactARCollection | FactDSO | FactARCollection | CompanyId + FiscalPeriodId | Compare unified FactDSO.CEI with receipt-level CEI |
 
 **Population Filters** (business rules applied before/during joins):
 - JDE dates are in Julian format — all must be converted to standard DATE/TIMESTAMP before use
@@ -121,6 +128,7 @@
 | AttachmentStartDate | Start date of attachment period | Invoice/Pay-Item |
 | AttachmentEndDate | End date of attachment period | Invoice/Pay-Item |
 | ChargebackCode | Chargeback classification code | Invoice/Pay-Item |
+| CollectionPriority | Collection priority segment (H/M/L/NONE from F03012) | Customer |
 | FiscalPeriodId | Fiscal period key: ((Century*100+Year)*100)+Month | Collection |
 | GLDate | General ledger date | Invoice/Pay-Item |
 | AgeAsOfDate | Date as-of for aging calculation | Invoice/Pay-Item |
@@ -151,7 +159,7 @@
 | COLLECTION_EFFICIENCY | Collection Efficiency Index (CEI) — `CashApplied / (OpenAmount + TotalReceipts)` (Finance-aligned industry definition) | none | ratio: numerator=CASH_APPLIED, denominator=(OPEN_AMOUNT+TOTAL_RECEIPTS) | Collection |
 | UNAPPLIED_CASH_PCT | Percentage of receipts not yet applied | none | ratio: numerator=TOTAL_RECEIPTS-CASH_APPLIED, denominator=TOTAL_RECEIPTS | Collection |
 | RESERVE_ACCURACY_PCT | How accurate the reserve forecast was | none | ratio: 1 - ABS(CHANGE_IN_RESERVE) / FORECAST_RESERVE_30 | Invoice/Pay-Item |
-| DISPUTE_RESOLUTION_RATE | Fraction of disputes resolved | DisputeStatus IS NOT NULL | ratio: numerator=COUNT(DisputeStatus='Resolved'), denominator=COUNT(DisputeStatus IS NOT NULL) | Invoice/Pay-Item |
+| DISPUTE_RESOLUTION_RATE | ~~Removed~~ — use FACTDSO.DisputeRecoveryRatio for portfolio recovery | — | — | — |
 | OVERDUE_WITHOUT_ACTION_PCT | Overdue invoices with no dispute or action | AgingDays > 30 | ratio: numerator=COUNT(AgingDays > 30 AND DisputeStatus IS NULL), denominator=COUNT(AgingDays > 30) | Invoice/Pay-Item |
 | RESERVE_CASH_COVERAGE | Fraction of reserve covered by applied cash | none | ratio: numerator=RESERVE_CASH_APPLIED, denominator=CURRENT_RESERVE | Invoice/Pay-Item |
 | HIGH_RESERVE_CHANGE_COUNT | Count of invoices with large reserve movement | ChangeinReserve / ForecastReserve30 > 0.2 | count with filter | Invoice/Pay-Item |
@@ -161,15 +169,26 @@
 
 ## 7. Metrics (Measure over Time)
 
-> Five primary business trend metrics — each answers a distinct executive-level AR question over time.
+> **Fourteen primary business trend metrics** — five invoice/collection-level trends plus nine FACTDSO-native KPI trends. Rolling disputed views use calendar-day DATEADD windows in the FACTDSO gold model.
 
 | # | Metric Name | Underlying Measure | Time Dimension | Granularity | Business Question Answered | Consumer |
 |---|---|---|---|---|---|---|
-| 1 | `COLLECTION_EFFICIENCY_TREND` | `COLLECTION_EFFICIENCY` | `FiscalPeriodId` | Monthly | "Is our collection efficiency improving or deteriorating period-over-period?" — the single most important AR health KPI. A declining CEI trend triggers escalation to Collections Manager. | Collections Manager, GM |
-| 2 | `OPEN_AR_TREND` | `OPEN_AMOUNT` | `FiscalPeriodId` | Monthly | "How much total outstanding AR do we carry into each period, and is it growing?" — the executive AR balance indicator. Rising open AR without rising receipts signals a collection gap. | Finance, GM |
-| 3 | `RESERVE_ACCURACY_TREND` | `RESERVE_ACCURACY_PCT` | `FiscalPeriodId` | Monthly | "How accurate is our 30-day reserve forecast vs actual reserve movement?" — drives confidence in period-end provisions. Large drops in accuracy signal the JDE reserve model needs recalibration. | Finance, Reporting |
-| 4 | `UNAPPLIED_CASH_TREND` | `UNAPPLIED_CASH_PCT` | `FiscalPeriodId` | Monthly | "What % of receipts remain unapplied period-over-period?" — the primary collection leakage trend. Rising unapplied cash % without a corresponding dispute volume spike indicates a cash posting process failure. | Collections Manager, Finance |
-| 5 | `OVERDUE_INVOICE_TREND` | `INVOICE_COUNT` (filtered: `AgingDays > 30`) | `AgeAsOfDate` | Daily/Monthly | "Is the volume of overdue invoices growing or shrinking?" — the operational early-warning KPI. Tracks whether the collections team is clearing backlog or falling behind, broken down by Collector and LOB. | Collections Manager, Dispute Resolver |
+| 1 | `COLLECTION_EFFICIENCY_TREND` | `FACTARCOLLECTION.COLLECTION_EFFICIENCY` | `FISCALPERIODID` | Monthly | Cash-application CEI at customer × LOB grain | Collections Manager, GM |
+| 2 | `OPEN_AR_TREND` | `FACTARDETAILS.OPEN_AMOUNT` | `INSERTDATE` | Daily | Total outstanding AR balance trend | Finance, GM |
+| 3 | `RESERVE_ACCURACY_TREND` | `FACTARDETAILS.RESERVE_ACCURACY_PCT` | `FISCALPERIODID` | Monthly | Reserve forecast accuracy | Finance |
+| 4 | `UNAPPLIED_CASH_TREND` | `FACTARCOLLECTION.UNAPPLIED_CASH_PCT` | `FISCALPERIODID` | Monthly | Unapplied cash leakage trend | Collections Manager, Finance |
+| 5 | `OVERDUE_INVOICE_TREND` | `FACTARDETAILS.OVERDUE_INVOICE_COUNT` | `AGEASOFDATE` | Daily/Monthly | Overdue invoice volume trend | Collections Manager |
+| 6 | `DSO_TREND` | `FACTDSO.DSO` | `FISCALYEAR` + `FISCALMONTH` | Monthly | Native DSO from gold layer | Finance, GM |
+| 7 | `DSO_VARIANCE_FROM_TERMS_TREND` | `FACTDSO.DSO_VARIANCE_FROM_TERMS` | `FISCALYEAR` + `FISCALMONTH` | Monthly | DSO vs contractual terms | Finance, Collections |
+| 8 | `DISPUTED_AMOUNT_ROLLING_30_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_30` | `FISCALMONTH` | Monthly | 30-day disputed exposure | Collections, Finance |
+| 9 | `DISPUTED_AMOUNT_ROLLING_60_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_60` | `FISCALMONTH` | Monthly | 60-day disputed exposure | Collections, Finance |
+| 10 | `DISPUTED_AMOUNT_ROLLING_90_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_90` | `FISCALMONTH` | Monthly | 90-day disputed exposure | Collections, Finance |
+| 11 | `DISPUTED_AMOUNT_ROLLING_180_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_180` | `FISCALMONTH` | Monthly | 180-day disputed exposure | Collections, Finance |
+| 12 | `DISPUTE_RECOVERY_RATIO_TREND` | `FACTDSO.DISPUTE_RECOVERY_RATIO` | `FISCALMONTH` | Monthly | Proportion recovered on resolved disputes | Finance, Collections |
+| 13 | `CEI_TREND` | `FACTDSO.CEI` | `FISCALMONTH` | Monthly | Unified portfolio CEI by priority | Collections, GM |
+| 14 | `DSO_BY_COLLECTION_PRIORITY` | `FACTDSO.DSO` by `COLLECTIONPRIORITY` | `FISCALMONTH` | Monthly | Is prioritization working? | Collections, GM |
+
+**Removed:** `DISPUTE_RESOLUTION_TREND` (superseded by `DISPUTE_RECOVERY_RATIO_TREND` on FactDSO).
 
 **Metric kind definitions (Vulcan `kind: metric` YAML — one file per metric in `models/metrics/`):**
 
@@ -328,36 +347,25 @@ Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDa
 
 ## 13. Model Architecture
 
-> **Important**: The 5 final star schema tables are built and owned by this Vulcan data product in Snowflake schema `RL_JDE_VULCAN`. Raw JDE source tables are read from `staging.*`, transformed in Vulcan models, then governed through semantics, metrics, audits, dq checks, unit tests, and reusable macros.
+> **Important**: Six final star schema tables are built and owned by this Vulcan data product in Snowflake schema `RL_JDE_VULCAN`. Raw JDE source tables are read from `staging.*`, transformed in Vulcan models (aligned with RL_JDE SP_LOAD logic), then governed through semantics, metrics, audits, dq checks, and macros.
 
 | Layer | Model Name | Kind | Purpose | Sources |
 |---|---|---|---|---|
-| Gold | `RL_JDE_VULCAN.DimARDetails` | INCREMENTAL | Invoice dimension built from JDE raw sources with standardized keys/dates/comments/enrichment | `staging.F03B11`, `staging.F0101`, `staging.F03012`, `staging.F5803B2I`, `staging.F5803B2C`, `staging.F0006`, Workday reference |
-| Gold | `RL_JDE_VULCAN.FactARDetails` | INCREMENTAL | Invoice-level financial and reserve measures materialized at invoice/pay-item grain | `staging.F03B11`, `staging.F59HQ084` |
-| Gold | `RL_JDE_VULCAN.FactARCollection` | INCREMENTAL | Customer-period-LOB collection facts with CEI components and cash measures | `staging.F03B14`, `staging.F03B13`, `staging.F0006` |
-| Gold | `RL_JDE_VULCAN.DimARCollectionLOB` | INCREMENTAL | LOB reference dimension from GL offset mappings | `staging.F0012` |
-| Gold | `RL_JDE_VULCAN.ARPaymentTerm` | INCREMENTAL | Payment term reference dimension for compliance joins | `staging.F0014` |
-| Semantic | `models/semantics/DimARDetails.yml` | SEMANTIC | Business-friendly wrapper for DimARDetails — dimensions, measures, joins, ai_context | `RL_JDE_VULCAN.DimARDetails` |
-| Semantic | `models/semantics/FactARDetails.yml` | SEMANTIC | Business-friendly wrapper for FactARDetails — measures, joins, leakage segments | `RL_JDE_VULCAN.FactARDetails` |
-| Semantic | `models/semantics/FactARCollection.yml` | SEMANTIC | Business-friendly wrapper for FactARCollection — CEI, receipts, efficiency measures | `RL_JDE_VULCAN.FactARCollection` |
-| Semantic | `models/semantics/DimARCollectionLOB.yml` | SEMANTIC | LOB reference semantic model | `RL_JDE_VULCAN.DimARCollectionLOB` |
-| Semantic | `models/semantics/ARPaymentTerm.yml` | SEMANTIC | Payment term reference semantic model | `RL_JDE_VULCAN.ARPaymentTerm` |
-| Metrics | `models/metrics/COLLECTION_EFFICIENCY_TREND.yml` | METRIC | CEI tracked by fiscal period | FactARCollection semantic model |
-| Metrics | `models/metrics/OPEN_AMOUNT_TREND.yml` | METRIC | Open AR trend over GL dates | FactARDetails semantic model |
-| Metrics | `models/metrics/RESERVE_ACCURACY_TREND.yml` | METRIC | Reserve forecast accuracy by period | FactARDetails semantic model |
-| Metrics | `models/metrics/UNAPPLIED_CASH_TREND.yml` | METRIC | Unapplied cash % by fiscal period | FactARCollection semantic model |
-| Metrics | `models/metrics/DISPUTE_RESOLUTION_TREND.yml` | METRIC | Dispute resolution rate over invoice cohorts | DimARDetails semantic model |
-| Tests | `tests/*.yml` | TEST | Unit tests with mocked inputs and expected outputs for grain, joins, and KPI formulas | Raw + intermediate + gold model DAG |
-| Macros | `macros/*.py` | MACRO | Reusable transformation helpers (JDE date conversion, decimal scaling, key normalization, fiscal key derivation) | Used across all Vulcan transformation models |
-| DQ | `dq/DimARDetails.yml` | DQ | Quality monitoring for invoice dimension | `RL_JDE_VULCAN.DimARDetails` |
-| DQ | `dq/FactARDetails.yml` | DQ | Quality monitoring for invoice measures | `RL_JDE_VULCAN.FactARDetails` |
-| DQ | `dq/FactARCollection.yml` | DQ | Quality monitoring for collection facts | `RL_JDE_VULCAN.FactARCollection` |
+| Gold | `RL_JDE_VULCAN.DimARDetails` | INCREMENTAL | Invoice dimension (+ CollectionPriority) | staging F03B11, F0101, F03012, F5803B2I/C, F0006, Workday |
+| Gold | `RL_JDE_VULCAN.FactARDetails` | INCREMENTAL | Invoice measures (+ DisputeDate) | staging F03B11, F59HQ084, F0014 |
+| Gold | `RL_JDE_VULCAN.FactARCollection` | INCREMENTAL | Customer-period-LOB collection facts | staging F03B14, F03B13 |
+| Gold | `RL_JDE_VULCAN.FactDSO` | FULL | DSO, dispute rolling, recovery, CEI by priority | staging F03B11, F03012, F0014 |
+| Gold | `RL_JDE_VULCAN.DimARCollectionLOB` | INCREMENTAL | LOB reference dimension | staging F0012 |
+| Gold | `RL_JDE_VULCAN.ARPaymentTerm` | INCREMENTAL | Payment term reference | staging F0014 |
+| Semantic | `models/semantics/FACTDSO.yml` | SEMANTIC | DSO, dispute rolling, unified CEI | `RL_JDE_VULCAN.FactDSO` |
+| Metrics | `models/metrics/DSO_*`, `DISPUTED_AMOUNT_ROLLING_*`, `CEI_TREND`, etc. | METRIC | Executive KPI trends | FactDSO + existing invoice/collection metrics |
+| DQ | `dq/FACTDSO.yml` | DQ | DSO/gross/CEI anomaly checks | `RL_JDE_VULCAN.FactDSO` |
 
 **Architecture decisions**:
-- **Why INCREMENTAL for all 5 output tables**: Aligns with D5 recommendation (MERGE-based incremental refresh) while keeping daily freshness and reducing rerun cost
-- **Why Star Schema consumption architecture**: The 5 tables form a clean star schema; the semantic layer maps directly with pre-defined joins
-- **Why direct Gold outputs**: The required 5 analytical tables are explicit business outputs; transformations are implemented directly in Vulcan model DAGs from raw inputs
-- **Why 5 separate semantic models**: Vulcan semantic models wrap exactly one physical model — 5 tables → 5 semantic models with joins on fact tables pointing to dimension models
+- **Why INCREMENTAL for dimension/fact tables**: Aligns with MERGE-based daily refresh; FactDSO uses FULL refresh (truncate + load) matching SP_LOAD_FACTDSO
+- **Why Star Schema consumption architecture**: The 6 tables form a clean star schema; the semantic layer maps directly with pre-defined joins
+- **Why direct Gold outputs**: Transformations mirror RL_JDE SP_LOAD procedures from raw staging
+- **Why 6 separate semantic models**: One semantic model per physical gold table
 - **Why Tests + Macros are first-class**: tests enforce transformation correctness and KPI math; macros guarantee consistent reusable logic across raw-to-gold model code paths
 
 ---
@@ -369,7 +377,7 @@ Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDa
 
 ```yaml
 # models/gold/rl_jde_vulcan_tables.yaml
-# All 5 tables are materialized by Vulcan in Snowflake schema RL_JDE_VULCAN.
+# All 6 tables are materialized by Vulcan in Snowflake schema RL_JDE_VULCAN.
 # Transformations read from raw staging sources and publish governed outputs.
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2276,7 +2284,7 @@ def jde_to_date(jde_col: str) -> str:
 - [x] Entity relationships and joins documented — 6 joins documented in Section 4
 - [x] Measure/metric reasoning documented — Section 9 rationale chain complete
 - [x] Model architecture decided and documented — INCREMENTAL Gold models (5 output tables) + SEMANTIC + METRIC + DQ
-- [x] Output model ownership confirmed in Section 13 — 5 tables are Vulcan-managed in `RL_JDE_VULCAN`
+- [x] Output model ownership confirmed in Section 13 — 6 tables are Vulcan-managed in `RL_JDE_VULCAN` (includes FactDSO)
 - [x] All [Assumption] tags reviewed with stakeholder — 11 assumptions listed in Section 11; CEI formula and backfill confirmed
 - [x] Open questions resolved or documented as out-of-scope — Section 12 decisions are now explicitly locked for v1
 - [x] YAML contract parseable and complete — Section 14 complete

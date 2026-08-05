@@ -1,88 +1,73 @@
-# Source: design spec > Section 1 Business Context + Section 12 Open Questions
-# Business-facing usage guidance for Customer Invoices Analysis data product.
+# Source: design spec > Section 1 Business Context + stakeholder feedback
+# Enhanced DP: builds RL_JDE_VULCAN gold from staging via Vulcan SQL models.
+
+what_it_answers:
+  - question: "How long does it take to collect cash? (Days Sales Outstanding)"
+    metric: DSO_TREND
+    source: FactDSO.DSO
+    formula: "(TotalOpenAR / TotalGrossInvoiced) × DaysInPeriod"
+    notes: Built by models/FACTDSO.sql — aligned with SP_LOAD_FACTDSO logic.
+
+  - question: "How much disputed amount is accumulating?"
+    metrics:
+      - DISPUTED_AMOUNT_ROLLING_30_TREND
+      - DISPUTED_AMOUNT_ROLLING_60_TREND
+      - DISPUTED_AMOUNT_ROLLING_90_TREND
+      - DISPUTED_AMOUNT_ROLLING_180_TREND
+    source: FactDSO.DisputedAmountRolling30/60/90/180
+    formula: "SUM(disputed) WHERE COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - N days"
+
+  - question: "What proportion of resolved disputed invoices is recovered?"
+    metric: DISPUTE_RECOVERY_RATIO_TREND
+    source: FactDSO.DisputeRecoveryRatio
+
+  - question: "Is collection prioritization working?"
+    metric: DSO_BY_COLLECTION_PRIORITY
+    source: FactDSO.DSO by CollectionPriority
+
+  - question: "What is our collection effectiveness (CEI)?"
+    metric: CEI_TREND
+    source: FactDSO.CEI
+    notes: Use COLLECTION_EFFICIENCY_TREND for receipt-level cash application detail.
+
+  - question: "Collection leakage, reserve accuracy, overdue volume?"
+    metrics:
+      - UNAPPLIED_CASH_TREND
+      - RESERVE_ACCURACY_TREND
+      - OVERDUE_INVOICE_TREND
+      - OPEN_AR_TREND
 
 good_for:
-  - title: Collection Efficiency Index (CEI) tracking and trend analysis
+  - title: Building and governing the Invoice 360 gold layer from raw JDE staging
     details: >
-      Monitor monthly CEI by fiscal period, LOB, and collector. Track whether
-      collection efficiency is improving or deteriorating. Benchmark: CEI >= 0.85.
+      Vulcan SQL models materialize 6 gold tables in RL_JDE_VULCAN (includes FactDSO),
+      with semantics, metrics, DQ, and audits on top.
 
-  - title: Collection leakage detection
-    details: >
-      Identify and quantify unapplied cash (Signal L1), reserve inaccuracy (L2),
-      adjusted collection gaps (L3), overdue invoices without collection action (L4),
-      reserve cash not applied (L6), high reserve change (L7), and credit hold
-      open invoices (L8).
+  - title: DSO, dispute rolling, recovery, and collection prioritization
+    details: Same KPIs as Core semantic product — sourced from Vulcan-built FactDSO.
 
-  - title: Dispute tracking and resolution rate monitoring
-    details: >
-      Track open disputes by LOB, resolver, and aging. Monitor Dispute Resolution Rate
-      (resolved / total disputes) and Promise-to-Pay compliance.
-
-  - title: Reserve vs forecast accuracy analysis
-    details: >
-      Compare CurrentReserve against PreviousForecastReserve and ForecastReserve30/60/90.
-      Used by Finance for IFRS/GAAP doubtful debt provision sign-off.
-
-  - title: Payment term compliance analysis
-    details: >
-      Identify invoices where AgingDays > NetDays (payment term breached). Requires
-      joining DIMARDETAILS to ARPAYMENTTERM on PAYMENTTERMCODE.
-
-  - title: Executive KPI dashboards (Collections, Finance, GM)
-    details: >
-      Roll-up summaries by CompanyId, FiscalPeriodId, and LOB for period-end reporting.
-      Covers open AR, CEI, reserve accuracy, and overdue aging.
-
-  - title: AI agent natural language AR queries (Cortex Analyst)
-    details: >
-      All 5 semantic models include synonyms, instructions, and example queries
-      enabling Snowflake Cortex Analyst to answer business questions in natural language.
+  - title: Collection leakage, reserve accuracy, and invoice-level AR analysis
+    details: FactARDetails, FactARCollection, DimARDetails semantic models.
 
 not_for:
-  - Real-time or near-real-time alerting — this product refreshes daily from the JDE pipeline
-  - Real-time transactional invoice processing — this data product provides curated analytical tables refreshed on a schedule
-  - Sub-invoice-line detail — the grain is invoice / pay-item level (not individual line items within an invoice)
-  - Multi-currency USD normalisation — local currency only in this version; USD-normalized amounts are a future phase
+  - Consuming RL_JDE gold only without running transforms — use customer_invoice_semantic (Core)
+  - Real-time alerting — daily scheduled refresh
+  - Sub-invoice-line detail
+  - Multi-currency USD normalisation
 
 caveats:
-  - title: STAGING source accessibility required
+  - title: Enhanced vs Core product split
     details: >
-      All transformation models read from JDE_PRODUCTION.STAGING.* source tables.
-      Ensure the configured Snowflake role has SELECT access on those source objects
-      before running plan or deploy commands.
+      Enhanced builds gold from staging (RL_JDE_VULCAN). Core wraps existing RL_JDE gold as EXTERNAL.
+      Do not run both products writing the same schema without coordination.
     severity: high
 
-  - title: Estimated DQ thresholds require calibration
-    details: >
-      DQ rules marked [Estimated threshold] (CEI range 0-1.5, unapplied cash >20%,
-      reserve change >20%, credit hold >$10,000 and 90 days, etc.) must be replaced with
-      data-driven thresholds derived from 30 days of baseline data post-deployment.
-      Do NOT use these estimates for production alerting.
+  - title: Two CEI metrics — different grains
+    details: CEI_TREND (FactDSO) vs COLLECTION_EFFICIENCY_TREND (FactARCollection).
+    severity: low
+
+  - title: Estimated DQ thresholds require calibration post-deployment
     severity: high
-
-  - title: InsertDate used as metric time axis
-    details: >
-      All 5 trend metrics use InsertDate (the daily load timestamp) as the time dimension,
-      since FiscalPeriodId is an INTEGER key (not a date) and business DATE columns cannot
-      be used as Vulcan TIMESTAMP time dimensions. InsertDate approximates business date
-      for a daily-refresh product.
-    severity: low
-
-  - title: CEI formula implementation detail
-    details: >
-      The current model computes COLLECTIONEFFICIENCY from CASHAPPLIED / TOTALRECEIPTS
-      at collection grain. If Finance requires the expanded denominator
-      (OPENAMOUNT + TOTALRECEIPTS), revise FACTARCOLLECTION logic with a period-aligned
-      OPENAMOUNT integration from FACTARDETAILS.
-    severity: medium
-
-  - title: Workday email integration
-    details: >
-      WORKDAYEMAIL in DIMARDETAILS comes from a pre-loaded Workday reference table with
-      scheduled refresh (not a live SQL Server call). Confirm the Workday reference table
-      schema with Data Engineering before enabling email-based action triggers.
-    severity: low
 
 references:
   - title: Design Document

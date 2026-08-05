@@ -1,5 +1,5 @@
 # Source: design spec > Section 13 Model Architecture + Section 15.5 AI Context + Section 15.6 Behavior
-# Semantic wrapper for the Invoice Measures table (VULCAN MODELED IN RL_JDE_VULCAN).
+# Semantic wrapper for the Invoice Measures table (EXTERNAL — owned by JDE pipeline).
 # One row per invoice / pay-item. Financial KPIs: open amounts, reserves, forecasts, aging.
 kind: semantic
 name: FACTARDETAILS
@@ -32,7 +32,7 @@ ai_context:
     - "invoice measures"
     - "invoice financials"
     - "AR amounts"
-    - "FACTAR"
+    - "FactAR"
   examples:
     - description: "Show reserve vs forecast gap by LOB for current period"
       format: sql
@@ -46,6 +46,21 @@ ai_context:
           ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
           AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
         GROUP BY d.LOB ORDER BY gap DESC
+    - description: "Disputed exposure in last 30/60/90 days (matches SP_LOAD_FACTDSO logic)"
+      format: sql
+      query: |
+        SELECT
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -30, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_30d,
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -60, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_60d,
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -90, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_90d
+        FROM JDE_PRODUCTION.RL_JDE_VULCAN.FACTARDETAILS f
+        JOIN JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS d
+          ON f.COMPANYID = d.COMPANYID AND f.DOCUMENTCOMPANY = d.DOCUMENTCOMPANY
+         AND f.DOCNO = d.DOCNO AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
+        WHERE f.DISPUTEDAMOUNT > 0
     - description: "Which invoices have the highest reserve change (top leakage risk)?"
       format: sql
       query: |
@@ -116,6 +131,13 @@ dimensions:
   - name: DUEDATE
   - name: AGEASOFDATE
   - name: LATESTRECEIPTDATE
+  - name: DISPUTEDATE
+    ai_context:
+      synonyms:
+        - "dispute date"
+        - "dispute opened date"
+      caveats:
+        - "FactDSO rolling uses COALESCE(DisputeDate, GLDate) >= DATEADD(day, -N, CURRENT_DATE())."
   - name: INSERTDATE
 
 measures:

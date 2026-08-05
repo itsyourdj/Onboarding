@@ -1,0 +1,8 @@
+# Source: design spec > Section 7 Metrics
+kind: metric
+name: DISPUTED_AMOUNT_ROLLING_60_TREND
+measure: FACTDSO.DISPUTED_AMOUNT_ROLLING_60
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Rolling 60-day disputed exposure from FactDSO (DATEADD day -60 window on dispute date anchor).

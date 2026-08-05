@@ -9,8 +9,9 @@ tags:
   - snowflake
 description: >
   Customer Invoices Enhanced — centralised AR data product providing semantic governance,
-  business metrics (CEI trend, open AR trend, reserve accuracy, unapplied cash, overdue invoices),
-  AI-agent-ready context, and quality monitoring over the Invoice 360 star schema.
+  business metrics (DSO, DSO vs terms, disputed rolling 30/60/90/180, dispute recovery,
+  CEI by priority, open AR, reserve accuracy, unapplied cash, overdue invoices),
+  Vulcan-built gold layer (6 tables in RL_JDE_VULCAN), AI-agent-ready context, and quality monitoring over the Invoice 360 star schema.
 
 spec:
   runAsUser: "deepakjaiswaltmdcio"

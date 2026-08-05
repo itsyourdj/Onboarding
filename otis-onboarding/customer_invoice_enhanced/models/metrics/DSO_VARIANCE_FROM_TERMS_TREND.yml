@@ -1,0 +1,10 @@
+# Source: design spec > Section 7 Metrics
+# Business question: "Are we collecting slower or faster than contractual terms?"
+kind: metric
+name: DSO_VARIANCE_FROM_TERMS_TREND
+measure: FACTDSO.DSO_VARIANCE_FROM_TERMS
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  DSO minus average contractual net days (F0014). Positive = collecting slower than terms.
+  Native column from FactDSO stored procedure.

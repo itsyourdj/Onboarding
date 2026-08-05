@@ -329,9 +329,7 @@ segments:
 joins:
   - name: DimARCollectionLOB
     type: many_to_one
-    on:
-      - - LOB
-        - LOBCode
+    expression: "{DimARDetails.LOB} = {DimARCollectionLOB.LOBCode}"
     ai_context:
       instructions: "Join to DimARCollectionLOB to access full LOB description (LOBDescription field)."
 

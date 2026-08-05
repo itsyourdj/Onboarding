@@ -216,9 +216,7 @@ segments:
 joins:
   - name: DimARCollectionLOB
     type: many_to_one
-    on:
-      - - LOB
-        - LOBCode
+    expression: "{FactARCollection.LOB} = {DimARCollectionLOB.LOBCode}"
     ai_context:
       instructions: "Join to DimARCollectionLOB to access full LOB description for reporting."
 

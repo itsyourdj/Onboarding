@@ -36,7 +36,7 @@ default_gateway: default
 model_defaults:
   dialect: "snowflake"
   start: "2020-01-01"
-  cron: "30 6 * * *"
+  cron: "*/30 * * * *"
 
 notification_targets:
   - type: teams_webhook

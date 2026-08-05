@@ -201,14 +201,12 @@ segments:
 joins:
   - name: DIMARCOLLECTIONLOB
     type: many_to_one
-    on:
-      - - LOB
-        - LOBCODE
+    expression: "{FACTARCOLLECTION.LOB} = {DIMARCOLLECTIONLOB.LOBCODE}"
     ai_context:
       instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description for reporting."
 
   - name: ARPAYMENTTERM
     type: many_to_one
-    on: PAYMENTTERMCODE
+    expression: "{FACTARCOLLECTION.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
     ai_context:
       instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance context on collection records."

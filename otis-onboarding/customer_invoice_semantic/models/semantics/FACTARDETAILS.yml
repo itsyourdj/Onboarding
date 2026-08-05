@@ -327,11 +327,7 @@ segments:
 joins:
   - name: DIMARDETAILS
     type: many_to_one
-    on:
-      - COMPANYID
-      - DOCUMENTCOMPANY
-      - DOCNO
-      - DOCTYPE
-      - PAYITM
+    expression: "{FACTARDETAILS.COMPANYID} = {DIMARDETAILS.COMPANYID} AND {FACTARDETAILS.DOCUMENTCOMPANY} = {DIMARDETAILS.DOCUMENTCOMPANY} AND {FACTARDETAILS.DOCNO} = {DIMARDETAILS.DOCNO} AND {FACTARDETAILS.DOCTYPE} = {DIMARDETAILS.DOCTYPE} AND {FACTARDETAILS.PAYITM} = {DIMARDETAILS.PAYITM}"
     ai_context:
       instructions: "Join to DIMARDETAILS to access collector, LOB, dispute status, and credit hold attributes for each invoice."
+

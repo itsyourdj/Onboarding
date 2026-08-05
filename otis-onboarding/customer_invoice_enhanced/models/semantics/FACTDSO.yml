@@ -284,10 +284,10 @@ segments:
 joins:
   - name: DIMARDETAILS
     type: one_to_many
-    on: COMPANYID
+    expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
     ai_context:
       instructions: >
         Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY
         to match FactDSO segment when comparing prioritized vs not-prioritized performance.
-        Chain through DIMARDETAILS to ARPAYMENTTERM for payment-term detail (NETDAYS) when
-        AvgContractualNetDays on FactDSO is insufficient.
+        Chain through DIMARDETAILS to ARPAYMENTTERM or DIMARCOLLECTIONLOB for payment-term or LOB detail.
+

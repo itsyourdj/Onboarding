@@ -30,7 +30,7 @@ spec:
     type: schedule
     schedule:
       crons:
-        - "0 12 * * *"
+        - "*/30 * * * *"
       timezone: "Asia/Kolkata"
       endOn: "2027-01-01T00:00:00Z"
       concurrencyPolicy: Forbid

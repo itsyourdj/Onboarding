@@ -3,10 +3,10 @@
 kind: metric
 name: CEI_TREND
 measure: FACTDSO.CEI
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   Executive unified Collection Effectiveness Index from FactDSO gold layer,
-  by company × fiscal period × collection priority.
+  by company × fiscal period × collection priority. Time axis: INSERTDATE.
   Single source for portfolio CEI monitoring and portfolio_cei_anomaly DQ.
   For receipt-level cash application detail, use COLLECTION_EFFICIENCY_TREND on FactARCollection.

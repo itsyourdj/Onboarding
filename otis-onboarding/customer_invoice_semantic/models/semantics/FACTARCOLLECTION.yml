@@ -84,6 +84,11 @@ dimensions:
   - name: PAYMENTTERMCODE
     behavior:
       type: categorical
+  - name: TOTALRECEIPTS
+  - name: CASHAPPLIED
+  - name: RESERVECASH
+  - name: ADJUSTEDCOLLECTION
+  - name: COLLECTIONEFFICIENCY
   - name: INSERTDATE
 
 measures:

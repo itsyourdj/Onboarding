@@ -2,7 +2,7 @@
 kind: metric
 name: DISPUTED_AMOUNT_ROLLING_30_TREND
 measure: FACTDSO.DISPUTED_AMOUNT_ROLLING_30
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   Rolling 30-day disputed exposure from FactDSO gold layer.

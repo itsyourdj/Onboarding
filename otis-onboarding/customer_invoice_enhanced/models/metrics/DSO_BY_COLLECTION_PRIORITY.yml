@@ -3,7 +3,7 @@
 kind: metric
 name: DSO_BY_COLLECTION_PRIORITY
 measure: FACTDSO.DSO
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   Days Sales Outstanding segmented by CollectionPriority (H/M/L vs NONE).

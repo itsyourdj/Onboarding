@@ -3,10 +3,10 @@
 kind: metric
 name: DSO_TREND
 measure: FACTDSO.DSO
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   Native Days Sales Outstanding from FactDSO gold layer.
   Formula: (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod.
   Denominator uses invoiced gross (RPAAP), not F4211 sales orders.
-  Time axis: FISCALMONTH grouped with FISCALYEAR for period context.
+  Time axis: INSERTDATE (load timestamp; group with FISCALYEAR/FISCALMONTH for period context).

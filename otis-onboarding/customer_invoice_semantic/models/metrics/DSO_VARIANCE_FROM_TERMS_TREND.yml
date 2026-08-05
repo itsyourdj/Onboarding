@@ -3,7 +3,7 @@
 kind: metric
 name: DSO_VARIANCE_FROM_TERMS_TREND
 measure: FACTDSO.DSO_VARIANCE_FROM_TERMS
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   DSO minus average contractual net days (F0014). Positive = collecting slower than terms.

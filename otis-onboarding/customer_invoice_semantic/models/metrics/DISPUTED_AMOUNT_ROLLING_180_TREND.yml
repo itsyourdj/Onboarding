@@ -2,7 +2,7 @@
 kind: metric
 name: DISPUTED_AMOUNT_ROLLING_180_TREND
 measure: FACTDSO.DISPUTED_AMOUNT_ROLLING_180
-ts: FACTDSO.FISCALMONTH
+ts: FACTDSO.INSERTDATE
 granularity: month
 description: >
   Rolling 180-day disputed exposure from FactDSO (DATEADD day -180 window on dispute date anchor).

@@ -95,6 +95,23 @@ dimensions:
         - "priority band"
       caveats:
         - "H/M/L/NONE from F03012. NONE = not collection-prioritized."
+  - name: TOTALOPENAR
+  - name: TOTALGROSSINVOICED
+  - name: DAYSINPERIOD
+  - name: DSO
+  - name: AVGCONTRACTUALNETDAYS
+  - name: DSOVARIANCEFROMTERMS
+  - name: DISPUTEDAMOUNTTOTAL
+  - name: DISPUTEDAMOUNTROLLING30
+  - name: DISPUTEDAMOUNTROLLING60
+  - name: DISPUTEDAMOUNTROLLING90
+  - name: DISPUTEDAMOUNTROLLING180
+  - name: RESOLVEDDISPUTEGROSS
+  - name: RESOLVEDDISPUTERECOVERED
+  - name: DISPUTERECOVERYRATIO
+  - name: CEI
+  - name: INVOICECOUNT
+  - name: INSERTDATE
 
 measures:
   - name: TOTAL_OPEN_AR
@@ -103,7 +120,7 @@ measures:
     description: "Total open AR in this company × period × priority segment."
     behavior:
       type: stock
-      time_dimension: FISCALMONTH
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:
@@ -162,7 +179,7 @@ measures:
     description: "Total disputed amount in the last 30 calendar days (load snapshot). Gold logic: SUM where DisputeCode IS NOT NULL AND COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE())."
     behavior:
       type: stock
-      time_dimension: FISCALMONTH
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:
@@ -178,7 +195,7 @@ measures:
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 60 days."
     behavior:
       type: stock
-      time_dimension: FISCALMONTH
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:
@@ -191,7 +208,7 @@ measures:
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 90 days."
     behavior:
       type: stock
-      time_dimension: FISCALMONTH
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:
@@ -204,7 +221,7 @@ measures:
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 180 days."
     behavior:
       type: stock
-      time_dimension: FISCALMONTH
+      time_dimension: INSERTDATE
       period_treatment: last
       period_grain: month
     ai_context:

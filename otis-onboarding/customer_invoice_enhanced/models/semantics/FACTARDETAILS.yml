@@ -88,6 +88,18 @@ dimensions:
   - name: PAYITM
     behavior:
       type: identifier
+  - name: OPENAMOUNT
+  - name: GROSSAMOUNT
+  - name: TAXAMOUNT
+  - name: DISPUTEDAMOUNT
+  - name: CURRENTRESERVE
+  - name: FORECASTRESERVE30
+  - name: FORECASTRESERVE60
+  - name: FORECASTRESERVE90
+  - name: CHANGEINRESERVE
+  - name: DRAFTOPENAMOUNT
+  - name: ADJUSTMENTAMOUNT
+  - name: RESERVECASHAPPLIED
   - name: AGINGDAYS
     behavior:
       type: ordinal

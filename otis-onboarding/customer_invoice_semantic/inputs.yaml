@@ -342,6 +342,7 @@
     DISPUTERECOVERYRATIO:       DECIMAL(10, 6)
     CEI:                        DECIMAL(10, 6)
     INVOICECOUNT:               INTEGER
+    INSERTDATE:                 TIMESTAMP_NTZ
   column_descriptions:
     COMPANYID: "JDE company identifier; part of FactDSO grain key."
     FISCALYEAR: "Fiscal year; part of FactDSO grain key."
@@ -363,6 +364,7 @@
     DISPUTERECOVERYRATIO: "Proportion recovered = Recovered / Gross for resolved disputes."
     CEI: "Collection Effectiveness Index for this priority segment."
     INVOICECOUNT: "Number of invoices in this segment/period."
+    INSERTDATE: "Load timestamp used for trend metric time axis."
   column_tags:
     COMPANYID: ["grain", "identifier", "join_key"]
     FISCALYEAR: ["grain", "time_dimension", "period"]
@@ -379,3 +381,4 @@
     DISPUTERECOVERYRATIO: ["measure", "dispute", "kpi", "ratio"]
     CEI: ["measure", "kpi", "cei", "dashboard"]
     INVOICECOUNT: ["measure", "count"]
+    INSERTDATE: ["audit", "freshness", "time_dimension"]

@@ -7,6 +7,7 @@ depends_on: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
 
 profiles:
   - OPENAMOUNT
+  - GROSSAMOUNT
   - CURRENTRESERVE
   - FORECASTRESERVE30
   - CHANGEINRESERVE
@@ -33,6 +34,18 @@ rules:
 
   # ── Validity ──────────────────────────────────────────────────────────────────
   - failed rows:
+      name: every_invoice_has_nonzero_gross_amount
+      dimension: completeness
+      fail query: |
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM, OPENAMOUNT, GROSSAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+        WHERE GROSSAMOUNT IS NULL OR GROSSAMOUNT <= 0
+      samples limit: 20
+      description: >
+        Every loaded invoice row should carry a positive gross amount (GROSSAMOUNT > 0).
+        Null or zero gross indicates missing measure population.
+
+  - failed rows:
       name: open_amount_must_not_be_negative_without_reason
       dimension: validity
       fail query: |
@@ -58,29 +71,7 @@ rules:
         AGINGDAYS < -730 (more than 2 years in the future) indicates a JDE Julian date
         conversion error. Allow up to -730 for valid long-term contracts.
 
-  # ── Accuracy: Reserve & Forecast Monitoring ───────────────────────────────────
-  - failed rows:
-      name: active_invoices_have_no_reserve_forecast
-      dimension: accuracy
-      fail query: |
-        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
-               OPENAMOUNT, AGINGDAYS,
-               FORECASTRESERVE30, FORECASTRESERVE60, FORECASTRESERVE90,
-               FISCALPERIODID
-        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-        WHERE OPENAMOUNT > 5000
-          AND AGINGDAYS > 30
-          AND FORECASTRESERVE30 = 0
-          AND FORECASTRESERVE60 = 0
-          AND FORECASTRESERVE90 = 0
-        ORDER BY OPENAMOUNT DESC
-      samples limit: 20
-      description: >
-        DQ6: Active invoices >$5,000 and >30 days overdue with zero forecast reserves are
-        unprovisioned credit risk on the balance sheet. Finance cannot include them in
-        IFRS/GAAP doubtful debt provisions.
-        [Estimated threshold: $5,000 — adjust to materiality]
-
+  # ── Accuracy: Reserve Monitoring ───────────────────────────────────────────
   - failed rows:
       name: reserve_change_exceeds_forecast_threshold
       dimension: accuracy

@@ -7,8 +7,7 @@ measure: FACTARCOLLECTION.COLLECTION_EFFICIENCY
 ts: FACTARCOLLECTION.INSERTDATE
 granularity: day
 description: >
-  Collection Efficiency Index (CEI) trend tracked by load date (daily batch).
+  Cash-application efficiency at customer × period × LOB grain.
   Formula: SUM(CASHAPPLIED) / SUM(TOTALRECEIPTS).
-  Target: CEI >= 0.85 (industry standard for AR operations).
-  A declining trend triggers escalation to Collections Manager.
-  Time axis: INSERTDATE (load timestamp, equivalent to business date for daily batches).
+  For executive portfolio CEI by collection priority, use CEI_TREND (FactDSO.CEI) instead.
+  Target: >= 0.85. Time axis: INSERTDATE (daily batch load timestamp).

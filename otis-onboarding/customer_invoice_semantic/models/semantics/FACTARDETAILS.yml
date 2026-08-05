@@ -46,6 +46,21 @@ ai_context:
           ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
           AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
         GROUP BY d.LOB ORDER BY gap DESC
+    - description: "Disputed exposure in last 30/60/90 days (matches SP_LOAD_FACTDSO logic)"
+      format: sql
+      query: |
+        SELECT
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -30, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_30d,
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -60, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_60d,
+          SUM(CASE WHEN COALESCE(f.DISPUTEDATE, f.GLDATE) >= DATEADD(day, -90, CURRENT_DATE())
+                   THEN f.DISPUTEDAMOUNT ELSE 0 END) AS disputed_last_90d
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+        JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+          ON f.COMPANYID = d.COMPANYID AND f.DOCUMENTCOMPANY = d.DOCUMENTCOMPANY
+         AND f.DOCNO = d.DOCNO AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
+        WHERE f.DISPUTEDAMOUNT > 0
     - description: "Which invoices have the highest reserve change (top leakage risk)?"
       format: sql
       query: |
@@ -116,6 +131,13 @@ dimensions:
   - name: DUEDATE
   - name: AGEASOFDATE
   - name: LATESTRECEIPTDATE
+  - name: DISPUTEDATE
+    ai_context:
+      synonyms:
+        - "dispute date"
+        - "dispute opened date"
+      caveats:
+        - "FactDSO rolling uses COALESCE(DisputeDate, GLDate) >= DATEADD(day, -N, CURRENT_DATE())."
   - name: INSERTDATE
 
 measures:

@@ -156,7 +156,7 @@ measures:
         - "collection rate"
         - "efficiency"
       caveats:
-        - "CEI = CASHAPPLIED / TOTALRECEIPTS (simplified). Full formula requires OPENAMOUNT from FACTARDETAILS."
+        - "Executive portfolio CEI — use CEI_TREND metric. This measure is cash-application efficiency at customer × period × LOB grain (CashApplied / TotalReceipts), not FactDSO unified CEI."
         - "Do NOT average pre-computed CEI values across periods. Query CASHAPPLIED and TOTALRECEIPTS separately and divide the sums."
       examples:
         - description: "What is CEI by fiscal period?"

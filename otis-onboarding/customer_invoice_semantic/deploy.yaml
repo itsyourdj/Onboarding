@@ -9,7 +9,9 @@ tags:
   - snowflake
 description: >
   Customer Invoices Semantic — centralised AR data product providing semantic governance,
-  business metrics (CEI trend, open AR trend, reserve accuracy, unapplied cash, overdue invoices),
+  business metrics (DSO, DSO vs terms, disputed rolling 30/60/90/180, dispute recovery,
+  DSO by collection priority, executive CEI, cash-application efficiency, open AR,
+  reserve accuracy, unapplied cash, overdue invoices),
   AI-agent-ready context, and quality monitoring over the Invoice 360 star schema.
 
 spec:
@@ -29,7 +31,7 @@ spec:
     type: schedule
     schedule:
       crons:
-        - "30 11 * * *"
+        - "*/30 * * * *"
       timezone: "Asia/Kolkata"
       endOn: "2027-01-01T00:00:00Z"
       concurrencyPolicy: Forbid

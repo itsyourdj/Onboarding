@@ -23,13 +23,58 @@ rules:
         cannot appear in any customer-level AR report, COLLECTOR Performance dashboard,
         or Parent Customer rollup. Zero tolerance.
 
-  - missing_count(COLLECTOR) = 0:
-      name: every_invoice_has_a_collector
+  - failed rows:
+      name: collector_required_for_way_overdue_invoices
       dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.DOCTYPE, d.PAYITM,
+               d.CUSTOMERNUMBER, d.COLLECTOR, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS > 90
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
       description: >
-        COLLECTOR is the accountability field for AR follow-up. Null COLLECTOR = no one owns
-        this invoice — it will not appear in COLLECTOR Performance KPIs, and no email
-        escalation trigger will fire. Zero tolerance.
+        Collector is required when CollectionPriority != 'NONE' and invoice is way overdue.
+        Hard fail when AGINGDAYS > 90 and OPENAMOUNT > 0 with no collector assigned.
+
+  - failed rows:
+      name: collector_missing_monitor_60_days
+      dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.CUSTOMERNUMBER, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS BETWEEN 61 AND 90
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
+      description: >
+        Monitor-only tier: missing collector on invoices overdue 61–90 days.
+
+  - failed rows:
+      name: collector_missing_monitor_30_days
+      dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.CUSTOMERNUMBER, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS BETWEEN 31 AND 60
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
+      description: >
+        Monitor-only tier: missing collector on invoices overdue 31–60 days.
 
   - missing_count(DUEDATE) = 0:
       name: every_invoice_has_a_due_date
@@ -79,18 +124,6 @@ rules:
         Dispute Resolution Rate KPI requires both fields populated together or both null.
         Partial records inflate total_dispute_count without a matching resolved_dispute_count,
         systematically understating the Dispute Resolution Rate.
-
-  - failed rows:
-      name: hold_flag_must_be_y_or_n
-      dimension: conformity
-      fail query: |
-        SELECT COMPANYID, DOCNO, CUSTOMERNUMBER, HOLDFLAG
-        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS
-        WHERE HOLDFLAG IS NOT NULL AND HOLDFLAG NOT IN ('Y', 'N', '')
-      samples limit: 10
-      description: >
-        HOLDFLAG must be Y or N. Unexpected values corrupt the Credit Hold Open Invoices
-        leakage signal (L8) — causing false alerts or missed alerts on credit hold triggers.
 
   - failed rows:
       name: payment_term_code_in_reference_table

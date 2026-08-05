@@ -111,7 +111,18 @@ dimensions:
         - "AR collector"
         - "collections person"
       caveats:
-        - "COLLECTOR is the individual responsible for chasing payment; COLLECTIONMANAGER is their manager — do not confuse the two when grouping for performance reports"
+        - "COLLECTOR is required when COLLECTIONPRIORITY != 'NONE' and invoice is overdue (tiered DQ)."
+        - "COLLECTIONMANAGER is their manager — do not confuse when grouping for performance reports"
+  - name: COLLECTIONPRIORITY
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "collection priority"
+        - "priority segment"
+        - "priority band"
+      caveats:
+        - "H/M/L/NONE from F03012. NONE = not collection-prioritized."
   - name: COLLECTIONMANAGER
     behavior:
       type: categorical

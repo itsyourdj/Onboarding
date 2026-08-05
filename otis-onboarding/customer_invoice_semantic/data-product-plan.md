@@ -18,15 +18,43 @@
   - AI Agents (Cortex Analyst / NL Query) → natural language KPI queries, anomaly alerts, recommended actions
   - Action Layer → email triggers, alert pushes, workflow initiations
 - **Key Questions / Metrics**:
-  - "What is our CEI for this month?" → FactARCollection.CollectionEfficiency
-  - "Which customers have overdue invoices with no dispute?" → DimARDetails + FactARDetails
-  - "Show reserve vs forecast gap for LOB Maintenance" → FactARDetails + DimARCollectionLOB
-  - "Who are the top 10 collectors by cash collected?" → FactARCollection + DimARDetails
-  - "Which invoices are breaching payment terms?" → FactARDetails + DimARDetails + ARPaymentTerm
-  - "Which invoices are at risk of write-off?" → FactARDetails + DimARDetails (high aging + no reserve coverage)
-  - "Show collection efficiency by LOB this quarter" → FactARCollection + DimARCollectionLOB
-  - "How much unapplied cash do we have?" → FactARCollection (TotalReceipts vs CashApplied)
-  - "Show reserve accuracy trend" → FactARDetails (CurrentReserve vs PreviousForecastReserve)
+  - "What is our CEI for this month?" → FACTARCOLLECTION.COLLECTIONEFFICIENCY
+  - "Which customers have overdue invoices with no dispute?" → DIMARDETAILS + FACTARDETAILS
+  - "Show reserve vs forecast gap for LOB Maintenance" → FACTARDETAILS + DIMARCOLLECTIONLOB
+  - "Who are the top 10 collectors by cash collected?" → FACTARCOLLECTION + DIMARDETAILS
+  - "Which invoices are breaching payment terms?" → FACTARDETAILS + DIMARDETAILS + ARPAYMENTTERM
+  - "Which invoices are at risk of write-off?" → FACTARDETAILS + DIMARDETAILS (high aging + no reserve coverage)
+  - "Show collection efficiency by LOB this quarter" → FACTARCOLLECTION + DIMARCOLLECTIONLOB
+  - "How much unapplied cash do we have?" → FACTARCOLLECTION (TOTALRECEIPTS vs CASHAPPLIED)
+  - "Show reserve accuracy trend" → FACTARDETAILS (CURRENTRESERVE vs PREVIOUSFORECASTRESERVE)
+  - "What is our Days Sales Outstanding (DSO)?" → FACTDSO.DSO (native gold-layer KPI)
+  - "How does DSO compare to contractual payment terms?" → FACTDSO.DSOVARIANCEFROMTERMS vs FACTDSO.AVGCONTRACTUALNETDAYS
+  - "How much disputed amount is accumulating?" → FACTDSO.DISPUTEDAMOUNTROLLING30/60/90/180 trends
+  - "What proportion of resolved disputes was recovered?" → FACTDSO.DISPUTERECOVERYRATIO
+  - "Is collection prioritization working?" → Compare FACTDSO.DSO / CEI by COLLECTIONPRIORITY (H/M/L/NONE)
+  - "What is our unified CEI?" → FACTDSO.CEI
+
+### Is it a right fit for me?
+
+**Good for**
+
+- Collection Efficiency Index (CEI) tracking and trend analysis by fiscal period, LOB, and collector
+- Overdue invoice monitoring, dispute tracking, and resolution-rate analysis
+- Collection leakage detection (unapplied cash, overdue without action, credit hold exposure)
+- Reserve vs forecast accuracy analysis for Finance period-end provisioning
+- Executive AR KPI dashboards (open AR, CEI, reserve accuracy, overdue aging)
+- Natural-language AR analytics via semantic models and Cortex Analyst
+- Native DSO, DSO-vs-terms, dispute rolling averages, dispute recovery, and unified CEI from FACTDSO gold layer
+
+**Not good for**
+
+- Real-time or near-real-time alerting — product refreshes daily from the JDE pipeline
+- Rebuilding or owning the underlying `RL_JDE` star schema tables (external JDE pipeline)
+- Sub-invoice-line detail — grain is invoice / pay-item level
+- Sales-order-based DSO (F4211) — current DSO uses invoiced gross (`TOTALGROSSINVOICED` / RPAAP), acceptable for Otis service/maintenance AR
+- Multi-currency USD normalization — local currency only in this version
+
+> Stakeholder-facing wording for Studio "Is it a right fit for me?" will be finalized in `usage.yml` once Collections/Finance copy is approved.
 
 ---
 
@@ -36,21 +64,38 @@
 
 | Source | Description | Owner | Key Columns |
 |---|---|---|---|
-| `pl_jde.F59HQ084` | Reserve & Forecast | JDE ERP (read-only) | Reserve amounts, ForecastReserve30/60/90, AgingDays, FiscalPeriodId, AgeAsOfDate, ChangeinReserve, DraftOpenAmount, ARCurrentReserve, PreviousForecastReserve |
-| `pl_jde.F03B14` | AR Receipts Ledger | JDE ERP (read-only) | Cash receipts, GLOffset, BusinessUnit, receipt date, TotalReceipts, CashApplied, ReserveCash, AdjustedCollection |
-| `pl_jde.F03B11` | Invoice Header | JDE ERP (read-only) | DocNo, DocType, PayItm, CompanyId, DocumentCompany, OpenAmount, GrossAmount, TaxAmount, DueDate, GLDate, InvoiceDate, PaymentTermCode, GLOffset, CurrencyCode, AgingDays |
-| `pl_jde.F03B13` | Payment Header | JDE ERP (read-only) | Payment matching, receipt reference, CustomerNumber |
-| `pl_jde.F0101` | Address Book | JDE ERP (read-only) | SalesRep, Collector, CollectionManager, ParentCustomer, CustomerNumber |
-| `pl_jde.F0014` | Payment Terms | JDE ERP (read-only) | PaymentTermCode, Description, NetDays |
-| `pl_jde.F03012` | Customer Credit | JDE ERP (read-only) | HoldFlag, ARCode, CustomerNumber |
-| `pl_jde.F5803B2I` | Invoice Comments | JDE ERP (read-only) | LastInvoiceComment, DocNo |
-| `pl_jde.F5803B2C` | Customer Comments | JDE ERP (read-only) | LastCustomerComment, CustomerNumber |
-| `pl_jde.F0006` | Business Unit | JDE ERP (read-only) | BusinessUnit, BUDesc |
-| `pl_jde.F0012` | GL Offset / LOB | JDE ERP (read-only) | LOBCode, LOBDescription, GLOffset, CompanyId |
-| `Workday` (reference table) | Employee / Email | HR (scheduled refresh) | WorkdayEmail, employee identifier matched via F01151 |
+| `pl_jde.F59HQ084` | Reserve & Forecast | JDE ERP (read-only) | Reserve amounts, FORECASTRESERVE30/60/90, AGINGDAYS, FISCALPERIODID, AGEASOFDATE, CHANGEINRESERVE, DRAFTOPENAMOUNT, ARCURRENTRESERVE, PREVIOUSFORECASTRESERVE |
+| `pl_jde.F03B14` | AR Receipts Ledger | JDE ERP (read-only) | Cash receipts, GLOFFSET, BUSINESSUNIT, receipt date, TOTALRECEIPTS, CASHAPPLIED, RESERVECASH, ADJUSTEDCOLLECTION |
+| `pl_jde.F03B11` | Invoice Header | JDE ERP (read-only) | DOCNO, DOCTYPE, PAYITM, COMPANYID, DOCUMENTCOMPANY, OPENAMOUNT, GROSSAMOUNT, TAXAMOUNT, DUEDATE, GLDATE, INVOICEDATE, PAYMENTTERMCODE, GLOFFSET, CURRENCYCODE, AGINGDAYS |
+| `pl_jde.F03B13` | Payment Header | JDE ERP (read-only) | Payment matching, receipt reference, CUSTOMERNUMBER |
+| `pl_jde.F0101` | Address Book | JDE ERP (read-only) | SALESREP, COLLECTOR, COLLECTIONMANAGER, PARENTCUSTOMER, CUSTOMERNUMBER |
+| `pl_jde.F0014` | Payment Terms | JDE ERP (read-only) | PAYMENTTERMCODE, Description, NETDAYS |
+| `pl_jde.F03012` | Customer Credit | JDE ERP (read-only) | HOLDFLAG, ARCode, CUSTOMERNUMBER |
+| `pl_jde.F5803B2I` | Invoice Comments | JDE ERP (read-only) | LASTINVOICECOMMENT, DOCNO |
+| `pl_jde.F5803B2C` | Customer Comments | JDE ERP (read-only) | LASTCUSTOMERCOMMENT, CUSTOMERNUMBER |
+| `pl_jde.F0006` | Business Unit | JDE ERP (read-only) | BUSINESSUNIT, BUDESC |
+| `pl_jde.F0012` | GL Offset / LOB | JDE ERP (read-only) | LOBCODE, LOBDESCRIPTION, GLOFFSET, COMPANYID |
+| `Workday` (reference table) | Employee / Email | HR (scheduled refresh) | WORKDAYEMAIL, employee identifier matched via F01151 |
 
+> **Consumption scope**: This semantic data product queries **`JDE_PRODUCTION.RL_JDE.*`** gold tables only. The `pl_jde` rows below are upstream lineage reference — not queried by this DP.
+>
 > **Note**: The Nilus Metadata Workflow has not been run on the `pl_jde` schema — tables do not appear in search results. Column schemas are sourced from the Customer Invoice360-Design_Document.md.
 > [Assumption] Workday integration will be implemented as a pre-loaded reference table with scheduled refresh (per Open Design Decision D1) rather than a live SQL Server call.
+
+### RL_JDE Gold Layer (Snowflake — semantic DP consumption)
+
+Gold tables in `JDE_PRODUCTION.RL_JDE.*` are **maintained by Snowflake stored procedures** in the JDE pipeline. This data product registers them as **EXTERNAL** metadata stubs — semantic-only, no transformation.
+
+| Source | Description | Owner | Key Columns (MCP-confirmed) |
+|---|---|---|---|
+| `JDE_PRODUCTION.RL_JDE.FACTDSO` | DSO & dispute analytics fact — pre-aggregated at company × fiscal period × collection-priority grain | JDE pipeline (stored proc) | COMPANYID, FISCALYEAR, FISCALMONTH, COLLECTIONPRIORITY, TOTALOPENAR, TOTALGROSSINVOICED, DAYSINPERIOD, DSO, AVGCONTRACTUALNETDAYS, DSOVARIANCEFROMTERMS, DISPUTEDAMOUNTTOTAL, DISPUTEDAMOUNTROLLING30/60/90/180, RESOLVEDDISPUTEGROSS, RESOLVEDDISPUTERECOVERED, DISPUTERECOVERYRATIO, CEI, INVOICECOUNT |
+| `JDE_PRODUCTION.RL_JDE.DIMARDETAILS` | Invoice dimension (+ COLLECTIONPRIORITY from F03012) | JDE pipeline | Existing columns + **COLLECTIONPRIORITY** (H/M/L/NONE) |
+| `JDE_PRODUCTION.RL_JDE.FACTARDETAILS` | Invoice measures | JDE pipeline | OPENAMOUNT, GROSSAMOUNT, DISPUTEDAMOUNT, reserve/aging columns |
+| `JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION` | Collection facts | JDE pipeline | CEI components, receipts, cash applied |
+| `JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB` | LOB reference | JDE pipeline | GLOFFSET → LOB mapping |
+| `JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM` | Payment terms (F0014) | JDE pipeline | PAYMENTTERMCODE, NETDAYS |
+
+> **DSO denominator caveat**: DSO = `TOTALOPENAR / TOTALGROSSINVOICED * DAYSINPERIOD` uses invoiced gross (RPAAP), not F4211 sales orders. Acceptable for Otis service/maintenance AR; F4211 noted as future optional source.
 
 ---
 
@@ -61,6 +106,7 @@
 3. **Collection** — aggregated collection performance per customer, LOB, and fiscal period.
 4. **Line of Business (LOB)** — classifies invoices and collection records by business line via GL Offset mapping.
 5. **Payment Term** — defines payment terms used across invoices; drives compliance analysis.
+6. **Collection Performance Snapshot** — pre-aggregated DSO, dispute rolling, recovery, and CEI by company × fiscal period × collection priority (FACTDSO grain).
 
 ---
 
@@ -68,18 +114,20 @@
 
 | Join | Left Entity | Right Entity | Join Key | Purpose |
 |---|---|---|---|---|
-| DimARDetails → FactARDetails | DimARDetails | FactARDetails | CompanyId + DocNo + DocType + PayItm | Link invoice attributes to invoice measures |
-| DimARDetails → FactARCollection | DimARDetails | FactARCollection | CompanyId + CustomerNumber + FiscalPeriodId | Link invoice attributes to collection performance |
-| FactARCollection → DimARCollectionLOB | FactARCollection | DimARCollectionLOB | LOB | Enrich collection facts with LOB description |
-| FactARCollection → ARPaymentTerm | FactARCollection | ARPaymentTerm | PaymentTermCode | Enrich collection facts with net days |
-| DimARDetails → DimARCollectionLOB | DimARDetails | DimARCollectionLOB | GLOffset | Derive LOB label for invoice dimension |
-| DimARDetails → ARPaymentTerm | DimARDetails | ARPaymentTerm | PaymentTermCode | Enrich invoice dimension with net days for compliance |
+| DIMARDETAILS → FACTARDETAILS | DIMARDETAILS | FACTARDETAILS | COMPANYID + DOCNO + DOCTYPE + PAYITM | Link invoice attributes to invoice measures |
+| DIMARDETAILS → FACTARCOLLECTION | DIMARDETAILS | FACTARCOLLECTION | COMPANYID + CUSTOMERNUMBER + FISCALPERIODID | Link invoice attributes to collection performance |
+| FACTARCOLLECTION → DIMARCOLLECTIONLOB | FACTARCOLLECTION | DIMARCOLLECTIONLOB | LOB | Enrich collection facts with LOB description |
+| FACTARCOLLECTION → ARPAYMENTTERM | FACTARCOLLECTION | ARPAYMENTTERM | PAYMENTTERMCODE | Enrich collection facts with net days |
+| DIMARDETAILS → DIMARCOLLECTIONLOB | DIMARDETAILS | DIMARCOLLECTIONLOB | GLOFFSET | Derive LOB label for invoice dimension |
+| DIMARDETAILS → ARPAYMENTTERM | DIMARDETAILS | ARPAYMENTTERM | PAYMENTTERMCODE | Enrich invoice dimension with net days for compliance |
+| FACTDSO → DIMARDETAILS | FACTDSO | DIMARDETAILS | COMPANYID + CUSTOMERNUMBER (when customer present) | Enrich DSO/dispute KPIs with invoice-level attributes for drill-down |
+| FACTDSO → ARPAYMENTTERM | FACTDSO | ARPAYMENTTERM | PAYMENTTERMCODE (via DIMARDETAILS) | Net days context when AVGCONTRACTUALNETDAYS not sufficient for detail |
 
 **Population Filters** (business rules applied before/during joins):
 - JDE dates are in Julian format — all must be converted to standard DATE/TIMESTAMP before use
 - All monetary amounts are decimal-adjusted from JDE integer encoding (precision factor applied)
-- `FiscalPeriodId` is a derived field: `((Century * 100 + Year) * 100) + Month`
-- LOB is derived via: `DimARCollectionLOB.GLOffset` → LOB label (not a direct source column)
+- `FISCALPERIODID` is a derived field: `((Century * 100 + Year) * 100) + Month`
+- LOB is derived via: `DIMARCOLLECTIONLOB.GLOFFSET` → LOB label (not a direct source column)
 - [Assumption] France-specific logic (company 10168) will be handled via SQL CASE in the staging layer (per Open Design Decision D7 recommendation)
 - [Assumption] Currency: local currency only in the initial build; USD-normalized column to be added in a later phase (per Open Design Decision D3)
 
@@ -89,39 +137,40 @@
 
 | Dimension | Definition | Entity |
 |---|---|---|
-| CompanyId | JDE company identifier | Invoice/Pay-Item |
-| DocumentCompany | Document company (may differ from CompanyId) | Invoice/Pay-Item |
-| DocNo | JDE document number | Invoice/Pay-Item |
-| DocType | JDE document type (invoice type code) | Invoice/Pay-Item |
-| PayItm | Pay item suffix distinguishing multiple pay items on one invoice | Invoice/Pay-Item |
-| CustomerNumber | JDE customer number | Customer |
-| ParentCustomer | Parent account for customer rollup analysis | Customer |
-| SalesRep | Sales representative assigned to the customer | Customer |
-| Collector | Collector responsible for this invoice | Customer |
-| CollectionManager | Manager overseeing the collector | Customer |
-| LOB | Line of Business (derived from GLOffset → DimARCollectionLOB) | LOB |
-| BusinessUnit | JDE business unit code | Invoice/Pay-Item |
-| BUDesc | Business unit description | Invoice/Pay-Item |
-| PaymentTermCode | Payment term code on the invoice | Payment Term |
-| DisputeReasonCode | Reason code for dispute | Invoice/Pay-Item |
-| DisputeStatus | Current dispute status (Open / Resolved / null) | Invoice/Pay-Item |
-| DisputeCodeDesc | Description of dispute reason code | Invoice/Pay-Item |
-| ResolverCode | Code of the resolver assigned | Invoice/Pay-Item |
-| ResolverName | Name of the resolver assigned | Invoice/Pay-Item |
-| InvoiceDate | Date invoice was created | Invoice/Pay-Item |
-| DueDate | Payment due date | Invoice/Pay-Item |
-| PromiseToPay | Promised payment date from customer | Invoice/Pay-Item |
-| CurrencyCode | Currency of the invoice | Invoice/Pay-Item |
-| HoldFlag | Whether customer is on credit hold (Y/N) | Customer |
-| WorkdayEmail | Collector/sales rep work email from Workday | Customer |
-| LastInvoiceComment | Most recent invoice-level collection comment | Invoice/Pay-Item |
-| LastCustomerComment | Most recent customer-level collection comment | Customer |
-| AttachmentStartDate | Start date of attachment period | Invoice/Pay-Item |
-| AttachmentEndDate | End date of attachment period | Invoice/Pay-Item |
-| ChargebackCode | Chargeback classification code | Invoice/Pay-Item |
-| FiscalPeriodId | Fiscal period key: ((Century*100+Year)*100)+Month | Collection |
-| GLDate | General ledger date | Invoice/Pay-Item |
-| AgeAsOfDate | Date as-of for aging calculation | Invoice/Pay-Item |
+| COMPANYID | JDE company identifier | Invoice/Pay-Item |
+| DOCUMENTCOMPANY | Document company (may differ from COMPANYID) | Invoice/Pay-Item |
+| DOCNO | JDE document number | Invoice/Pay-Item |
+| DOCTYPE | JDE document type (invoice type code) | Invoice/Pay-Item |
+| PAYITM | Pay item suffix distinguishing multiple pay items on one invoice | Invoice/Pay-Item |
+| CUSTOMERNUMBER | JDE customer number | Customer |
+| PARENTCUSTOMER | Parent account for customer rollup analysis | Customer |
+| SALESREP | Sales representative assigned to the customer | Customer |
+| COLLECTOR | COLLECTOR responsible for this invoice | Customer |
+| COLLECTIONPRIORITY | Collection priority segment (H/M/L/NONE from F03012) | Customer |
+| COLLECTIONMANAGER | Manager overseeing the collector | Customer |
+| LOB | Line of Business (derived from GLOFFSET → DIMARCOLLECTIONLOB) | LOB |
+| BUSINESSUNIT | JDE business unit code | Invoice/Pay-Item |
+| BUDESC | Business unit description | Invoice/Pay-Item |
+| PAYMENTTERMCODE | Payment term code on the invoice | Payment Term |
+| DISPUTEREASONCODE | Reason code for dispute | Invoice/Pay-Item |
+| DISPUTESTATUS | Current dispute status (Open / Resolved / null) | Invoice/Pay-Item |
+| DISPUTECODEDESC | Description of dispute reason code | Invoice/Pay-Item |
+| RESOLVERCODE | Code of the resolver assigned | Invoice/Pay-Item |
+| RESOLVERNAME | Name of the resolver assigned | Invoice/Pay-Item |
+| INVOICEDATE | Date invoice was created | Invoice/Pay-Item |
+| DUEDATE | Payment due date | Invoice/Pay-Item |
+| PROMISETOPAY | Promised payment date from customer | Invoice/Pay-Item |
+| CURRENCYCODE | Currency of the invoice | Invoice/Pay-Item |
+| HOLDFLAG | Whether customer is on credit hold (Y/N) | Customer |
+| WORKDAYEMAIL | COLLECTOR/sales rep work email from Workday | Customer |
+| LASTINVOICECOMMENT | Most recent invoice-level collection comment | Invoice/Pay-Item |
+| LASTCUSTOMERCOMMENT | Most recent customer-level collection comment | Customer |
+| ATTACHMENTSTARTDATE | Start date of attachment period | Invoice/Pay-Item |
+| ATTACHMENTENDDATE | End date of attachment period | Invoice/Pay-Item |
+| CHARGEBACKCODE | Chargeback classification code | Invoice/Pay-Item |
+| FISCALPERIODID | Fiscal period key: ((Century*100+Year)*100)+Month | Collection |
+| GLDATE | General ledger date | Invoice/Pay-Item |
+| AGEASOFDATE | Date as-of for aging calculation | Invoice/Pay-Item |
 
 ---
 
@@ -129,45 +178,71 @@
 
 | Measure | Definition | Row Filter | Computation Method | Entity |
 |---|---|---|---|---|
-| OPEN_AMOUNT | Sum of outstanding invoice amounts | none | SUM(OpenAmount) | Invoice/Pay-Item |
-| GROSS_AMOUNT | Sum of gross invoice amounts before adjustments | none | SUM(GrossAmount) | Invoice/Pay-Item |
-| TAX_AMOUNT | Sum of tax amounts | none | SUM(TaxAmount) | Invoice/Pay-Item |
-| DISPUTED_AMOUNT | Sum of amounts under dispute | none | SUM(DisputedAmount) | Invoice/Pay-Item |
-| CURRENT_RESERVE | Sum of current reserve amounts | none | SUM(CurrentReserve) | Invoice/Pay-Item |
-| FORECAST_RESERVE_30 | Sum of 30-day forward reserve forecast | none | SUM(ForecastReserve30) | Invoice/Pay-Item |
-| FORECAST_RESERVE_60 | Sum of 60-day forward reserve forecast | none | SUM(ForecastReserve60) | Invoice/Pay-Item |
-| FORECAST_RESERVE_90 | Sum of 90-day forward reserve forecast | none | SUM(ForecastReserve90) | Invoice/Pay-Item |
-| CHANGE_IN_RESERVE | Net change in reserve amount | none | SUM(ChangeinReserve) | Invoice/Pay-Item |
-| RESERVE_CASH_APPLIED | Reserve cash applied to invoices | none | SUM(ReserveCashApplied) | Invoice/Pay-Item |
-| ADJUSTMENT_AMOUNT | Sum of adjustment amounts | none | SUM(AdjustmentAmount) | Invoice/Pay-Item |
-| DRAFT_OPEN_AMOUNT | Sum of draft open amounts | none | SUM(DraftOpenAmount) | Invoice/Pay-Item |
-| AVG_AGING_DAYS | Average aging days across invoices | none | AVG(AgingDays) | Invoice/Pay-Item |
-| TOTAL_RECEIPTS | Total cash receipts received from customer | none | SUM(TotalReceipts) | Collection |
-| CASH_APPLIED | Cash applied against open invoices | none | SUM(CashApplied) | Collection |
-| RESERVE_CASH | Reserve cash held | none | SUM(ReserveCash) | Collection |
-| ADJUSTED_COLLECTION | Adjusted collection amount | none | SUM(AdjustedCollection) | Collection |
-| COLLECTION_EFFICIENCY | Collection Efficiency Index (CEI) — [Assumption: CashApplied / (OpenAmount + TotalReceipts) — formula pending Finance sign-off per Open Decision D2] | none | ratio: numerator=CASH_APPLIED, denominator=(OPEN_AMOUNT+TOTAL_RECEIPTS) | Collection |
+| OPEN_AMOUNT | Sum of outstanding invoice amounts | none | SUM(OPENAMOUNT) | Invoice/Pay-Item |
+| GROSS_AMOUNT | Sum of gross invoice amounts before adjustments | none | SUM(GROSSAMOUNT) | Invoice/Pay-Item |
+| TAX_AMOUNT | Sum of tax amounts | none | SUM(TAXAMOUNT) | Invoice/Pay-Item |
+| DISPUTED_AMOUNT | Sum of amounts under dispute | none | SUM(DISPUTEDAMOUNT) | Invoice/Pay-Item |
+| CURRENT_RESERVE | Sum of current reserve amounts | none | SUM(CURRENTRESERVE) | Invoice/Pay-Item |
+| FORECAST_RESERVE_30 | Sum of 30-day forward reserve forecast | none | SUM(FORECASTRESERVE30) | Invoice/Pay-Item |
+| FORECAST_RESERVE_60 | Sum of 60-day forward reserve forecast | none | SUM(FORECASTRESERVE60) | Invoice/Pay-Item |
+| FORECAST_RESERVE_90 | Sum of 90-day forward reserve forecast | none | SUM(FORECASTRESERVE90) | Invoice/Pay-Item |
+| CHANGE_IN_RESERVE | Net change in reserve amount | none | SUM(CHANGEINRESERVE) | Invoice/Pay-Item |
+| RESERVE_CASH_APPLIED | Reserve cash applied to invoices | none | SUM(RESERVECASHAPPLIED) | Invoice/Pay-Item |
+| ADJUSTMENT_AMOUNT | Sum of adjustment amounts | none | SUM(ADJUSTMENTAMOUNT) | Invoice/Pay-Item |
+| DRAFT_OPEN_AMOUNT | Sum of draft open amounts | none | SUM(DRAFTOPENAMOUNT) | Invoice/Pay-Item |
+| AVG_AGING_DAYS | Average aging days across invoices | none | AVG(AGINGDAYS) | Invoice/Pay-Item |
+| TOTAL_RECEIPTS | Total cash receipts received from customer | none | SUM(TOTALRECEIPTS) | Collection |
+| CASH_APPLIED | Cash applied against open invoices | none | SUM(CASHAPPLIED) | Collection |
+| RESERVE_CASH | Reserve cash held | none | SUM(RESERVECASH) | Collection |
+| ADJUSTED_COLLECTION | Adjusted collection amount | none | SUM(ADJUSTEDCOLLECTION) | Collection |
+| COLLECTION_EFFICIENCY | Collection Efficiency Index (CEI) — [Assumption: CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS) — formula pending Finance sign-off per Open Decision D2] | none | ratio: numerator=CASH_APPLIED, denominator=(OPEN_AMOUNT+TOTAL_RECEIPTS) | Collection |
 | UNAPPLIED_CASH_PCT | Percentage of receipts not yet applied | none | ratio: numerator=TOTAL_RECEIPTS-CASH_APPLIED, denominator=TOTAL_RECEIPTS | Collection |
 | RESERVE_ACCURACY_PCT | How accurate the reserve forecast was | none | ratio: 1 - ABS(CHANGE_IN_RESERVE) / FORECAST_RESERVE_30 | Invoice/Pay-Item |
-| DISPUTE_RESOLUTION_RATE | Fraction of disputes resolved | DisputeStatus IS NOT NULL | ratio: numerator=COUNT(DisputeStatus='Resolved'), denominator=COUNT(DisputeStatus IS NOT NULL) | Invoice/Pay-Item |
-| OVERDUE_WITHOUT_ACTION_PCT | Overdue invoices with no dispute or action | AgingDays > 30 | ratio: numerator=COUNT(AgingDays > 30 AND DisputeStatus IS NULL), denominator=COUNT(AgingDays > 30) | Invoice/Pay-Item |
+| DISPUTE_RESOLUTION_RATE | Fraction of disputes resolved | DISPUTESTATUS IS NOT NULL | ratio: numerator=COUNT(DISPUTESTATUS='Resolved'), denominator=COUNT(DISPUTESTATUS IS NOT NULL) | Invoice/Pay-Item |
+| OVERDUE_WITHOUT_ACTION_PCT | Overdue invoices with no dispute or action | AGINGDAYS > 30 | ratio: numerator=COUNT(AGINGDAYS > 30 AND DISPUTESTATUS IS NULL), denominator=COUNT(AGINGDAYS > 30) | Invoice/Pay-Item |
 | RESERVE_CASH_COVERAGE | Fraction of reserve covered by applied cash | none | ratio: numerator=RESERVE_CASH_APPLIED, denominator=CURRENT_RESERVE | Invoice/Pay-Item |
-| HIGH_RESERVE_CHANGE_COUNT | Count of invoices with large reserve movement | ChangeinReserve / ForecastReserve30 > 0.2 | count with filter | Invoice/Pay-Item |
+| HIGH_RESERVE_CHANGE_COUNT | Count of invoices with large reserve movement | CHANGEINRESERVE / FORECASTRESERVE30 > 0.2 | count with filter | Invoice/Pay-Item |
 | INVOICE_COUNT | Total number of invoices / pay-items | none | count | Invoice/Pay-Item |
+| **FACTDSO-native measures (gold layer — supersede semantic proxies)** | | | | |
+| DSO | Days Sales Outstanding | none | column: FACTDSO.DSO | Collection Performance Snapshot |
+| DSO_VARIANCE_FROM_TERMS | DSO minus avg contractual net days | none | column: FACTDSO.DSOVARIANCEFROMTERMS | Collection Performance Snapshot |
+| AVG_CONTRACTUAL_NET_DAYS | Average contractual net days (F0014 PTNDDY) | none | column: FACTDSO.AVGCONTRACTUALNETDAYS | Collection Performance Snapshot |
+| DISPUTED_AMOUNT_ROLLING_30 | Rolling 30-day average disputed amount | none | column: FACTDSO.DISPUTEDAMOUNTROLLING30 | Collection Performance Snapshot |
+| DISPUTED_AMOUNT_ROLLING_60 | Rolling 60-day average disputed amount | none | column: FACTDSO.DISPUTEDAMOUNTROLLING60 | Collection Performance Snapshot |
+| DISPUTED_AMOUNT_ROLLING_90 | Rolling 90-day average disputed amount | none | column: FACTDSO.DISPUTEDAMOUNTROLLING90 | Collection Performance Snapshot |
+| DISPUTED_AMOUNT_ROLLING_180 | Rolling 180-day average disputed amount | none | column: FACTDSO.DISPUTEDAMOUNTROLLING180 | Collection Performance Snapshot |
+| DISPUTE_RECOVERY_RATIO | Proportion recovered on resolved disputes | none | column: FACTDSO.DISPUTERECOVERYRATIO | Collection Performance Snapshot |
+| CEI | Unified Collection Effectiveness Index | none | column: FACTDSO.CEI | Collection Performance Snapshot |
+| TOTAL_OPEN_AR | Total open AR in segment/period | none | column: FACTDSO.TOTALOPENAR | Collection Performance Snapshot |
+| TOTAL_GROSS_INVOICED | Total gross invoiced in period | none | column: FACTDSO.TOTALGROSSINVOICED | Collection Performance Snapshot |
+| ~~DSO_PROXY~~ | **Deprecated** — replaced by FACTDSO.DSO | — | — | — |
+| ~~DSO_TRUE~~ | **Deprecated** — not needed; DSO uses invoiced gross denominator | — | — | — |
+| ~~DISPUTED_REMAINING_OBLIGATION_RATE~~ | **Deprecated** — replaced by FACTDSO.DISPUTERECOVERYRATIO | — | — | — |
 
 ---
 
 ## 7. Metrics (Measure over Time)
 
-> Five primary business trend metrics — each answers a distinct executive-level AR question over time.
+> **Fourteen primary business trend metrics** — nine invoice/collection-level trends plus five FACTDSO-native KPI trends. Rolling disputed views (30/60/90/180) are native columns on FACTDSO.
 
 | # | Metric Name | Underlying Measure | Time Dimension | Granularity | Business Question Answered | Consumer |
 |---|---|---|---|---|---|---|
-| 1 | `COLLECTION_EFFICIENCY_TREND` | `COLLECTION_EFFICIENCY` | `FiscalPeriodId` | Monthly | "Is our collection efficiency improving or deteriorating period-over-period?" — the single most important AR health KPI. A declining CEI trend triggers escalation to Collections Manager. | Collections Manager, GM |
-| 2 | `OPEN_AR_TREND` | `OPEN_AMOUNT` | `FiscalPeriodId` | Monthly | "How much total outstanding AR do we carry into each period, and is it growing?" — the executive AR balance indicator. Rising open AR without rising receipts signals a collection gap. | Finance, GM |
-| 3 | `RESERVE_ACCURACY_TREND` | `RESERVE_ACCURACY_PCT` | `FiscalPeriodId` | Monthly | "How accurate is our 30-day reserve forecast vs actual reserve movement?" — drives confidence in period-end provisions. Large drops in accuracy signal the JDE reserve model needs recalibration. | Finance, Reporting |
-| 4 | `UNAPPLIED_CASH_TREND` | `UNAPPLIED_CASH_PCT` | `FiscalPeriodId` | Monthly | "What % of receipts remain unapplied period-over-period?" — the primary collection leakage trend. Rising unapplied cash % without a corresponding dispute volume spike indicates a cash posting process failure. | Collections Manager, Finance |
-| 5 | `OVERDUE_INVOICE_TREND` | `INVOICE_COUNT` (filtered: `AgingDays > 30`) | `AgeAsOfDate` | Daily/Monthly | "Is the volume of overdue invoices growing or shrinking?" — the operational early-warning KPI. Tracks whether the collections team is clearing backlog or falling behind, broken down by Collector and LOB. | Collections Manager, Dispute Resolver |
+| 1 | `COLLECTION_EFFICIENCY_TREND` | `COLLECTION_EFFICIENCY` | `INSERTDATE` | Daily/Monthly | "Is our collection efficiency improving or deteriorating period-over-period?" — invoice-level CEI from FACTARCOLLECTION. | Collections Manager, GM |
+| 2 | `OPEN_AR_TREND` | `OPEN_AMOUNT` | `INSERTDATE` | Daily/Monthly | "How much total outstanding AR do we carry into each period, and is it growing?" | Finance, GM |
+| 3 | `RESERVE_ACCURACY_TREND` | `RESERVE_ACCURACY_PCT` | `INSERTDATE` | Daily/Monthly | "How accurate is our 30-day reserve forecast vs actual reserve movement?" | Finance, Reporting |
+| 4 | `UNAPPLIED_CASH_TREND` | `UNAPPLIED_CASH_PCT` | `INSERTDATE` | Daily/Monthly | "What % of receipts remain unapplied period-over-period?" | Collections Manager, Finance |
+| 5 | `OVERDUE_INVOICE_TREND` | `OVERDUE_INVOICE_COUNT` (filtered: `AGINGDAYS > 30`) | `INSERTDATE` | Daily/Monthly | "Is the volume of overdue invoices growing or shrinking?" | Collections Manager, Dispute Resolver |
+| 6 | `DSO_TREND` | `FACTDSO.DSO` | `FISCALYEAR` + `FISCALMONTH` | Monthly | "How long does it take to collect cash?" — native DSO from gold layer. | Finance, Collections Manager, GM |
+| 7 | `DSO_VARIANCE_FROM_TERMS_TREND` | `FACTDSO.DSO_VARIANCE_FROM_TERMS` | `FISCALYEAR` + `FISCALMONTH` | Monthly | "Are we collecting slower or faster than contractual terms?" | Finance, Collections Manager |
+| 8 | `DISPUTED_AMOUNT_ROLLING_30_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_30` | `FISCALYEAR` + `FISCALMONTH` | Monthly | "How much disputed exposure is accumulating (30-day rolling)?" | Collections Manager, Dispute Resolver, Finance |
+| 9 | `DISPUTED_AMOUNT_ROLLING_60_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_60` | `FISCALYEAR` + `FISCALMONTH` | Monthly | 60-day rolling disputed amount trend | Collections Manager, Finance |
+| 10 | `DISPUTED_AMOUNT_ROLLING_90_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_90` | `FISCALYEAR` + `FISCALMONTH` | Monthly | 90-day rolling disputed amount trend | Collections Manager, Finance |
+| 11 | `DISPUTED_AMOUNT_ROLLING_180_TREND` | `FACTDSO.DISPUTED_AMOUNT_ROLLING_180` | `FISCALYEAR` + `FISCALMONTH` | Monthly | 180-day rolling disputed amount trend | Collections Manager, Finance |
+| 12 | `DISPUTE_RECOVERY_RATIO_TREND` | `FACTDSO.DISPUTE_RECOVERY_RATIO` | `FISCALYEAR` + `FISCALMONTH` | Monthly | "What proportion of resolved disputes was recovered?" | Collections Manager, Finance |
+| 13 | `CEI_TREND` | `FACTDSO.CEI` | `FISCALYEAR` + `FISCALMONTH` | Monthly | Unified portfolio CEI by collection priority segment | Collections Manager, GM |
+| 14 | `DSO_BY_COLLECTION_PRIORITY` | `FACTDSO.DSO` segmented by `COLLECTIONPRIORITY` | `FISCALYEAR` + `FISCALMONTH` | Monthly | "Is collection prioritization working?" — compare DSO/CEI across H/M/L/NONE | Collections Manager, GM |
+
+**Removed (superseded by FACTDSO):** `DSO_PROXY_TREND`, `DSO_TRUE_TREND`, `DISPUTED_REMAINING_OBLIGATION_TREND`, `DISPUTED_AMOUNT_TREND` (use rolling metrics; invoice-level `DISPUTED_AMOUNT` measure remains on FACTARDETAILS for drill-down).
 
 **Metric kind definitions (Vulcan `kind: metric` YAML — one file per metric in `models/metrics/`):**
 
@@ -175,11 +250,11 @@
 # models/metrics/COLLECTION_EFFICIENCY_TREND.yml
 kind: metric
 name: COLLECTION_EFFICIENCY_TREND
-measure: FactARCollection.COLLECTION_EFFICIENCY
-time_dimension: FactARCollection.FiscalPeriodId
+measure: FACTARCOLLECTION.COLLECTION_EFFICIENCY
+ts: FACTARCOLLECTION.INSERTDATE
 description: >
   Collection Efficiency Index (CEI) tracked monthly by fiscal period.
-  Formula: CashApplied / (OpenAmount + TotalReceipts).
+  Formula: CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS).
   Declining trend = collections team under-performing vs AR volume.
   Benchmark target: CEI >= 0.85 (industry standard for AR operations).
 ```
@@ -188,8 +263,8 @@ description: >
 # models/metrics/OPEN_AR_TREND.yml
 kind: metric
 name: OPEN_AR_TREND
-measure: FactARDetails.OPEN_AMOUNT
-time_dimension: FactARDetails.FiscalPeriodId
+measure: FACTARDETAILS.OPEN_AMOUNT
+ts: FACTARDETAILS.INSERTDATE
 description: >
   Total outstanding Accounts Receivable balance by fiscal period.
   A rising OPEN_AR_TREND alongside a flat or declining COLLECTION_EFFICIENCY_TREND
@@ -201,10 +276,10 @@ description: >
 # models/metrics/RESERVE_ACCURACY_TREND.yml
 kind: metric
 name: RESERVE_ACCURACY_TREND
-measure: FactARDetails.RESERVE_ACCURACY_PCT
-time_dimension: FactARDetails.FiscalPeriodId
+measure: FACTARDETAILS.RESERVE_ACCURACY_PCT
+ts: FACTARDETAILS.INSERTDATE
 description: >
-  Reserve forecast accuracy (CurrentReserve vs PreviousForecastReserve) by fiscal period.
+  Reserve forecast accuracy (CURRENTRESERVE vs PREVIOUSFORECASTRESERVE) by fiscal period.
   Values close to 1.0 = accurate reserve provisioning.
   Values below 0.8 signal that Finance needs to recalibrate the JDE reserve model.
   Used by Finance for IFRS/GAAP provision audits.
@@ -214,11 +289,11 @@ description: >
 # models/metrics/UNAPPLIED_CASH_TREND.yml
 kind: metric
 name: UNAPPLIED_CASH_TREND
-measure: FactARCollection.UNAPPLIED_CASH_PCT
-time_dimension: FactARCollection.FiscalPeriodId
+measure: FACTARCOLLECTION.UNAPPLIED_CASH_PCT
+ts: FACTARCOLLECTION.INSERTDATE
 description: >
   Percentage of total receipts not yet applied to open invoices, tracked by fiscal period.
-  Formula: (TotalReceipts - CashApplied) / TotalReceipts.
+  Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS.
   A rising trend without a dispute volume spike = cash posting process failure.
   Primary leakage detection signal — triggers Cash Application team investigation.
 ```
@@ -227,14 +302,67 @@ description: >
 # models/metrics/OVERDUE_INVOICE_TREND.yml
 kind: metric
 name: OVERDUE_INVOICE_TREND
-measure: FactARDetails.OVERDUE_INVOICE_COUNT
-time_dimension: FactARDetails.AgeAsOfDate
+measure: FACTARDETAILS.OVERDUE_INVOICE_COUNT
+ts: FACTARDETAILS.INSERTDATE
 description: >
-  Count of invoices with AgingDays > 30, tracked by AgeAsOfDate.
+  Count of invoices with AGINGDAYS > 30, tracked by AGEASOFDATE.
   A growing trend = collections backlog is building.
-  Segment by Collector and LOB to identify where the backlog is concentrated.
+  Segment by COLLECTOR and LOB to identify where the backlog is concentrated.
   Drives daily collections prioritisation and escalation decisions.
 ```
+
+**Rolling disputed amount views** — native columns on FACTDSO (`DISPUTEDAMOUNTROLLING30/60/90/180`); no semantic-layer SQL window required.
+
+```yaml
+# models/metrics/DSO_TREND.yml
+kind: metric
+name: DSO_TREND
+measure: FACTDSO.DSO
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Native Days Sales Outstanding from FACTDSO gold layer.
+  Formula: (TOTALOPENAR / TOTALGROSSINVOICED) * DAYSINPERIOD.
+  Denominator uses invoiced gross (RPAAP), not F4211 sales orders.
+```
+
+```yaml
+# models/metrics/DSO_VARIANCE_FROM_TERMS_TREND.yml
+kind: metric
+name: DSO_VARIANCE_FROM_TERMS_TREND
+measure: FACTDSO.DSO_VARIANCE_FROM_TERMS
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  DSO minus average contractual net days (F0014). Positive = collecting slower than terms.
+```
+
+```yaml
+# models/metrics/DISPUTE_RECOVERY_RATIO_TREND.yml
+kind: metric
+name: DISPUTE_RECOVERY_RATIO_TREND
+measure: FACTDSO.DISPUTE_RECOVERY_RATIO
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Proportion recovered on resolved disputes = Recovered / Gross.
+  Native column from FACTDSO stored procedure.
+```
+
+```yaml
+# models/metrics/CEI_TREND.yml
+kind: metric
+name: CEI_TREND
+measure: FACTDSO.CEI
+ts: FACTDSO.FISCALMONTH
+granularity: month
+description: >
+  Unified Collection Effectiveness Index by company × period × collection priority.
+```
+
+**Collection prioritization effectiveness**
+
+Slice FACTDSO by `COLLECTIONPRIORITY` (H/M/L/NONE from F03012). Compare `DSO` and `CEI` across priority segments. NONE = not collection-prioritized.
 
 ---
 
@@ -242,17 +370,22 @@ description: >
 
 > What does one row represent?
 
-**Primary grain (DimARDetails + FactARDetails)**: One row = one **invoice / pay-item** — uniquely identified by `CompanyId + DocumentCompany + DocNo + DocType + PayItm`. This is the atomic AR record from which all metrics compose.
+**Primary grain (DIMARDETAILS + FACTARDETAILS)**: One row = one **invoice / pay-item** — uniquely identified by `COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM`. This is the atomic AR record from which all metrics compose.
 
-**Secondary grain (FactARCollection)**: One row = one **customer × fiscal period × LOB** collection summary — uniquely identified by `CompanyId + CustomerNumber + FiscalPeriodId + LOB`.
+**Secondary grain (FACTARCOLLECTION)**: One row = one **customer × fiscal period × LOB** collection summary — uniquely identified by `COMPANYID + CUSTOMERNUMBER + FISCALPERIODID + LOB`.
 
-**Reference grain (DimARCollectionLOB)**: One row = one **LOB code** per company.
+**Reference grain (DIMARCOLLECTIONLOB)**: One row = one **LOB code** per company.
 
-**Reference grain (ARPaymentTerm)**: One row = one **payment term code** per company.
+**Reference grain (ARPAYMENTTERM)**: One row = one **payment term code** per company.
+
+**FACTDSO grain (Collection Performance Snapshot)**: One row = one **company × fiscal year × fiscal month × collection priority** segment — uniquely identified by `COMPANYID + FISCALYEAR + FISCALMONTH + COLLECTIONPRIORITY`. MCP profile: 10 rows in dev sample; DSO null rate ~50% on sparse segments.
+
+**COLLECTIONPRIORITY semantics**: H/M/L/NONE derived from F03012 customer credit master. NONE = not collection-prioritized (no active priority assignment).
 
 **Grain Key Construction**:
-- DimARDetails / FactARDetails grain key: Natural composite — `CompanyId + DocumentCompany + DocNo + DocType + PayItm` (all direct columns from F03B11)
-- FactARCollection grain key: Natural composite — `CompanyId + CustomerNumber + FiscalPeriodId + LOB` where `FiscalPeriodId = ((Century * 100 + Year) * 100) + Month` (derived in staging from JDE fiscal fields)
+- DIMARDETAILS / FACTARDETAILS grain key: Natural composite — `COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM` (all direct columns from F03B11)
+- FACTARCOLLECTION grain key: Natural composite — `COMPANYID + CUSTOMERNUMBER + FISCALPERIODID + LOB` where `FISCALPERIODID = ((Century * 100 + Year) * 100) + Month` (derived in staging from JDE fiscal fields)
+- FACTDSO grain key: Natural composite — `COMPANYID + FISCALYEAR + FISCALMONTH + COLLECTIONPRIORITY` (maintained by JDE stored procedure)
 
 ---
 
@@ -261,27 +394,39 @@ description: >
 **Rationale chain:**
 
 ```
-CEI trend → COLLECTION_EFFICIENCY measure → CashApplied / (OpenAmount + TotalReceipts) → 
-  CashApplied from F03B14 (FactARCollection), OpenAmount from F03B11 (FactARDetails)
+CEI trend → COLLECTION_EFFICIENCY measure → CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS) → 
+  CASHAPPLIED from F03B14 (FACTARCOLLECTION), OPENAMOUNT from F03B11 (FACTARDETAILS)
   
-Overdue analysis → AVG_AGING_DAYS + OPEN_AMOUNT → AgingDays + OpenAmount from F03B11 → 
-  joined with DimARDetails for Collector, LOB, DisputeStatus filtering
+Overdue analysis → AVG_AGING_DAYS + OPEN_AMOUNT → AGINGDAYS + OPENAMOUNT from F03B11 → 
+  joined with DIMARDETAILS for COLLECTOR, LOB, DISPUTESTATUS filtering
   
-Reserve accuracy → RESERVE_ACCURACY_PCT → ChangeinReserve / ForecastReserve30 → 
-  both from F59HQ084 (FactARDetails)
+Reserve accuracy → RESERVE_ACCURACY_PCT → CHANGEINRESERVE / FORECASTRESERVE30 → 
+  both from F59HQ084 (FACTARDETAILS)
   
-Leakage detection → UNAPPLIED_CASH_PCT → TotalReceipts - CashApplied → F03B14 (FactARCollection)
-  HIGH_RESERVE_CHANGE_COUNT → ChangeinReserve threshold → F59HQ084 (FactARDetails)
+Leakage detection → UNAPPLIED_CASH_PCT → TOTALRECEIPTS - CASHAPPLIED → F03B14 (FACTARCOLLECTION)
+  HIGH_RESERVE_CHANGE_COUNT → CHANGEINRESERVE threshold → F59HQ084 (FACTARDETAILS)
   
-Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDays from F0014 →
-  requires join of FactARDetails + DimARDetails + ARPaymentTerm
+Payment term compliance → AGINGDAYS > NETDAYS → AGINGDAYS from F03B11, NETDAYS from F0014 →
+  requires join of FACTARDETAILS + DIMARDETAILS + ARPAYMENTTERM
+
+DSO trend → FACTDSO.DSO → TOTALOPENAR + TOTALGROSSINVOICED + DAYSINPERIOD (stored proc)
+
+DSO vs terms → FACTDSO.DSOVARIANCEFROMTERMS → DSO minus AVGCONTRACTUALNETDAYS (F0014 PTNDDY)
+
+Disputed rolling trends → FACTDSO.DISPUTEDAMOUNTROLLING30/60/90/180 → native gold columns
+
+Dispute recovery → FACTDSO.DISPUTERECOVERYRATIO → resolved dispute amounts (stored proc)
+
+Collection prioritization → compare FACTDSO.DSO / CEI by COLLECTIONPRIORITY (H/M/L/NONE)
+
+Unified CEI → FACTDSO.CEI → single portfolio CEI by priority segment
 ```
 
 **Key design decisions**:
-- CEI formula defined as `CashApplied / (OpenAmount + TotalReceipts)` — [Assumption] pending Finance sign-off (Open Decision D2); requires join of FactARCollection (CashApplied, TotalReceipts) + FactARDetails (OpenAmount)
+- CEI formula defined as `CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS)` — [Assumption] pending Finance sign-off (Open Decision D2); requires join of FACTARCOLLECTION (CASHAPPLIED, TOTALRECEIPTS) + FACTARDETAILS (OPENAMOUNT)
 - All ratio measures use computed numerator/denominator — Vulcan `behavior.type: ratio` will be applied unless CLI rejects it, in which case explicit filtered count/sum + downstream division is the fallback
-- `FiscalPeriodId` is a derived integer key computed in staging from JDE century/year/month fields; it is the primary time dimension for collection metrics
-- `AgingDays` is computed by JDE and stored directly in F59HQ084 — it is NOT recomputed by this data product
+- `FISCALPERIODID` is a derived integer key computed in staging from JDE century/year/month fields; it is the primary time dimension for collection metrics
+- `AGINGDAYS` is computed by JDE and stored directly in F59HQ084 — it is NOT recomputed by this data product
 - All JDE Julian dates are converted to standard DATE/TIMESTAMP in the staging layer
 
 ---
@@ -289,7 +434,7 @@ Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDa
 ## 10. Consumption & Freshness
 
 - **Consumption Pattern**: Multi-channel — AI Agent (Cortex Analyst NL queries via Snowflake Semantic View), KPI Dashboards (Collections, Disputes, Leakage), Persona Reports (Collections Manager, Finance, GM), Action Triggers (email, alerts, workflow initiation)
-- **Freshness**: Daily — the 5 RL_JDE tables are refreshed daily by the existing JDE pipeline (MERGE incremental per D5). This data product's semantic layer simply reads from those tables and inherits their cadence.
+- **Freshness**: Daily — the 6 RL_JDE tables are refreshed daily by the existing JDE pipeline (MERGE incremental per D5). This data product's semantic layer simply reads from those tables and inherits their cadence.
 - **Backfill**: Full JDE history — all available data already present in `RL_JDE` tables is immediately queryable from day 1 via the semantic layer; no additional backfill step required for this data product.
 
 ---
@@ -299,59 +444,68 @@ Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDa
 - [Assumption] Workday integration will be implemented as a pre-loaded reference table with scheduled refresh (per D1 recommendation) rather than a live SQL Server call
 - [Assumption] Currency: local currency only in initial build; USD-normalized column deferred to a later phase (per D3)
 - [Assumption] France-specific logic (company 10168) will be handled via SQL CASE expressions in the staging layer (per D7 recommendation)
-- [Assumption] CEI formula = `CashApplied / (OpenAmount + TotalReceipts)` — pending Finance sign-off (Open Decision D2)
-- [Assumption] Dispute fields remain embedded in DimARDetails (no separate DimARDispute table) per Open Decision D8 recommendation
-- [Assumption] Leakage signals implemented as computed fields in FactARDetails first; separate leakage table deferred until thresholds agreed (per D4)
+- [Assumption] CEI formula = `CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS)` — pending Finance sign-off (Open Decision D2)
+- [Assumption] Dispute fields remain embedded in DIMARDETAILS (no separate DIMARDISPUTE table) per Open Decision D8 recommendation
+- [Assumption] Leakage signals implemented as computed fields in FACTARDETAILS first; separate leakage table deferred until thresholds agreed (per D4)
 - [Assumption] Semantic layer will provide both invoice-level and customer-period aggregated views (per D6: "dual views covering different query patterns")
 - [Assumption] Reserve Accuracy threshold for "High Reserve Change" = 20% (0.2 per the formula in the design doc); exact threshold requires Analytics sign-off (marked as Open Question until confirmed)
-- [Assumption] `ChangeinReserve / ForecastReserve30 > 0.2` is used as the leakage threshold trigger for HIGH_RESERVE_CHANGE_COUNT segment in the semantic layer
-- [Assumption] The 5 RL_JDE output tables already exist in Snowflake and are managed by the existing JDE pipeline — this data product does NOT rebuild them; it wraps them as EXTERNAL models with a semantic layer
-- **CEI Formula confirmed**: `CashApplied / (OpenAmount + TotalReceipts)` — industry standard (Finance sign-off confirmed)
+- [Assumption] `CHANGEINRESERVE / FORECASTRESERVE30 > 0.2` is used as the leakage threshold trigger for HIGH_RESERVE_CHANGE_COUNT segment in the semantic layer
+- [Assumption] The 6 RL_JDE output tables already exist in Snowflake and are managed by the existing JDE pipeline — this data product does NOT rebuild them; it wraps them as EXTERNAL models with a semantic layer
+- [Assumption] **DSO denominator (resolved)**: DSO uses invoiced gross (`TOTALGROSSINVOICED` / RPAAP), not F4211 sales orders — acceptable for Otis service/maintenance AR
+- [Assumption] **Dispute recovery**: FACTDSO.DISPUTERECOVERYRATIO is authoritative; confirm numerator/denominator definitions with Finance wording
+- [Assumption] **COLLECTOR tiers (D11)**: COLLECTOR required when `COLLECTIONPRIORITY != 'NONE'` and invoice is overdue — hard fail at >90 days; monitor-only at >60 and >30 days
+- [Assumption] **Reserve forecast DQ removed (D12)**: Finance no longer wants invoice-level reserve-forecast enforcement in active DQ; reserve accuracy remains a reporting metric only
+- **CEI Formula confirmed**: `CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS)` — industry standard (Finance sign-off confirmed)
 
 ---
 
 ## 12. Open Questions
 
-- [ ] **CEI Definition (D2)**: Confirm formula `CashApplied / (OpenAmount + TotalReceipts)` with Finance — is this the Otis-adjusted or industry-standard version?
+- [ ] **CEI Definition (D2)**: Confirm formula `CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS)` with Finance — is this the Otis-adjusted or industry-standard version?
+- [x] **DSO denominator (D2b)**: Resolved — uses invoiced gross (RPAAP), not F4211 sales orders
+- [ ] **FACTDSO grain and refresh cadence**: Confirm exact stored-proc schedule with Data Engineering
+- [ ] **DISPUTERECOVERYRATIO definition (D10)**: Confirm numerator/denominator match Finance wording
+- [ ] **COLLECTOR overdue tiers (D11)**: Confirm 30/60/90-day tier policy with COLLECTIONPRIORITY predicate
+- [ ] **Reserve forecast DQ removal (D12)**: Confirm de-prioritization of `active_invoices_have_no_reserve_forecast` and `ar_reserve_forecast_gap` audit
 - [x] **Backfill (Q9)**: Full JDE history — all data already present in RL_JDE is immediately queryable via the semantic layer. **Resolved.**
 - [ ] **Reserve Change Threshold**: Confirm 20% (0.2) as the agreed threshold for HIGH_RESERVE_CHANGE_COUNT with Analytics
 - [ ] **USD Normalization (D3)**: Confirm timeline for adding USD-normalized amounts column
 - [ ] **Workday Reference Table Schema**: Confirm exact schema/table name for the pre-loaded Workday email reference (match via F01151 email field)
-- [ ] **FiscalPeriodId Components**: Confirm which JDE columns carry Century, Year, Month values in source tables for the staging derivation
-- [ ] **"Overdue Without Action" threshold**: The design doc shows AgingDays > 30 — confirm this is the right aging bucket for leakage signal L4
+- [ ] **FISCALPERIODID Components**: Confirm which JDE columns carry Century, Year, Month values in source tables for the staging derivation
+- [ ] **"Overdue Without Action" threshold**: The design doc shows AGINGDAYS > 30 — confirm this is the right aging bucket for leakage signal L4
 
 ---
 
 ## 13. Model Architecture
 
-> **Important**: The 5 final star schema tables already exist in Snowflake under the `RL_JDE` schema, maintained by the existing JDE pipeline. This Vulcan data product wraps them as EXTERNAL models and adds a complete semantic layer, metrics, and quality monitoring on top. No Silver/Gold build layers are created by this DP.
+> **Important**: The 6 final star schema tables already exist in Snowflake under the `RL_JDE` schema, maintained by the existing JDE pipeline (including FACTDSO stored procedure). This Vulcan data product wraps them as EXTERNAL models and adds a complete semantic layer, metrics, and quality monitoring on top. No Silver/Gold build layers are created by this DP.
 
 | Layer | Model Name | Kind | Purpose | Sources |
 |---|---|---|---|---|
-| External | `RL_JDE.DimARDetails` | EXTERNAL | Invoice dimension — already exists; Vulcan registers as metadata stub | JDE pipeline (existing) |
-| External | `RL_JDE.FactARDetails` | EXTERNAL | Invoice measures — already exists; Vulcan registers as metadata stub | JDE pipeline (existing) |
-| External | `RL_JDE.FactARCollection` | EXTERNAL | Collection facts — already exists; Vulcan registers as metadata stub | JDE pipeline (existing) |
-| External | `RL_JDE.DimARCollectionLOB` | EXTERNAL | LOB reference dim — already exists; Vulcan registers as metadata stub | JDE pipeline (existing) |
-| External | `RL_JDE.ARPaymentTerm` | EXTERNAL | Payment term reference dim — already exists; Vulcan registers as metadata stub | JDE pipeline (existing) |
-| Semantic | `models/semantics/DimARDetails.yml` | SEMANTIC | Business-friendly wrapper for DimARDetails — dimensions, measures, joins, ai_context | RL_JDE.DimARDetails |
-| Semantic | `models/semantics/FactARDetails.yml` | SEMANTIC | Business-friendly wrapper for FactARDetails — measures, joins, leakage segments | RL_JDE.FactARDetails |
-| Semantic | `models/semantics/FactARCollection.yml` | SEMANTIC | Business-friendly wrapper for FactARCollection — CEI, receipts, efficiency measures | RL_JDE.FactARCollection |
-| Semantic | `models/semantics/DimARCollectionLOB.yml` | SEMANTIC | LOB reference semantic model | RL_JDE.DimARCollectionLOB |
-| Semantic | `models/semantics/ARPaymentTerm.yml` | SEMANTIC | Payment term reference semantic model | RL_JDE.ARPaymentTerm |
-| Metrics | `models/metrics/COLLECTION_EFFICIENCY_TREND.yml` | METRIC | CEI tracked by fiscal period | FactARCollection semantic model |
-| Metrics | `models/metrics/OPEN_AMOUNT_TREND.yml` | METRIC | Open AR trend over GL dates | FactARDetails semantic model |
-| Metrics | `models/metrics/RESERVE_ACCURACY_TREND.yml` | METRIC | Reserve forecast accuracy by period | FactARDetails semantic model |
-| Metrics | `models/metrics/UNAPPLIED_CASH_TREND.yml` | METRIC | Unapplied cash % by fiscal period | FactARCollection semantic model |
-| Metrics | `models/metrics/DISPUTE_RESOLUTION_TREND.yml` | METRIC | Dispute resolution rate over invoice cohorts | DimARDetails semantic model |
-| DQ | `dq/DimARDetails.yml` | DQ | Quality monitoring for invoice dimension | RL_JDE.DimARDetails |
-| DQ | `dq/FactARDetails.yml` | DQ | Quality monitoring for invoice measures | RL_JDE.FactARDetails |
-| DQ | `dq/FactARCollection.yml` | DQ | Quality monitoring for collection facts | RL_JDE.FactARCollection |
+| External | `JDE_PRODUCTION.RL_JDE.DIMARDETAILS` | EXTERNAL | Invoice dimension (+ COLLECTIONPRIORITY) | JDE pipeline (existing) |
+| External | `JDE_PRODUCTION.RL_JDE.FACTARDETAILS` | EXTERNAL | Invoice measures | JDE pipeline (existing) |
+| External | `JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION` | EXTERNAL | Collection facts | JDE pipeline (existing) |
+| External | `JDE_PRODUCTION.RL_JDE.FACTDSO` | EXTERNAL | **DSO, dispute rolling, recovery, CEI by priority** | JDE stored procedure (existing) |
+| External | `JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB` | EXTERNAL | LOB reference dim | JDE pipeline (existing) |
+| External | `JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM` | EXTERNAL | Payment term reference dim | JDE pipeline (existing) |
+| Semantic | `models/semantics/DIMARDETAILS.yml` | SEMANTIC | Business-friendly wrapper for DIMARDETAILS | JDE_PRODUCTION.RL_JDE.DIMARDETAILS |
+| Semantic | `models/semantics/FACTARDETAILS.yml` | SEMANTIC | Invoice measures, reserve/aging (no DSO proxies) | JDE_PRODUCTION.RL_JDE.FACTARDETAILS |
+| Semantic | `models/semantics/FACTARCOLLECTION.yml` | SEMANTIC | CEI components, receipts | JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION |
+| Semantic | `models/semantics/FACTDSO.yml` | SEMANTIC | **DSO, dispute rolling, recovery, unified CEI** | JDE_PRODUCTION.RL_JDE.FACTDSO |
+| Semantic | `models/semantics/DIMARCOLLECTIONLOB.yml` | SEMANTIC | LOB reference semantic model | JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB |
+| Semantic | `models/semantics/ARPAYMENTTERM.yml` | SEMANTIC | Payment term reference semantic model | JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM |
+| Metrics | `models/metrics/DSO_TREND.yml` | METRIC | Native DSO trend | FACTDSO semantic model |
+| Metrics | `models/metrics/DSO_VARIANCE_FROM_TERMS_TREND.yml` | METRIC | DSO vs contractual terms | FACTDSO semantic model |
+| Metrics | `models/metrics/DISPUTED_AMOUNT_ROLLING_*_TREND.yml` | METRIC | Rolling disputed amount (30/60/90/180) | FACTDSO semantic model |
+| Metrics | `models/metrics/DISPUTE_RECOVERY_RATIO_TREND.yml` | METRIC | Dispute recovery trend | FACTDSO semantic model |
+| Metrics | `models/metrics/CEI_TREND.yml` | METRIC | Unified CEI by priority | FACTDSO semantic model |
+| DQ | `dq/FACTDSO.yml` | DQ | DSO and gross-invoiced anomaly checks | JDE_PRODUCTION.RL_JDE.FACTDSO |
 
 **Architecture decisions**:
-- **Why EXTERNAL for all 5 RL_JDE tables**: They already exist in Snowflake, produced and maintained by the existing JDE pipeline. EXTERNAL registers them as metadata stubs — enabling semantic model definitions and DQ monitoring without taking ownership
-- **Why Star Schema consumption architecture**: The 5 tables form a clean star schema; the semantic layer maps directly with pre-defined joins
+- **Why EXTERNAL for all 6 RL_JDE tables**: They already exist in Snowflake, produced and maintained by the existing JDE pipeline. EXTERNAL registers them as metadata stubs — enabling semantic model definitions and DQ monitoring without taking ownership
+- **Why Star Schema consumption architecture**: The 6 tables form a clean star schema; the semantic layer maps directly with pre-defined joins
 - **No Silver/Gold layers**: Pipeline work is done by the existing JDE pipeline; this DP's value is semantic governance, metrics, AI context, and quality monitoring on top
-- **Why 5 separate semantic models**: Vulcan semantic models wrap exactly one physical model — 5 tables → 5 semantic models with joins on fact tables pointing to dimension models
+- **Why 6 separate semantic models**: Vulcan semantic models wrap exactly one physical model — 6 tables → 6 semantic models with joins on fact tables pointing to dimension models
 
 ---
 
@@ -362,312 +516,344 @@ Payment term compliance → AgingDays > NetDays → AgingDays from F03B11, NetDa
 
 ```yaml
 # external_models/rl_jde_tables.yaml
-# All 5 tables exist in Snowflake under the RL_JDE schema.
+# All 6 tables exist in Snowflake under the RL_JDE schema.
 # Vulcan registers these as metadata stubs (EXTERNAL) — no transformation.
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1. DimARDetails — Invoice Dimension Table
+# 1. DIMARDETAILS — Invoice Dimension Table
 # ─────────────────────────────────────────────────────────────────────────────
-- name: '"SNOWFLAKE_DB"."RL_JDE"."DimARDetails"'
+- name: JDE_PRODUCTION.RL_JDE.DIMARDETAILS
   description: >
     Invoice Dimension Table — the descriptive backbone of Customer Invoice 360.
-    One row per invoice / pay-item (grain: CompanyId + DocumentCompany + DocNo +
-    DocType + PayItm). Carries all attributes needed to describe an invoice:
-    who owns it (Collector, SalesRep), what status it is in (DisputeStatus,
-    HoldFlag), which LOB it belongs to, and the latest collection comments.
+    One row per invoice / pay-item (grain: COMPANYID + DOCUMENTCOMPANY + DOCNO +
+    DOCTYPE + PAYITM). Carries all attributes needed to describe an invoice:
+    who owns it (COLLECTOR, SALESREP), what status it is in (DISPUTESTATUS,
+    HOLDFLAG), which LOB it belongs to, and the latest collection comments.
     Source: JDE ERP pipeline (F03B11, F0101, F03012, F5803B2I/C, F0006, Workday).
   grains:
-    - CompanyId
-    - DocumentCompany
-    - DocNo
-    - DocType
-    - PayItm
+    - COMPANYID
+    - DOCUMENTCOMPANY
+    - DOCNO
+    - DOCTYPE
+    - PAYITM
   columns:
     # ── Grain / Identity columns ──────────────────────────────────────────
-    CompanyId:          VARCHAR(10)
-    DocumentCompany:    VARCHAR(10)
-    DocNo:              VARCHAR(20)
-    DocType:            VARCHAR(5)
-    PayItm:             VARCHAR(5)
+    COMPANYID:          VARCHAR(10)
+    DOCUMENTCOMPANY:    VARCHAR(10)
+    DOCNO:              VARCHAR(20)
+    DOCTYPE:            VARCHAR(5)
+    PAYITM:             VARCHAR(5)
     # ── Customer & Ownership ──────────────────────────────────────────────
-    CustomerNumber:     VARCHAR(20)
-    ParentCustomer:     VARCHAR(20)
-    SalesRep:           VARCHAR(50)
-    Collector:          VARCHAR(50)
-    CollectionManager:  VARCHAR(50)
+    CUSTOMERNUMBER:     VARCHAR(20)
+    PARENTCUSTOMER:     VARCHAR(20)
+    SALESREP:           VARCHAR(50)
+    COLLECTOR:          VARCHAR(50)
+    COLLECTIONPRIORITY: VARCHAR(10)
+    COLLECTIONMANAGER:  VARCHAR(50)
     # ── LOB & Business Unit ───────────────────────────────────────────────
-    GLOffset:           VARCHAR(10)
+    GLOFFSET:           VARCHAR(10)
     LOB:                VARCHAR(50)
-    BusinessUnit:       VARCHAR(10)
-    BUDesc:             VARCHAR(100)
+    BUSINESSUNIT:       VARCHAR(10)
+    BUDESC:             VARCHAR(100)
     # ── Payment Terms ─────────────────────────────────────────────────────
-    PaymentTermCode:    VARCHAR(10)
+    PAYMENTTERMCODE:    VARCHAR(10)
     # ── Dispute Fields ────────────────────────────────────────────────────
-    DisputeReasonCode:  VARCHAR(10)
-    DisputeStatus:      VARCHAR(20)
-    DisputeCodeDesc:    VARCHAR(100)
-    ResolverCode:       VARCHAR(10)
-    ResolverName:       VARCHAR(100)
+    DISPUTEREASONCODE:  VARCHAR(10)
+    DISPUTESTATUS:      VARCHAR(20)
+    DISPUTECODEDESC:    VARCHAR(100)
+    RESOLVERCODE:       VARCHAR(10)
+    RESOLVERNAME:       VARCHAR(100)
     # ── Dates ─────────────────────────────────────────────────────────────
-    InvoiceDate:        DATE
-    DueDate:            DATE
-    PromiseToPay:       DATE
-    AttachmentStartDate: DATE
-    AttachmentEndDate:  DATE
+    INVOICEDATE:        DATE
+    DUEDATE:            DATE
+    PROMISETOPAY:       DATE
+    ATTACHMENTSTARTDATE: DATE
+    ATTACHMENTENDDATE:  DATE
     # ── Customer Status ───────────────────────────────────────────────────
-    CurrencyCode:       VARCHAR(5)
-    HoldFlag:           VARCHAR(1)
-    WorkdayEmail:       VARCHAR(200)
-    ChargebackCode:     VARCHAR(20)
+    CURRENCYCODE:       VARCHAR(5)
+    HOLDFLAG:           VARCHAR(1)
+    WORKDAYEMAIL:       VARCHAR(200)
+    CHARGEBACKCODE:     VARCHAR(20)
     # ── Comments ──────────────────────────────────────────────────────────
-    LastInvoiceComment:  VARCHAR(4000)
-    LastCustomerComment: VARCHAR(4000)
+    LASTINVOICECOMMENT:  VARCHAR(4000)
+    LASTCUSTOMERCOMMENT: VARCHAR(4000)
     # ── Audit ─────────────────────────────────────────────────────────────
-    InsertDate:         TIMESTAMP_NTZ
-    ModifyDate:         TIMESTAMP_NTZ
+    INSERTDATE:         TIMESTAMP_NTZ
+    MODIFYDATE:         TIMESTAMP_NTZ
 
   # ── Column Descriptions (business-critical columns only) ─────────────────
   column_descriptions:
-    CompanyId:          "JDE company identifier — used in all joins as part of grain key. Determines which legal entity owns the invoice."
-    CustomerNumber:     "JDE AR customer number. Groups all invoices for a customer. Join to F0101/Address Book for customer name and parent roll-up."
-    ParentCustomer:     "Ultimate parent account for multi-entity customer groups. Use for parent-level CEI and consolidated AR exposure."
-    Collector:          "The individual AR collector responsible for chasing payment on this invoice. Primary attribution field for Collector Performance KPI and email triggers."
-    LOB:                "Line of Business classification derived from GLOffset via DimARCollectionLOB reference. Required for LOB-level CEI and Exec KPI dashboards. Null LOB = unmapped GL Offset — exclude from LOB reports."
-    DisputeStatus:      "Current dispute status: Open, Resolved, or null (not disputed). Null ≠ unknown — null means the invoice has no registered dispute. Required for Dispute Resolution Rate KPI."
-    DisputeReasonCode:  "JDE reason code for the dispute. Must be co-populated with DisputeStatus (both populated or both null). Used for Dispute Tracking and dispute aging analysis."
-    HoldFlag:           "Credit hold flag: Y = customer is on credit hold, N = not on hold. Y + OpenAmount > 0 = leakage signal L8 (Credit Hold Open Invoices)."
-    DueDate:            "Contractual payment due date. Used with AgingDays for overdue detection and payment term compliance (AgingDays > NetDays from ARPaymentTerm)."
-    PromiseToPay:       "Customer-committed payment date recorded by the collector. Differs from DueDate for negotiated/disputed invoices. Used for Promise-to-Pay tracking."
-    WorkdayEmail:       "Collector or sales rep work email sourced from Workday via scheduled reference table. Used for action triggers (automated email on overdue escalation)."
-    ModifyDate:         "Timestamp of last modification in the JDE pipeline. Used as the freshness indicator in DQ timeliness checks."
+    COMPANYID:          "JDE company identifier — used in all joins as part of grain key. Determines which legal entity owns the invoice."
+    CUSTOMERNUMBER:     "JDE AR customer number. Groups all invoices for a customer. Join to F0101/Address Book for customer name and parent roll-up."
+    PARENTCUSTOMER:     "Ultimate parent account for multi-entity customer groups. Use for parent-level CEI and consolidated AR exposure."
+    COLLECTOR:          "The individual AR collector responsible for chasing payment on this invoice. Primary attribution field for COLLECTOR Performance KPI and email triggers."
+    LOB:                "Line of Business classification derived from GLOFFSET via DIMARCOLLECTIONLOB reference. Required for LOB-level CEI and Exec KPI dashboards. Null LOB = unmapped GL Offset — exclude from LOB reports."
+    DISPUTESTATUS:      "Current dispute status: Open, Resolved, or null (not disputed). Null ≠ unknown — null means the invoice has no registered dispute. Required for Dispute Resolution Rate KPI."
+    DISPUTEREASONCODE:  "JDE reason code for the dispute. Must be co-populated with DISPUTESTATUS (both populated or both null). Used for Dispute Tracking and dispute aging analysis."
+    HOLDFLAG:           "Credit hold flag: Y = customer is on credit hold, N = not on hold. Y + OPENAMOUNT > 0 = leakage signal L8 (Credit Hold Open Invoices)."
+    DUEDATE:            "Contractual payment due date. Used with AGINGDAYS for overdue detection and payment term compliance (AGINGDAYS > NETDAYS from ARPAYMENTTERM)."
+    PROMISETOPAY:       "Customer-committed payment date recorded by the collector. Differs from DUEDATE for negotiated/disputed invoices. Used for Promise-to-Pay tracking."
+    WORKDAYEMAIL:       "COLLECTOR or sales rep work email sourced from Workday via scheduled reference table. Used for action triggers (automated email on overdue escalation)."
+    MODIFYDATE:         "Timestamp of last modification in the JDE pipeline. Used as the freshness indicator in DQ timeliness checks."
 
   # ── Column Tags (business classification for main columns) ────────────────
   column_tags:
-    CompanyId:          ["grain", "identifier", "join_key"]
-    DocumentCompany:    ["grain", "identifier"]
-    DocNo:              ["grain", "identifier", "invoice_key"]
-    DocType:            ["grain", "identifier"]
-    PayItm:             ["grain", "identifier"]
-    CustomerNumber:     ["dimension", "customer", "join_key", "kpi"]
-    ParentCustomer:     ["dimension", "customer", "hierarchy"]
-    Collector:          ["dimension", "ownership", "kpi", "action_trigger"]
-    CollectionManager:  ["dimension", "ownership", "hierarchy"]
-    SalesRep:           ["dimension", "ownership"]
+    COMPANYID:          ["grain", "identifier", "join_key"]
+    DOCUMENTCOMPANY:    ["grain", "identifier"]
+    DOCNO:              ["grain", "identifier", "invoice_key"]
+    DOCTYPE:            ["grain", "identifier"]
+    PAYITM:             ["grain", "identifier"]
+    CUSTOMERNUMBER:     ["dimension", "customer", "join_key", "kpi"]
+    PARENTCUSTOMER:     ["dimension", "customer", "hierarchy"]
+    COLLECTOR:          ["dimension", "ownership", "kpi", "action_trigger"]
+    COLLECTIONMANAGER:  ["dimension", "ownership", "hierarchy"]
+    SALESREP:           ["dimension", "ownership"]
     LOB:                ["dimension", "lob", "kpi", "dashboard"]
-    GLOffset:           ["dimension", "lob", "join_key"]
-    BusinessUnit:       ["dimension", "org_structure"]
-    PaymentTermCode:    ["dimension", "compliance", "join_key"]
-    DisputeStatus:      ["dimension", "dispute", "kpi"]
-    DisputeReasonCode:  ["dimension", "dispute", "kpi"]
-    ResolverCode:       ["dimension", "dispute", "ownership"]
-    DueDate:            ["date", "compliance", "aging", "kpi"]
-    PromiseToPay:       ["date", "collections", "action_trigger"]
-    InvoiceDate:        ["date", "time_dimension"]
-    HoldFlag:           ["flag", "leakage", "kpi", "action_trigger"]
-    WorkdayEmail:       ["contact", "action_trigger", "pii"]
-    ModifyDate:         ["audit", "freshness"]
+    GLOFFSET:           ["dimension", "lob", "join_key"]
+    BUSINESSUNIT:       ["dimension", "org_structure"]
+    PAYMENTTERMCODE:    ["dimension", "compliance", "join_key"]
+    DISPUTESTATUS:      ["dimension", "dispute", "kpi"]
+    DISPUTEREASONCODE:  ["dimension", "dispute", "kpi"]
+    RESOLVERCODE:       ["dimension", "dispute", "ownership"]
+    DUEDATE:            ["date", "compliance", "aging", "kpi"]
+    PROMISETOPAY:       ["date", "collections", "action_trigger"]
+    INVOICEDATE:        ["date", "time_dimension"]
+    HOLDFLAG:           ["flag", "leakage", "kpi", "action_trigger"]
+    WORKDAYEMAIL:       ["contact", "action_trigger", "pii"]
+    MODIFYDATE:         ["audit", "freshness"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. FactARDetails — Invoice Measures Table
+# 2. FACTARDETAILS — Invoice Measures Table
 # ─────────────────────────────────────────────────────────────────────────────
-- name: '"SNOWFLAKE_DB"."RL_JDE"."FactARDetails"'
+- name: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
   description: >
     Invoice Measures Table — all quantitative AR measures per invoice / pay-item.
-    One row per invoice / pay-item (same grain as DimARDetails).
+    One row per invoice / pay-item (same grain as DIMARDETAILS).
     Carries all financial KPIs: open amount, reserve, forecast 30/60/90,
     aging days, and reserve cash applied.
     Source: JDE ERP pipeline (F03B11, F59HQ084).
   grains:
-    - CompanyId
-    - DocumentCompany
-    - DocNo
-    - DocType
-    - PayItm
+    - COMPANYID
+    - DOCUMENTCOMPANY
+    - DOCNO
+    - DOCTYPE
+    - PAYITM
   columns:
     # ── Grain ─────────────────────────────────────────────────────────────
-    CompanyId:               VARCHAR(10)
-    DocumentCompany:         VARCHAR(10)
-    DocNo:                   VARCHAR(20)
-    DocType:                 VARCHAR(5)
-    PayItm:                  VARCHAR(5)
+    COMPANYID:               VARCHAR(10)
+    DOCUMENTCOMPANY:         VARCHAR(10)
+    DOCNO:                   VARCHAR(20)
+    DOCTYPE:                 VARCHAR(5)
+    PAYITM:                  VARCHAR(5)
     # ── Core AR Amounts ───────────────────────────────────────────────────
-    OpenAmount:              DECIMAL(18, 2)
-    GrossAmount:             DECIMAL(18, 2)
-    TaxAmount:               DECIMAL(18, 2)
-    DisputedAmount:          DECIMAL(18, 2)
+    OPENAMOUNT:              DECIMAL(18, 2)
+    GROSSAMOUNT:             DECIMAL(18, 2)
+    TAXAMOUNT:               DECIMAL(18, 2)
+    DISPUTEDAMOUNT:          DECIMAL(18, 2)
     # ── Reserve & Forecast ────────────────────────────────────────────────
-    CurrentReserve:          DECIMAL(18, 2)
-    ARCurrentReserve:        DECIMAL(18, 2)
-    PreviousForecastReserve: DECIMAL(18, 2)
-    ForecastReserve30:       DECIMAL(18, 2)
-    ForecastReserve60:       DECIMAL(18, 2)
-    ForecastReserve90:       DECIMAL(18, 2)
-    ChangeinReserve:         DECIMAL(18, 2)
+    CURRENTRESERVE:          DECIMAL(18, 2)
+    ARCURRENTRESERVE:        DECIMAL(18, 2)
+    PREVIOUSFORECASTRESERVE: DECIMAL(18, 2)
+    FORECASTRESERVE30:       DECIMAL(18, 2)
+    FORECASTRESERVE60:       DECIMAL(18, 2)
+    FORECASTRESERVE90:       DECIMAL(18, 2)
+    CHANGEINRESERVE:         DECIMAL(18, 2)
     # ── Collection Fields ─────────────────────────────────────────────────
-    DraftOpenAmount:         DECIMAL(18, 2)
-    AdjustmentAmount:        DECIMAL(18, 2)
-    ReserveCashApplied:      DECIMAL(18, 2)
+    DRAFTOPENAMOUNT:         DECIMAL(18, 2)
+    ADJUSTMENTAMOUNT:        DECIMAL(18, 2)
+    RESERVECASHAPPLIED:      DECIMAL(18, 2)
     # ── Aging & Time ──────────────────────────────────────────────────────
-    AgingDays:               INTEGER
-    FiscalPeriodId:          INTEGER
-    GLDate:                  DATE
-    DueDate:                 DATE
-    AgeAsOfDate:             DATE
+    AGINGDAYS:               INTEGER
+    FISCALPERIODID:          INTEGER
+    GLDATE:                  DATE
+    DUEDATE:                 DATE
+    AGEASOFDATE:             DATE
     LatestReceiptDate:       DATE
     # ── Audit ─────────────────────────────────────────────────────────────
-    InsertDate:              TIMESTAMP_NTZ
+    INSERTDATE:              TIMESTAMP_NTZ
 
   column_descriptions:
-    OpenAmount:              "Outstanding invoice balance as of AgeAsOfDate. The primary AR exposure metric. SUM across invoices = total open AR for a period."
-    GrossAmount:             "Original invoice face value before any adjustments, discounts, or credit memos."
-    DisputedAmount:          "Amount under formal dispute. Used in Dispute Tracking and leakage analysis (DisputedAmount that ages without resolution = leakage risk)."
-    CurrentReserve:          "Current doubtful debt reserve held for this invoice (point-in-time balance). Do NOT sum across periods — use the latest FiscalPeriodId snapshot for balance reporting."
-    ForecastReserve30:       "30-day forward reserve forecast. Used as the denominator in Reserve Accuracy % and the threshold in leakage signal L7 (ChangeinReserve / ForecastReserve30 > 0.2)."
-    ForecastReserve60:       "60-day forward reserve forecast. Used for medium-term exposure planning."
-    ForecastReserve90:       "90-day forward reserve forecast. Used for long-range exposure planning and IFRS provisioning."
-    ChangeinReserve:         "Period-over-period change in reserve. Positive = more doubtful debt provisioned; negative = reserve released. Primary reserve leakage signal L2."
-    ReserveCashApplied:      "Reserve cash that has been applied to this invoice. Zero on an aged invoice with CurrentReserve > 0 = leakage signal L6 (reserve held but not utilised)."
-    AgingDays:               "Number of days the invoice has been outstanding beyond its DueDate. Computed by JDE; NOT recomputed by this DP. > 30 days = overdue; > 90 days = high write-off risk."
-    FiscalPeriodId:          "Fiscal period integer key: ((Century * 100 + Year) * 100) + Month. Example: 20260800 = August 2026. Primary time dimension for all period-based trend metrics."
-    AgeAsOfDate:             "The date as-of which AgingDays was calculated. Used as time dimension for OVERDUE_INVOICE_TREND metric."
+    OPENAMOUNT:              "Outstanding invoice balance as of AGEASOFDATE. The primary AR exposure metric. SUM across invoices = total open AR for a period."
+    GROSSAMOUNT:             "Original invoice face value before any adjustments, discounts, or credit memos."
+    DISPUTEDAMOUNT:          "Amount under formal dispute. Used in Dispute Tracking and leakage analysis (DISPUTEDAMOUNT that ages without resolution = leakage risk)."
+    CURRENTRESERVE:          "Current doubtful debt reserve held for this invoice (point-in-time balance). Do NOT sum across periods — use the latest FISCALPERIODID snapshot for balance reporting."
+    FORECASTRESERVE30:       "30-day forward reserve forecast. Used as the denominator in Reserve Accuracy % and the threshold in leakage signal L7 (CHANGEINRESERVE / FORECASTRESERVE30 > 0.2)."
+    FORECASTRESERVE60:       "60-day forward reserve forecast. Used for medium-term exposure planning."
+    FORECASTRESERVE90:       "90-day forward reserve forecast. Used for long-range exposure planning and IFRS provisioning."
+    CHANGEINRESERVE:         "Period-over-period change in reserve. Positive = more doubtful debt provisioned; negative = reserve released. Primary reserve leakage signal L2."
+    RESERVECASHAPPLIED:      "Reserve cash that has been applied to this invoice. Zero on an aged invoice with CURRENTRESERVE > 0 = leakage signal L6 (reserve held but not utilised)."
+    AGINGDAYS:               "Number of days the invoice has been outstanding beyond its DUEDATE. Computed by JDE; NOT recomputed by this DP. > 30 days = overdue; > 90 days = high write-off risk."
+    FISCALPERIODID:          "Fiscal period integer key: ((Century * 100 + Year) * 100) + Month. Example: 20260800 = August 2026. Primary time dimension for all period-based trend metrics."
+    AGEASOFDATE:             "The date as-of which AGINGDAYS was calculated. Used as time dimension for OVERDUE_INVOICE_TREND metric."
 
   column_tags:
-    CompanyId:               ["grain", "identifier", "join_key"]
-    DocumentCompany:         ["grain", "identifier"]
-    DocNo:                   ["grain", "identifier", "invoice_key"]
-    DocType:                 ["grain", "identifier"]
-    PayItm:                  ["grain", "identifier"]
-    OpenAmount:              ["measure", "amount", "kpi", "dashboard", "finance"]
-    GrossAmount:             ["measure", "amount", "finance"]
-    DisputedAmount:          ["measure", "amount", "dispute", "leakage"]
-    CurrentReserve:          ["measure", "reserve", "stock", "kpi", "finance"]
-    ForecastReserve30:       ["measure", "reserve", "forecast", "kpi", "finance"]
-    ForecastReserve60:       ["measure", "reserve", "forecast", "finance"]
-    ForecastReserve90:       ["measure", "reserve", "forecast", "finance"]
-    ChangeinReserve:         ["measure", "reserve", "leakage", "kpi", "signal"]
-    ReserveCashApplied:      ["measure", "reserve", "leakage", "signal"]
-    AgingDays:               ["measure", "aging", "kpi", "overdue", "compliance"]
-    FiscalPeriodId:          ["time_dimension", "period", "kpi"]
-    AgeAsOfDate:             ["date", "time_dimension", "aging"]
-    DueDate:                 ["date", "compliance"]
+    COMPANYID:               ["grain", "identifier", "join_key"]
+    DOCUMENTCOMPANY:         ["grain", "identifier"]
+    DOCNO:                   ["grain", "identifier", "invoice_key"]
+    DOCTYPE:                 ["grain", "identifier"]
+    PAYITM:                  ["grain", "identifier"]
+    OPENAMOUNT:              ["measure", "amount", "kpi", "dashboard", "finance"]
+    GROSSAMOUNT:             ["measure", "amount", "finance"]
+    DISPUTEDAMOUNT:          ["measure", "amount", "dispute", "leakage"]
+    CURRENTRESERVE:          ["measure", "reserve", "stock", "kpi", "finance"]
+    FORECASTRESERVE30:       ["measure", "reserve", "forecast", "kpi", "finance"]
+    FORECASTRESERVE60:       ["measure", "reserve", "forecast", "finance"]
+    FORECASTRESERVE90:       ["measure", "reserve", "forecast", "finance"]
+    CHANGEINRESERVE:         ["measure", "reserve", "leakage", "kpi", "signal"]
+    RESERVECASHAPPLIED:      ["measure", "reserve", "leakage", "signal"]
+    AGINGDAYS:               ["measure", "aging", "kpi", "overdue", "compliance"]
+    FISCALPERIODID:          ["time_dimension", "period", "kpi"]
+    AGEASOFDATE:             ["date", "time_dimension", "aging"]
+    DUEDATE:                 ["date", "compliance"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. FactARCollection — Collection Facts Table
+# 3. FACTARCOLLECTION — Collection Facts Table
 # ─────────────────────────────────────────────────────────────────────────────
-- name: '"SNOWFLAKE_DB"."RL_JDE"."FactARCollection"'
+- name: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
   description: >
     Collection Facts Table — aggregated collection performance per customer,
-    LOB, and fiscal period. One row per CompanyId + CustomerNumber +
-    FiscalPeriodId + LOB. The home of CEI, unapplied cash, and collection
+    LOB, and fiscal period. One row per COMPANYID + CUSTOMERNUMBER +
+    FISCALPERIODID + LOB. The home of CEI, unapplied cash, and collection
     efficiency KPIs. Source: JDE ERP pipeline (F03B14, F03B13, F0006).
   grains:
-    - CompanyId
-    - CustomerNumber
-    - FiscalPeriodId
+    - COMPANYID
+    - CUSTOMERNUMBER
+    - FISCALPERIODID
     - LOB
   columns:
     # ── Grain ─────────────────────────────────────────────────────────────
-    CompanyId:            VARCHAR(10)
-    CustomerNumber:       VARCHAR(20)
-    FiscalPeriodId:       INTEGER
+    COMPANYID:            VARCHAR(10)
+    CUSTOMERNUMBER:       VARCHAR(20)
+    FISCALPERIODID:       INTEGER
     LOB:                  VARCHAR(50)
     # ── Organisational ────────────────────────────────────────────────────
-    BusinessUnit:         VARCHAR(10)
-    PaymentTermCode:      VARCHAR(10)
+    BUSINESSUNIT:         VARCHAR(10)
+    PAYMENTTERMCODE:      VARCHAR(10)
     # ── Collection Amounts ────────────────────────────────────────────────
-    TotalReceipts:        DECIMAL(18, 2)
-    CashApplied:          DECIMAL(18, 2)
-    ReserveCash:          DECIMAL(18, 2)
-    AdjustedCollection:   DECIMAL(18, 2)
+    TOTALRECEIPTS:        DECIMAL(18, 2)
+    CASHAPPLIED:          DECIMAL(18, 2)
+    RESERVECASH:          DECIMAL(18, 2)
+    ADJUSTEDCOLLECTION:   DECIMAL(18, 2)
     # ── Efficiency KPI ────────────────────────────────────────────────────
-    CollectionEfficiency: DECIMAL(10, 6)
+    COLLECTIONEFFICIENCY: DECIMAL(10, 6)
     # ── Audit ─────────────────────────────────────────────────────────────
-    InsertDate:           TIMESTAMP_NTZ
+    INSERTDATE:           TIMESTAMP_NTZ
 
   column_descriptions:
-    CustomerNumber:       "JDE AR customer number (grain key). Identifies the customer whose collection performance this row describes."
-    FiscalPeriodId:       "Fiscal period integer key (grain key): ((Century * 100 + Year) * 100) + Month. Primary time dimension for CEI trend and unapplied cash trend metrics."
+    CUSTOMERNUMBER:       "JDE AR customer number (grain key). Identifies the customer whose collection performance this row describes."
+    FISCALPERIODID:       "Fiscal period integer key (grain key): ((Century * 100 + Year) * 100) + Month. Primary time dimension for CEI trend and unapplied cash trend metrics."
     LOB:                  "Line of Business (grain key). Enables LOB-level CEI analysis and Exec KPI dashboard breakdown by business line."
-    TotalReceipts:        "Total cash receipts posted for this customer × period × LOB. Denominator in Unapplied Cash %. A sudden drop signals missed cash postings."
-    CashApplied:          "Cash receipts that have been matched and applied against open invoices. Numerator in CEI formula. TotalReceipts - CashApplied = unapplied cash (leakage signal L1)."
-    ReserveCash:          "Reserve cash component of total receipts. Tracked separately from standard CashApplied for reserve utilisation reporting."
-    AdjustedCollection:   "Collection amount after adjustments (discounts, write-offs, credit memos). Used in Adjusted Collection Gap leakage signal L3."
-    CollectionEfficiency: "Pre-computed Collection Efficiency Index (CEI) = CashApplied / (OpenAmount + TotalReceipts). Stored value from JDE pipeline. Always recompute from raw measures for trend analysis to avoid cross-period averaging errors."
+    TOTALRECEIPTS:        "Total cash receipts posted for this customer × period × LOB. Denominator in Unapplied Cash %. A sudden drop signals missed cash postings."
+    CASHAPPLIED:          "Cash receipts that have been matched and applied against open invoices. Numerator in CEI formula. TOTALRECEIPTS - CASHAPPLIED = unapplied cash (leakage signal L1)."
+    RESERVECASH:          "Reserve cash component of total receipts. Tracked separately from standard CASHAPPLIED for reserve utilisation reporting."
+    ADJUSTEDCOLLECTION:   "Collection amount after adjustments (discounts, write-offs, credit memos). Used in Adjusted Collection Gap leakage signal L3."
+    COLLECTIONEFFICIENCY: "Pre-computed Collection Efficiency Index (CEI) = CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS). Stored value from JDE pipeline. Always recompute from raw measures for trend analysis to avoid cross-period averaging errors."
 
   column_tags:
-    CompanyId:            ["grain", "identifier", "join_key"]
-    CustomerNumber:       ["grain", "identifier", "customer", "join_key"]
-    FiscalPeriodId:       ["grain", "time_dimension", "period", "kpi"]
+    COMPANYID:            ["grain", "identifier", "join_key"]
+    CUSTOMERNUMBER:       ["grain", "identifier", "customer", "join_key"]
+    FISCALPERIODID:       ["grain", "time_dimension", "period", "kpi"]
     LOB:                  ["grain", "dimension", "lob", "kpi"]
-    TotalReceipts:        ["measure", "amount", "receipts", "kpi"]
-    CashApplied:          ["measure", "amount", "receipts", "kpi", "cei"]
-    ReserveCash:          ["measure", "amount", "reserve"]
-    AdjustedCollection:   ["measure", "amount", "leakage", "signal"]
-    CollectionEfficiency: ["measure", "kpi", "cei", "dashboard", "stored_ratio"]
+    TOTALRECEIPTS:        ["measure", "amount", "receipts", "kpi"]
+    CASHAPPLIED:          ["measure", "amount", "receipts", "kpi", "cei"]
+    RESERVECASH:          ["measure", "amount", "reserve"]
+    ADJUSTEDCOLLECTION:   ["measure", "amount", "leakage", "signal"]
+    COLLECTIONEFFICIENCY: ["measure", "kpi", "cei", "dashboard", "stored_ratio"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. DimARCollectionLOB — Line of Business Reference Dimension
+# 4. DIMARCOLLECTIONLOB — Line of Business Reference Dimension
 # ─────────────────────────────────────────────────────────────────────────────
-- name: '"SNOWFLAKE_DB"."RL_JDE"."DimARCollectionLOB"'
+- name: JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
   description: >
     Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
-    One row per LOBKey (company + LOB code). Used to classify invoices and
+    One row per LOBKEY (company + LOB code). Used to classify invoices and
     collection records by business line across all fact tables.
     Source: JDE ERP pipeline (F0012 GL Offset descriptions).
   grains:
-    - LOBKey
+    - LOBKEY
   columns:
-    LOBKey:          INTEGER
-    CompanyId:       VARCHAR(10)
-    LOBCode:         VARCHAR(20)
-    LOBDescription:  VARCHAR(100)
-    GLOffset:        VARCHAR(10)
+    LOBKEY:          INTEGER
+    COMPANYID:       VARCHAR(10)
+    LOBCODE:         VARCHAR(20)
+    LOBDESCRIPTION:  VARCHAR(100)
+    GLOFFSET:        VARCHAR(10)
 
   column_descriptions:
-    LOBKey:         "Surrogate primary key for the LOB reference table."
-    LOBCode:        "Short Line of Business code used in FactARCollection and DimARDetails LOB fields."
-    LOBDescription: "Full name of the Line of Business (e.g., 'Maintenance', 'New Equipment'). Displayed in LOB-level CEI dashboards."
-    GLOffset:       "JDE General Ledger offset code that maps to this LOB. Join key from DimARDetails.GLOffset to derive LOB label."
+    LOBKEY:         "Surrogate primary key for the LOB reference table."
+    LOBCODE:        "Short Line of Business code used in FACTARCOLLECTION and DIMARDETAILS LOB fields."
+    LOBDESCRIPTION: "Full name of the Line of Business (e.g., 'Maintenance', 'New Equipment'). Displayed in LOB-level CEI dashboards."
+    GLOFFSET:       "JDE General Ledger offset code that maps to this LOB. Join key from DIMARDETAILS.GLOFFSET to derive LOB label."
 
   column_tags:
-    LOBKey:         ["grain", "surrogate_key"]
-    LOBCode:        ["dimension", "lob", "join_key", "kpi"]
-    LOBDescription: ["dimension", "lob", "display"]
-    GLOffset:       ["dimension", "lob", "join_key"]
+    LOBKEY:         ["grain", "surrogate_key"]
+    LOBCODE:        ["dimension", "lob", "join_key", "kpi"]
+    LOBDESCRIPTION: ["dimension", "lob", "display"]
+    GLOFFSET:       ["dimension", "lob", "join_key"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. ARPaymentTerm — Payment Term Reference Dimension
+# 5. ARPAYMENTTERM — Payment Term Reference Dimension
 # ─────────────────────────────────────────────────────────────────────────────
-- name: '"SNOWFLAKE_DB"."RL_JDE"."ARPaymentTerm"'
+- name: JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM
   description: >
     Payment Term Reference Dimension — defines payment terms used across
-    invoices and collection records. One row per PaymentTermKey (company +
-    code). Used for payment term compliance analysis (AgingDays > NetDays).
+    invoices and collection records. One row per PAYMENTTERMKEY (company +
+    code). Used for payment term compliance analysis (AGINGDAYS > NETDAYS).
     Source: JDE ERP pipeline (F0014 Payment Terms).
   grains:
-    - PaymentTermKey
+    - PAYMENTTERMKEY
   columns:
-    PaymentTermKey:   INTEGER
-    CompanyId:        VARCHAR(10)
-    PaymentTermCode:  VARCHAR(10)
-    Description:      VARCHAR(100)
-    NetDays:          INTEGER
+    PAYMENTTERMKEY:   INTEGER
+    COMPANYID:        VARCHAR(10)
+    PAYMENTTERMCODE:  VARCHAR(10)
+    DESCRIPTION:      VARCHAR(100)
+    NETDAYS:          INTEGER
 
   column_descriptions:
-    PaymentTermKey:  "Surrogate primary key for the payment term reference table."
-    PaymentTermCode: "JDE payment term code. Join key from DimARDetails.PaymentTermCode and FactARCollection.PaymentTermCode."
-    Description:     "Human-readable payment term description (e.g., 'Net 30', '2/10 Net 30'). Displayed in payment term compliance reports."
-    NetDays:         "Number of days from invoice date until payment is due. Used in compliance check: AgingDays > NetDays = invoice has breached its payment term."
+    PAYMENTTERMKEY:  "Surrogate primary key for the payment term reference table."
+    PAYMENTTERMCODE: "JDE payment term code. Join key from DIMARDETAILS.PAYMENTTERMCODE and FACTARCOLLECTION.PAYMENTTERMCODE."
+    DESCRIPTION:     "Human-readable payment term description (e.g., 'Net 30', '2/10 Net 30'). Displayed in payment term compliance reports."
+    NETDAYS:         "Number of days from invoice date until payment is due. Used in compliance check: AGINGDAYS > NETDAYS = invoice has breached its payment term."
 
   column_tags:
-    PaymentTermKey:  ["grain", "surrogate_key"]
-    PaymentTermCode: ["dimension", "compliance", "join_key"]
-    Description:     ["dimension", "compliance", "display"]
-    NetDays:         ["measure", "compliance", "kpi", "threshold"]
+    PAYMENTTERMKEY:  ["grain", "surrogate_key"]
+    PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
+    DESCRIPTION:     ["dimension", "compliance", "display"]
+    NETDAYS:         ["measure", "compliance", "kpi", "threshold"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. FACTDSO — DSO & Dispute Analytics Fact
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.FACTDSO
+  description: >
+    DSO & Dispute Analytics Fact — company × fiscal period × collection-priority grain.
+  grains:
+    - COMPANYID
+    - FISCALYEAR
+    - FISCALMONTH
+    - COLLECTIONPRIORITY
+  columns:
+    COMPANYID:               VARCHAR(10)
+    FISCALYEAR:              INTEGER
+    FISCALMONTH:             INTEGER
+    COLLECTIONPRIORITY:      VARCHAR(10)
+    TOTALOPENAR:             DECIMAL(18, 2)
+    TOTALGROSSINVOICED:      DECIMAL(18, 2)
+    DAYSINPERIOD:            INTEGER
+    DSO:                     DECIMAL(18, 4)
+    AVGCONTRACTUALNETDAYS:   DECIMAL(18, 4)
+    DSOVARIANCEFROMTERMS:    DECIMAL(18, 4)
+    DISPUTEDAMOUNTROLLING30: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING60: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING90: DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING180: DECIMAL(18, 2)
+    DISPUTERECOVERYRATIO:    DECIMAL(10, 6)
+    CEI:                     DECIMAL(10, 6)
+    INVOICECOUNT:            INTEGER
+
 ```
 
 ---
@@ -695,120 +881,120 @@ consumers:
 
 entities:
   - name: invoice_pay_item
-    grain: one row per CompanyId + DocumentCompany + DocNo + DocType + PayItm
+    grain: one row per COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM
 
   - name: collection_summary
-    grain: one row per CompanyId + CustomerNumber + FiscalPeriodId + LOB
+    grain: one row per COMPANYID + CUSTOMERNUMBER + FISCALPERIODID + LOB
 
   - name: lob_reference
-    grain: one row per LOBKey (company + LOB code)
+    grain: one row per LOBKEY (company + LOB code)
 
   - name: payment_term_reference
-    grain: one row per PaymentTermKey (company + PaymentTermCode)
+    grain: one row per PAYMENTTERMKEY (company + PAYMENTTERMCODE)
 
 entity_relationships:
-  - left: DimARDetails
-    right: FactARDetails
-    join_key: CompanyId + DocNo + DocType + PayItm
+  - left: DIMARDETAILS
+    right: FACTARDETAILS
+    join_key: COMPANYID + DOCNO + DOCTYPE + PAYITM
     purpose: Link invoice attributes (collector, dispute, customer) to invoice measures (amounts, reserves, aging)
 
-  - left: DimARDetails
-    right: FactARCollection
-    join_key: CompanyId + CustomerNumber + FiscalPeriodId
+  - left: DIMARDETAILS
+    right: FACTARCOLLECTION
+    join_key: COMPANYID + CUSTOMERNUMBER + FISCALPERIODID
     purpose: Link invoice dimension to collection performance facts for collector analysis
 
-  - left: FactARCollection
-    right: DimARCollectionLOB
+  - left: FACTARCOLLECTION
+    right: DIMARCOLLECTIONLOB
     join_key: LOB
     purpose: Enrich collection facts with LOB description for LOB-level performance reporting
 
-  - left: FactARCollection
-    right: ARPaymentTerm
-    join_key: PaymentTermCode
+  - left: FACTARCOLLECTION
+    right: ARPAYMENTTERM
+    join_key: PAYMENTTERMCODE
     purpose: Enrich collection facts with net days for payment term compliance analysis
 
-  - left: DimARDetails
-    right: DimARCollectionLOB
-    join_key: GLOffset
+  - left: DIMARDETAILS
+    right: DIMARCOLLECTIONLOB
+    join_key: GLOFFSET
     purpose: Derive LOB label for each invoice dimension row
 
-  - left: DimARDetails
-    right: ARPaymentTerm
-    join_key: PaymentTermCode
-    purpose: Enable payment term compliance check (AgingDays > NetDays) from dimension alone
+  - left: DIMARDETAILS
+    right: ARPAYMENTTERM
+    join_key: PAYMENTTERMCODE
+    purpose: Enable payment term compliance check (AGINGDAYS > NETDAYS) from dimension alone
 
 measures:
   - name: OPEN_AMOUNT
-    definition: SUM(OpenAmount) — total outstanding AR
+    definition: SUM(OPENAMOUNT) — total outstanding AR
     entity: invoice_pay_item
 
   - name: CURRENT_RESERVE
-    definition: SUM(CurrentReserve) — total reserve held
+    definition: SUM(CURRENTRESERVE) — total reserve held
     entity: invoice_pay_item
 
   - name: FORECAST_RESERVE_30
-    definition: SUM(ForecastReserve30) — 30-day forward reserve
+    definition: SUM(FORECASTRESERVE30) — 30-day forward reserve
     entity: invoice_pay_item
 
   - name: CHANGE_IN_RESERVE
-    definition: SUM(ChangeinReserve) — net reserve movement
+    definition: SUM(CHANGEINRESERVE) — net reserve movement
     entity: invoice_pay_item
 
   - name: TOTAL_RECEIPTS
-    definition: SUM(TotalReceipts) — total cash receipts
+    definition: SUM(TOTALRECEIPTS) — total cash receipts
     entity: collection_summary
 
   - name: CASH_APPLIED
-    definition: SUM(CashApplied) — receipts matched to invoices
+    definition: SUM(CASHAPPLIED) — receipts matched to invoices
     entity: collection_summary
 
   - name: COLLECTION_EFFICIENCY
-    definition: CashApplied / (OpenAmount + TotalReceipts) — CEI ratio [Assumption: formula pending Finance sign-off]
+    definition: CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS) — CEI ratio [Assumption: formula pending Finance sign-off]
     entity: collection_summary
 
   - name: UNAPPLIED_CASH_PCT
-    definition: (TotalReceipts - CashApplied) / TotalReceipts — unapplied fraction
+    definition: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS — unapplied fraction
     entity: collection_summary
 
   - name: RESERVE_ACCURACY_PCT
-    definition: 1 - ABS(ChangeinReserve / ForecastReserve30) — reserve forecast accuracy
+    definition: 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30) — reserve forecast accuracy
     entity: invoice_pay_item
 
   - name: DISPUTE_RESOLUTION_RATE
-    definition: COUNT(DisputeStatus='Resolved') / COUNT(DisputeStatus IS NOT NULL)
+    definition: COUNT(DISPUTESTATUS='Resolved') / COUNT(DISPUTESTATUS IS NOT NULL)
     entity: invoice_pay_item
 
   - name: RESERVE_CASH_COVERAGE
-    definition: ReserveCashApplied / CurrentReserve — cash coverage of reserve
+    definition: RESERVECASHAPPLIED / CURRENTRESERVE — cash coverage of reserve
     entity: invoice_pay_item
 
 metrics:
   - name: COLLECTION_EFFICIENCY_TREND
     measure: COLLECTION_EFFICIENCY
-    time_dimension: FiscalPeriodId
+    time_dimension: FISCALPERIODID
     description: CEI tracked by fiscal period
 
   - name: OPEN_AMOUNT_TREND
     measure: OPEN_AMOUNT
-    time_dimension: GLDate
+    time_dimension: GLDATE
     description: Total open AR trend over GL dates
 
   - name: RESERVE_ACCURACY_TREND
     measure: RESERVE_ACCURACY_PCT
-    time_dimension: AgeAsOfDate
+    time_dimension: AGEASOFDATE
     description: Reserve forecast accuracy tracked by period
 
   - name: UNAPPLIED_CASH_TREND
     measure: UNAPPLIED_CASH_PCT
-    time_dimension: FiscalPeriodId
+    time_dimension: FISCALPERIODID
     description: Unapplied cash % by fiscal period
 
 dimensions:
-  - name: CustomerNumber
+  - name: CUSTOMERNUMBER
     type: string
     entity: invoice_pay_item
 
-  - name: Collector
+  - name: COLLECTOR
     type: string
     entity: invoice_pay_item
 
@@ -816,35 +1002,35 @@ dimensions:
     type: string
     entity: invoice_pay_item
 
-  - name: DisputeStatus
+  - name: DISPUTESTATUS
     type: string
     entity: invoice_pay_item
 
-  - name: HoldFlag
+  - name: HOLDFLAG
     type: string
     entity: invoice_pay_item
 
-  - name: FiscalPeriodId
+  - name: FISCALPERIODID
     type: number
     entity: collection_summary
 
-  - name: GLDate
+  - name: GLDATE
     type: date
     entity: invoice_pay_item
 
-  - name: DueDate
+  - name: DUEDATE
     type: date
     entity: invoice_pay_item
 
-  - name: PaymentTermCode
+  - name: PAYMENTTERMCODE
     type: string
     entity: invoice_pay_item
 
-  - name: AgingDays
+  - name: AGINGDAYS
     type: number
     entity: invoice_pay_item
 
-  - name: CompanyId
+  - name: COMPANYID
     type: string
     entity: invoice_pay_item
 
@@ -861,7 +1047,7 @@ consumption:
 
 ## 15. Quality Rules (Recommended)
 
-> Strategy: Since the 5 RL_JDE tables are EXTERNAL (managed by the JDE pipeline), Vulcan MODEL() assertions cannot be added directly.
+> Strategy: Since the 6 RL_JDE tables are EXTERNAL (managed by the JDE pipeline), Vulcan MODEL() assertions cannot be added directly.
 > The three-layer quality strategy is:
 > 1. **Blocking audits** (`audits/*.sql`) — catch critical data integrity failures; run via `vulcan audit`
 > 2. **Non-blocking DQ checks** (`dq/*.yml`, `kind: dq`) — monitor business KPI thresholds and leakage signals
@@ -871,36 +1057,38 @@ consumption:
 
 ### Blocking Audit Files (`audits/`)
 
+> **SQL convention (this plan):** All examples use Snowflake identifiers — database `JDE_PRODUCTION`, schema `RL_JDE`, uppercase table and column names (e.g. `JDE_PRODUCTION.RL_JDE.DIMARDETAILS`, `COMPANYID`, `OPENAMOUNT`).
+
 > Each audit returns rows that represent a business problem. Zero rows = pass. Any rows = audit fails, investigation required.
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════
 -- audits/ar_fact_dim_grain_integrity.sql
 -- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: FactARDetails rows without a matching DimARDetails row
--- are invisible financial exposures. OpenAmount for those invoices cannot
--- appear in any Collector, LOB, or Dispute dashboard — they are hidden AR.
+-- BUSINESS IMPACT: FACTARDETAILS rows without a matching DIMARDETAILS row
+-- are invisible financial exposures. OPENAMOUNT for those invoices cannot
+-- appear in any COLLECTOR, LOB, or Dispute dashboard — they are hidden AR.
 -- This is the most critical integrity check in the data product.
 AUDIT (name ar_fact_dim_grain_integrity);
 
 SELECT
-    f.CompanyId,
-    f.DocumentCompany,
-    f.DocNo,
-    f.DocType,
-    f.PayItm,
-    f.OpenAmount          AS orphan_open_amount,
-    f.CurrentReserve      AS orphan_reserve,
-    f.FiscalPeriodId
-FROM RL_JDE.FactARDetails f
-LEFT JOIN RL_JDE.DimARDetails d
-    ON  f.CompanyId       = d.CompanyId
-    AND f.DocumentCompany = d.DocumentCompany
-    AND f.DocNo           = d.DocNo
-    AND f.DocType         = d.DocType
-    AND f.PayItm          = d.PayItm
-WHERE d.DocNo IS NULL
-  AND f.OpenAmount > 0;
+    f.COMPANYID,
+    f.DOCUMENTCOMPANY,
+    f.DOCNO,
+    f.DOCTYPE,
+    f.PAYITM,
+    f.OPENAMOUNT          AS orphan_open_amount,
+    f.CURRENTRESERVE      AS orphan_reserve,
+    f.FISCALPERIODID
+FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+LEFT JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+    ON  f.COMPANYID       = d.COMPANYID
+    AND f.DOCUMENTCOMPANY = d.DOCUMENTCOMPANY
+    AND f.DOCNO           = d.DOCNO
+    AND f.DOCTYPE         = d.DOCTYPE
+    AND f.PAYITM          = d.PAYITM
+WHERE d.DOCNO IS NULL
+  AND f.OPENAMOUNT > 0;
 -- Only flag rows with actual outstanding balance (zero-balance orphans are lower priority)
 ```
 
@@ -911,26 +1099,26 @@ WHERE d.DocNo IS NULL
 -- BUSINESS IMPACT: A null or empty LOB on an invoice means that invoice
 -- is excluded from ALL LOB-level CEI calculations, Exec KPI dashboards,
 -- and LOB performance reports (DQ3 in design doc).
--- Root cause: GLOffset in F03B11 has no matching row in DimARCollectionLOB.
--- Fix: Add the missing GLOffset to the DimARCollectionLOB reference table.
+-- Root cause: GLOFFSET in F03B11 has no matching row in DIMARCOLLECTIONLOB.
+-- Fix: Add the missing GLOFFSET to the DIMARCOLLECTIONLOB reference table.
 AUDIT (name ar_lob_not_derivable);
 
 SELECT
-    d.CompanyId,
-    d.DocNo,
-    d.DocType,
-    d.PayItm,
-    d.GLOffset            AS unmapped_gl_offset,
-    f.OpenAmount          AS open_amount_excluded_from_lob_reports
-FROM RL_JDE.DimARDetails d
-JOIN RL_JDE.FactARDetails f
-    ON  d.CompanyId       = f.CompanyId
-    AND d.DocumentCompany = f.DocumentCompany
-    AND d.DocNo           = f.DocNo
-    AND d.DocType         = f.DocType
-    AND d.PayItm          = f.PayItm
+    d.COMPANYID,
+    d.DOCNO,
+    d.DOCTYPE,
+    d.PAYITM,
+    d.GLOFFSET            AS unmapped_gl_offset,
+    f.OPENAMOUNT          AS open_amount_excluded_from_lob_reports
+FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+    ON  d.COMPANYID       = f.COMPANYID
+    AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+    AND d.DOCNO           = f.DOCNO
+    AND d.DOCTYPE         = f.DOCTYPE
+    AND d.PAYITM          = f.PAYITM
 WHERE (d.LOB IS NULL OR d.LOB = '')
-  AND f.OpenAmount > 0;
+  AND f.OPENAMOUNT > 0;
 -- Show open amount to quantify financial impact of missing LOB derivation
 ```
 
@@ -940,36 +1128,36 @@ WHERE (d.LOB IS NULL OR d.LOB = '')
 -- ═══════════════════════════════════════════════════════════════════════
 -- BUSINESS IMPACT: Partial dispute records (one field populated, the other null)
 -- corrupt the Dispute Resolution Rate KPI (DQ5 in design doc).
--- Example: DisputeStatus = "Open" but DisputeReasonCode = null means the
+-- Example: DISPUTESTATUS = "Open" but DISPUTEREASONCODE = null means the
 -- dispute cannot be categorised in Dispute Tracking reports.
 -- Root cause: JDE data entry error or incomplete dispute posting in F03B11.
 AUDIT (name ar_dispute_co_population_integrity);
 
 SELECT
-    CompanyId,
-    DocNo,
-    DocType,
-    PayItm,
-    CustomerNumber,
-    Collector,
-    DisputeStatus,
-    DisputeReasonCode,
+    COMPANYID,
+    DOCNO,
+    DOCTYPE,
+    PAYITM,
+    CUSTOMERNUMBER,
+    COLLECTOR,
+    DISPUTESTATUS,
+    DISPUTEREASONCODE,
     CASE
-        WHEN DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL
+        WHEN DISPUTESTATUS IS NOT NULL AND DISPUTEREASONCODE IS NULL
             THEN 'Status set, ReasonCode missing — dispute cannot be categorised'
-        WHEN DisputeStatus IS NULL AND DisputeReasonCode IS NOT NULL
+        WHEN DISPUTESTATUS IS NULL AND DISPUTEREASONCODE IS NOT NULL
             THEN 'ReasonCode set, Status missing — dispute cannot be tracked'
     END AS integrity_violation_description
-FROM RL_JDE.DimARDetails
-WHERE (DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL)
-   OR (DisputeStatus IS NULL     AND DisputeReasonCode IS NOT NULL);
+FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+WHERE (DISPUTESTATUS IS NOT NULL AND DISPUTEREASONCODE IS NULL)
+   OR (DISPUTESTATUS IS NULL     AND DISPUTEREASONCODE IS NOT NULL);
 ```
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════
 -- audits/ar_cash_applied_exceeds_receipts.sql
 -- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: CashApplied > TotalReceipts is a JDE misposting error.
+-- BUSINESS IMPACT: CASHAPPLIED > TOTALRECEIPTS is a JDE misposting error.
 -- Mathematically impossible in real operations — you cannot apply more cash
 -- than you received. Each row here directly inflates the CEI for that
 -- customer × period × LOB, causing the KPI to show collection performance
@@ -979,16 +1167,16 @@ WHERE (DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL)
 AUDIT (name ar_cash_applied_exceeds_receipts);
 
 SELECT
-    CompanyId,
-    CustomerNumber,
-    FiscalPeriodId,
+    COMPANYID,
+    CUSTOMERNUMBER,
+    FISCALPERIODID,
     LOB,
-    TotalReceipts,
-    CashApplied,
-    CashApplied - TotalReceipts          AS over_application_amount,
-    ROUND(CashApplied / NULLIF(TotalReceipts, 0) * 100, 2) AS applied_pct
-FROM RL_JDE.FactARCollection
-WHERE CashApplied > TotalReceipts * 1.005;
+    TOTALRECEIPTS,
+    CASHAPPLIED,
+    CASHAPPLIED - TOTALRECEIPTS          AS over_application_amount,
+    ROUND(CASHAPPLIED / NULLIF(TOTALRECEIPTS, 0) * 100, 2) AS applied_pct
+FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+WHERE CASHAPPLIED > TOTALRECEIPTS * 1.005;
 -- 0.5% tolerance covers legitimate floating-point rounding in JDE decimal encoding
 ```
 
@@ -996,74 +1184,45 @@ WHERE CashApplied > TotalReceipts * 1.005;
 -- ═══════════════════════════════════════════════════════════════════════
 -- audits/ar_payment_term_orphan.sql
 -- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: A PaymentTermCode on an invoice that has no row in
--- ARPaymentTerm means NetDays is unknown for that invoice.
--- Payment Term Compliance analysis (AgingDays > NetDays) will silently
+-- BUSINESS IMPACT: A PAYMENTTERMCODE on an invoice that has no row in
+-- ARPAYMENTTERM means NETDAYS is unknown for that invoice.
+-- Payment Term Compliance analysis (AGINGDAYS > NETDAYS) will silently
 -- exclude those invoices — they will never appear in "breaching payment terms"
 -- reports even when genuinely overdue.
--- Root cause: New payment term added to JDE but not yet loaded to ARPaymentTerm.
+-- Root cause: New payment term added to JDE but not yet loaded to ARPAYMENTTERM.
 AUDIT (name ar_payment_term_orphan);
 
 SELECT
-    d.CompanyId,
-    d.DocNo,
-    d.DocType,
-    d.PayItm,
-    d.CustomerNumber,
-    d.PaymentTermCode     AS unmapped_payment_term,
-    f.AgingDays,
-    f.OpenAmount
-FROM RL_JDE.DimARDetails d
-JOIN RL_JDE.FactARDetails f
-    ON  d.CompanyId       = f.CompanyId
-    AND d.DocumentCompany = f.DocumentCompany
-    AND d.DocNo           = f.DocNo
-    AND d.DocType         = f.DocType
-    AND d.PayItm          = f.PayItm
-LEFT JOIN RL_JDE.ARPaymentTerm pt
-    ON d.PaymentTermCode  = pt.PaymentTermCode
-WHERE d.PaymentTermCode IS NOT NULL
-  AND pt.PaymentTermCode IS NULL
-  AND f.OpenAmount        > 0;
+    d.COMPANYID,
+    d.DOCNO,
+    d.DOCTYPE,
+    d.PAYITM,
+    d.CUSTOMERNUMBER,
+    d.PAYMENTTERMCODE     AS unmapped_payment_term,
+    f.AGINGDAYS,
+    f.OPENAMOUNT
+FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+    ON  d.COMPANYID       = f.COMPANYID
+    AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+    AND d.DOCNO           = f.DOCNO
+    AND d.DOCTYPE         = f.DOCTYPE
+    AND d.PAYITM          = f.PAYITM
+LEFT JOIN JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM pt
+    ON d.PAYMENTTERMCODE  = pt.PAYMENTTERMCODE
+WHERE d.PAYMENTTERMCODE IS NOT NULL
+  AND pt.PAYMENTTERMCODE IS NULL
+  AND f.OPENAMOUNT        > 0;
 ```
 
-```sql
--- ═══════════════════════════════════════════════════════════════════════
--- audits/ar_reserve_forecast_gap.sql
--- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: Active open invoices with all three forecast buckets
--- at zero (ForecastReserve30 = 0, ForecastReserve60 = 0, ForecastReserve90 = 0)
--- indicate that the JDE reserve calculation process was not run for those invoices
--- (DQ6 in design doc). Finance cannot provision for these invoices —
--- they represent untracked credit risk on the balance sheet.
-AUDIT (name ar_reserve_forecast_gap);
-
-SELECT
-    CompanyId,
-    DocNo,
-    DocType,
-    PayItm,
-    OpenAmount,
-    AgingDays,
-    FiscalPeriodId,
-    ForecastReserve30,
-    ForecastReserve60,
-    ForecastReserve90
-FROM RL_JDE.FactARDetails
-WHERE OpenAmount         > 1000         -- Only flag material invoices
-  AND AgingDays          > 0            -- Invoice is already past due date
-  AND ForecastReserve30  = 0
-  AND ForecastReserve60  = 0
-  AND ForecastReserve90  = 0
-ORDER BY OpenAmount DESC;
--- High OpenAmount rows first — sort by business impact
-```
-
-```sql
+-- audits/ar_reserve_forecast_gap.sql  [DEPRECATED — removed from active checks per D12]
+-- Previously flagged active invoices with zero forecast reserve buckets.
+-- Finance confirmed this is no longer an invoice-level DQ enforcement target.
+-- File retained for reference only; not registered in inputs.yaml audits.
 -- ═══════════════════════════════════════════════════════════════════════
 -- audits/ar_period_all_companies_present.sql
 -- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: If any company is missing from FactARCollection for the
+-- BUSINESS IMPACT: If any company is missing from FACTARCOLLECTION for the
 -- current fiscal period, that company's entire collection performance is
 -- absent from the period-end CEI report and Exec KPI dashboard (DQ4 in design doc).
 -- Finance will produce an incomplete period-end AR summary.
@@ -1073,59 +1232,60 @@ AUDIT (name ar_period_all_companies_present);
 
 WITH companies_with_recent_history AS (
     -- Companies that had collection activity in the past 3 periods
-    SELECT DISTINCT CompanyId
-    FROM RL_JDE.FactARCollection
-    WHERE FiscalPeriodId >= (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection) - 3
+    SELECT DISTINCT COMPANYID
+    FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+    WHERE FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION) - 3
 ),
 latest_period_companies AS (
-    SELECT DISTINCT CompanyId
-    FROM RL_JDE.FactARCollection
-    WHERE FiscalPeriodId = (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection)
+    SELECT DISTINCT COMPANYID
+    FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+    WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
 )
 SELECT
-    h.CompanyId                                                     AS missing_company,
-    (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection)       AS current_period,
+    h.COMPANYID                                                     AS missing_company,
+    (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)       AS current_period,
     'Company had collection data in recent periods but is absent in current period'
         AS impact_description
 FROM companies_with_recent_history h
-LEFT JOIN latest_period_companies l ON h.CompanyId = l.CompanyId
-WHERE l.CompanyId IS NULL;
+LEFT JOIN latest_period_companies l ON h.COMPANYID = l.COMPANYID
+WHERE l.COMPANYID IS NULL;
 ```
 
 ```sql
 -- ═══════════════════════════════════════════════════════════════════════
 -- audits/ar_collector_unassigned_on_overdue.sql
 -- ═══════════════════════════════════════════════════════════════════════
--- BUSINESS IMPACT: An overdue invoice (AgingDays > 30) with no Collector
--- assigned has no owner for follow-up. It cannot appear in any Collector
--- Performance report, and no email action trigger will fire for it.
--- This is a direct collection governance gap — unmanaged AR.
--- Root cause: New invoice raised for a customer not yet assigned to a
--- collector in JDE F0101 Address Book.
+-- BUSINESS IMPACT: Overdue invoices without a COLLECTOR assigned have no owner
+-- for follow-up. Tiered policy:
+--   >90 days + open balance = hard fail (blocking audit)
+--   >60 days = monitor-only DQ warning
+--   >30 days = monitor-only DQ warning
+-- Root cause: customer not yet assigned to a collector in JDE F0101 Address Book.
 AUDIT (name ar_collector_unassigned_on_overdue);
 
 SELECT
-    d.CompanyId,
-    d.DocNo,
-    d.DocType,
-    d.PayItm,
-    d.CustomerNumber,
+    d.COMPANYID,
+    d.DOCNO,
+    d.DOCTYPE,
+    d.PAYITM,
+    d.CUSTOMERNUMBER,
     d.LOB,
-    d.DueDate,
-    f.AgingDays,
-    f.OpenAmount,
-    d.DisputeStatus
-FROM RL_JDE.DimARDetails d
-JOIN RL_JDE.FactARDetails f
-    ON  d.CompanyId       = f.CompanyId
-    AND d.DocumentCompany = f.DocumentCompany
-    AND d.DocNo           = f.DocNo
-    AND d.DocType         = f.DocType
-    AND d.PayItm          = f.PayItm
-WHERE (d.Collector IS NULL OR d.Collector = '')
-  AND f.AgingDays  > 30
-  AND f.OpenAmount > 0
-ORDER BY f.OpenAmount DESC;
+    d.DUEDATE,
+    f.AGINGDAYS,
+    f.OPENAMOUNT,
+    d.DISPUTESTATUS
+FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+    ON  d.COMPANYID       = f.COMPANYID
+    AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+    AND d.DOCNO           = f.DOCNO
+    AND d.DOCTYPE         = f.DOCTYPE
+    AND d.PAYITM          = f.PAYITM
+WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+  AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+  AND f.AGINGDAYS > 90
+  AND f.OPENAMOUNT > 0
+ORDER BY f.OPENAMOUNT DESC;
 ```
 
 ---
@@ -1134,56 +1294,103 @@ ORDER BY f.OpenAmount DESC;
 
 ```yaml
 # ═══════════════════════════════════════════════════════════════════════════
-# dq/DimARDetails.yml
+# dq/DIMARDETAILS.yml
 # ═══════════════════════════════════════════════════════════════════════════
 # Business purpose: Monitor the Invoice Dimension — the descriptive backbone
-# of Invoice 360. Without correct attribution (Collector, LOB, Customer),
+# of Invoice 360. Without correct attribution (COLLECTOR, LOB, Customer),
 # every AR KPI breaks silently. These rules catch the slow degradation that
 # audits miss (gradual null creep, growing unattributed invoices over time).
 kind: dq
-name: DimARDetails_dq
-depends_on: RL_JDE.DimARDetails
+name: DIMARDETAILS_dq
+depends_on: JDE_PRODUCTION.RL_JDE.DIMARDETAILS
 
 profiles:
-  - Collector
+  - COLLECTOR
   - LOB
-  - DisputeStatus
-  - HoldFlag
-  - ModifyDate
+  - DISPUTESTATUS
+  - HOLDFLAG
+  - MODIFYDATE
 
 rules:
 
   # ── Completeness ─────────────────────────────────────────────────────────
 
-  - missing_count(CustomerNumber) = 0:
+  - missing_count(CUSTOMERNUMBER) = 0:
       name: every_invoice_has_a_customer
       dimension: completeness
       description: >
-        Every invoice must be attributed to a customer. Null CustomerNumber
-        = the invoice cannot appear in any customer-level AR report, Collector
+        Every invoice must be attributed to a customer. Null CUSTOMERNUMBER
+        = the invoice cannot appear in any customer-level AR report, COLLECTOR
         Performance dashboard, or Parent Customer rollup. Zero tolerance.
 
-  - missing_count(Collector) = 0:
-      name: every_invoice_has_a_collector
+  - failed rows:
+      name: collector_required_for_way_overdue_invoices
       dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.DOCTYPE, d.PAYITM,
+               d.CUSTOMERNUMBER, d.COLLECTOR, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS > 90
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
       description: >
-        Collector is the accountability field for AR follow-up. A null Collector
-        means no one owns this invoice — it will not appear in Collector Performance
-        KPIs, and no email escalation trigger will fire. Zero tolerance.
+        COLLECTOR is required when COLLECTIONPRIORITY != 'NONE' (prioritized for collections)
+        and invoice is way overdue. Hard fail when AGINGDAYS > 90.
 
-  - missing_count(DueDate) = 0:
+  - failed rows:
+      name: collector_missing_monitor_60_days
+      dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.CUSTOMERNUMBER, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS BETWEEN 61 AND 90
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
+      description: >
+        Monitor-only tier: missing collector on invoices overdue 61–90 days.
+        Warning signal — not zero tolerance.
+
+  - failed rows:
+      name: collector_missing_monitor_30_days
+      dimension: completeness
+      fail query: |
+        SELECT d.COMPANYID, d.DOCNO, d.CUSTOMERNUMBER, f.AGINGDAYS, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCUMENTCOMPANY = f.DOCUMENTCOMPANY
+         AND d.DOCNO = f.DOCNO AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE (d.COLLECTOR IS NULL OR TRIM(d.COLLECTOR) = '')
+          AND d.COLLECTIONPRIORITY IS NOT NULL AND d.COLLECTIONPRIORITY <> 'NONE'
+          AND f.AGINGDAYS BETWEEN 31 AND 60
+          AND f.OPENAMOUNT > 0
+      samples limit: 20
+      description: >
+        Monitor-only tier: missing collector on invoices overdue 31–60 days.
+        Early warning — not zero tolerance.
+
+  - missing_count(DUEDATE) = 0:
       name: every_invoice_has_a_due_date
       dimension: completeness
       description: >
-        DueDate is required for AgingDays calculation and payment term compliance.
-        A null DueDate = AgingDays cannot be computed for that invoice, making it
+        DUEDATE is required for AGINGDAYS calculation and payment term compliance.
+        A null DUEDATE = AGINGDAYS cannot be computed for that invoice, making it
         invisible in overdue aging analysis.
 
   - missing_percent(LOB) < 1:
       name: lob_derived_for_99pct_of_invoices
       dimension: coverage
       description: >
-        LOB is derived from GLOffset via DimARCollectionLOB. Up to 1% null LOB
+        LOB is derived from GLOFFSET via DIMARCOLLECTIONLOB. Up to 1% null LOB
         is tolerated for newly-added GL Offsets not yet in the reference table.
         Above 1% signals a systematic GL Offset mapping failure — LOB-level CEI
         and Exec dashboards will have significant blind spots.
@@ -1191,11 +1398,11 @@ rules:
 
   # ── Uniqueness ────────────────────────────────────────────────────────────
 
-  - duplicate_count(CompanyId, DocumentCompany, DocNo, DocType, PayItm) = 0:
+  - duplicate_count(COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM) = 0:
       name: invoice_grain_must_be_unique
       dimension: uniqueness
       description: >
-        Duplicate grain rows cause double-counting in OpenAmount totals and CEI.
+        Duplicate grain rows cause double-counting in OPENAMOUNT totals and CEI.
         This is a hard data integrity failure — every financial KPI on this table
         will be inflated. Zero tolerance.
 
@@ -1205,18 +1412,18 @@ rules:
       name: dispute_status_and_reason_code_co_populated
       dimension: validity
       fail query: |
-        SELECT CompanyId, DocNo, DocType, PayItm,
-               CustomerNumber, Collector,
-               DisputeStatus, DisputeReasonCode,
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               CUSTOMERNUMBER, COLLECTOR,
+               DISPUTESTATUS, DISPUTEREASONCODE,
                CASE
-                   WHEN DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL
+                   WHEN DISPUTESTATUS IS NOT NULL AND DISPUTEREASONCODE IS NULL
                        THEN 'Status set, ReasonCode missing'
-                   WHEN DisputeStatus IS NULL AND DisputeReasonCode IS NOT NULL
+                   WHEN DISPUTESTATUS IS NULL AND DISPUTEREASONCODE IS NOT NULL
                        THEN 'ReasonCode set, Status missing'
                END AS violation
-        FROM RL_JDE.DimARDetails
-        WHERE (DisputeStatus IS NOT NULL AND DisputeReasonCode IS NULL)
-           OR (DisputeStatus IS NULL     AND DisputeReasonCode IS NOT NULL)
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS
+        WHERE (DISPUTESTATUS IS NOT NULL AND DISPUTEREASONCODE IS NULL)
+           OR (DISPUTESTATUS IS NULL     AND DISPUTEREASONCODE IS NOT NULL)
       samples limit: 20
       description: >
         Dispute Resolution Rate KPI requires both fields populated together or
@@ -1225,36 +1432,22 @@ rules:
         understating the Dispute Resolution Rate.
 
   - failed rows:
-      name: hold_flag_must_be_y_or_n
-      dimension: conformity
-      fail query: |
-        SELECT CompanyId, DocNo, CustomerNumber, HoldFlag
-        FROM RL_JDE.DimARDetails
-        WHERE HoldFlag IS NOT NULL
-          AND HoldFlag NOT IN ('Y', 'N', '')
-      samples limit: 10
-      description: >
-        HoldFlag must be Y (on hold) or N (not on hold). Unexpected values corrupt
-        the Credit Hold Open Invoices leakage signal (L8): HoldFlag = 'Y' + OpenAmount > 0
-        triggers an action alert — garbage values will cause false alerts or missed alerts.
-
-  - failed rows:
       name: payment_term_code_in_reference_table
       dimension: consistency
       fail query: |
-        SELECT d.CompanyId, d.DocNo, d.PaymentTermCode, f.AgingDays
-        FROM RL_JDE.DimARDetails d
-        JOIN RL_JDE.FactARDetails f
-            ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
-           AND d.DocType = f.DocType AND d.PayItm = f.PayItm
-        LEFT JOIN RL_JDE.ARPaymentTerm pt ON d.PaymentTermCode = pt.PaymentTermCode
-        WHERE d.PaymentTermCode IS NOT NULL
-          AND pt.PaymentTermCode IS NULL
-          AND f.OpenAmount > 0
+        SELECT d.COMPANYID, d.DOCNO, d.PAYMENTTERMCODE, f.AGINGDAYS
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+            ON d.COMPANYID = f.COMPANYID AND d.DOCNO = f.DOCNO
+           AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        LEFT JOIN JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM pt ON d.PAYMENTTERMCODE = pt.PAYMENTTERMCODE
+        WHERE d.PAYMENTTERMCODE IS NOT NULL
+          AND pt.PAYMENTTERMCODE IS NULL
+          AND f.OPENAMOUNT > 0
       samples limit: 20
       description: >
-        Invoices with PaymentTermCode absent from ARPaymentTerm cannot be assessed
-        for payment term compliance (AgingDays > NetDays). They are silently excluded
+        Invoices with PAYMENTTERMCODE absent from ARPAYMENTTERM cannot be assessed
+        for payment term compliance (AGINGDAYS > NETDAYS). They are silently excluded
         from the 'invoices breaching payment terms' report — a compliance blind spot.
 
   # ── Accuracy: Leakage Signal Monitoring ──────────────────────────────────
@@ -1264,21 +1457,21 @@ rules:
       dimension: accuracy
       fail query: |
         SELECT
-            d.CompanyId,
-            d.CustomerNumber,
-            d.HoldFlag,
+            d.COMPANYID,
+            d.CUSTOMERNUMBER,
+            d.HOLDFLAG,
             COUNT(*)              AS invoice_count,
-            SUM(f.OpenAmount)     AS total_open_amount,
-            MAX(f.AgingDays)      AS max_aging_days
-        FROM RL_JDE.DimARDetails d
-        JOIN RL_JDE.FactARDetails f
-            ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
-           AND d.DocType = f.DocType AND d.PayItm = f.PayItm
-        WHERE d.HoldFlag    = 'Y'
-          AND f.OpenAmount   > 0
-          AND f.AgingDays   > 90
-        GROUP BY d.CompanyId, d.CustomerNumber, d.HoldFlag
-        HAVING SUM(f.OpenAmount) > 10000
+            SUM(f.OPENAMOUNT)     AS total_open_amount,
+            MAX(f.AGINGDAYS)      AS max_aging_days
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+            ON d.COMPANYID = f.COMPANYID AND d.DOCNO = f.DOCNO
+           AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE d.HOLDFLAG    = 'Y'
+          AND f.OPENAMOUNT   > 0
+          AND f.AGINGDAYS   > 90
+        GROUP BY d.COMPANYID, d.CUSTOMERNUMBER, d.HOLDFLAG
+        HAVING SUM(f.OPENAMOUNT) > 10000
       samples limit: 10
       description: >
         Leakage Signal L8: Customers on credit hold with >$10,000 open AR aged >90 days
@@ -1300,7 +1493,7 @@ rules:
       name: invoice_count_not_dropping_unexpectedly
       dimension: timeliness
       description: >
-        A 10%+ drop in DimARDetails row count is a strong pipeline failure signal.
+        A 10%+ drop in DIMARDETAILS row count is a strong pipeline failure signal.
         Even a 5% drop in invoice count means a significant portion of AR is missing
         from all dashboards. Threshold of 10% catches failures while tolerating normal
         period-end invoice closures.
@@ -1308,58 +1501,70 @@ rules:
 
 ```yaml
 # ═══════════════════════════════════════════════════════════════════════════
-# dq/FactARDetails.yml
+# dq/FACTARDETAILS.yml
 # ═══════════════════════════════════════════════════════════════════════════
 # Business purpose: Monitor the Invoice Measures table — where every financial
 # KPI lives. Amount errors here propagate directly to Exec KPI dashboards,
 # Finance period-end reports, and reserve provisioning. These rules catch
 # the data failures that cause Finance to restate numbers.
 kind: dq
-name: FactARDetails_dq
-depends_on: RL_JDE.FactARDetails
+name: FACTARDETAILS_dq
+depends_on: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
 
 profiles:
-  - OpenAmount
-  - CurrentReserve
-  - ForecastReserve30
-  - ChangeinReserve
-  - AgingDays
+  - OPENAMOUNT
+  - CURRENTRESERVE
+  - FORECASTRESERVE30
+  - CHANGEINRESERVE
+  - AGINGDAYS
 
 rules:
 
   # ── Completeness ─────────────────────────────────────────────────────────
 
-  - missing_count(FiscalPeriodId) = 0:
+  - missing_count(FISCALPERIODID) = 0:
       name: fiscal_period_required_for_all_invoices
       dimension: completeness
       description: >
-        FiscalPeriodId is the primary time key for all period-based trend metrics
-        (OPEN_AR_TREND, RESERVE_ACCURACY_TREND). A null FiscalPeriodId = this invoice
+        FISCALPERIODID is the primary time key for all period-based trend metrics
+        (OPEN_AR_TREND, RESERVE_ACCURACY_TREND). A null FISCALPERIODID = this invoice
         is excluded from every time-series KPI. Zero tolerance.
 
   # ── Uniqueness ────────────────────────────────────────────────────────────
 
-  - duplicate_count(CompanyId, DocumentCompany, DocNo, DocType, PayItm) = 0:
+  - duplicate_count(COMPANYID, DOCUMENTCOMPANY, DOCNO, DOCTYPE, PAYITM) = 0:
       name: fact_invoice_grain_unique
       dimension: uniqueness
       description: >
-        Duplicate fact rows double-count OpenAmount, CurrentReserve, and all other
+        Duplicate fact rows double-count OPENAMOUNT, CURRENTRESERVE, and all other
         measures — a direct financial misstatement. Zero tolerance.
 
   # ── Validity: Amount Sanity ───────────────────────────────────────────────
 
   - failed rows:
+      name: every_invoice_has_nonzero_gross_amount
+      dimension: completeness
+      fail query: |
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM, OPENAMOUNT, GROSSAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+        WHERE GROSSAMOUNT IS NULL OR GROSSAMOUNT <= 0
+      samples limit: 20
+      description: >
+        Every loaded invoice row should carry a positive gross amount (GROSSAMOUNT > 0).
+        Null or zero gross indicates missing measure population.
+
+  - failed rows:
       name: open_amount_must_not_be_negative_without_reason
       dimension: validity
       fail query: |
-        SELECT CompanyId, DocNo, DocType, PayItm,
-               OpenAmount, GrossAmount, AgingDays
-        FROM RL_JDE.FactARDetails
-        WHERE OpenAmount < -1
-          AND GrossAmount > 0
+        SELECT COMPANYID, DOCNO, DOCTYPE, PAYITM,
+               OPENAMOUNT, GROSSAMOUNT, AGINGDAYS
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+        WHERE OPENAMOUNT < -1
+          AND GROSSAMOUNT > 0
       samples limit: 10
       description: >
-        OpenAmount < 0 on an invoice with positive GrossAmount indicates a JDE
+        OPENAMOUNT < 0 on an invoice with positive GROSSAMOUNT indicates a JDE
         decimal encoding or sign error. Negative open amounts subtract from total
         AR exposure, making the portfolio look healthier than it actually is.
         Allow -1 tolerance for rounding; flag anything more negative.
@@ -1368,57 +1573,34 @@ rules:
       name: aging_days_must_be_non_negative
       dimension: validity
       fail query: |
-        SELECT CompanyId, DocNo, AgingDays, DueDate, AgeAsOfDate
-        FROM RL_JDE.FactARDetails
-        WHERE AgingDays < -730
+        SELECT COMPANYID, DOCNO, AGINGDAYS, DUEDATE, AGEASOFDATE
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+        WHERE AGINGDAYS < -730
       samples limit: 10
       description: >
-        AgingDays represents days past due. Allow up to -730 (invoices dated
+        AGINGDAYS represents days past due. Allow up to -730 (invoices dated
         2 years in the future — valid for long-term contracts). More negative
         than -730 = JDE date conversion error (Julian-to-Gregorian failure).
 
   # ── Accuracy: Reserve & Forecast Monitoring ──────────────────────────────
 
   - failed rows:
-      name: active_invoices_have_no_reserve_forecast
-      dimension: accuracy
-      fail query: |
-        SELECT
-            CompanyId, DocNo, DocType, PayItm,
-            OpenAmount, AgingDays,
-            ForecastReserve30, ForecastReserve60, ForecastReserve90,
-            FiscalPeriodId
-        FROM RL_JDE.FactARDetails
-        WHERE OpenAmount        > 5000
-          AND AgingDays         > 30
-          AND ForecastReserve30 = 0
-          AND ForecastReserve60 = 0
-          AND ForecastReserve90 = 0
-        ORDER BY OpenAmount DESC
-      samples limit: 20
-      description: >
-        DQ6 from design doc: Active invoices >$5,000 and >30 days overdue with zero
-        forecast reserves are unprovisioned credit risk on the balance sheet.
-        Finance cannot include them in IFRS/GAAP doubtful debt provisions.
-        Each row here is a provisioning gap. [Threshold: $5,000 — adjust to materiality]
-
-  - failed rows:
       name: reserve_change_exceeds_forecast_threshold
       dimension: accuracy
       fail query: |
         SELECT
-            CompanyId, DocNo, DocType, PayItm,
-            FiscalPeriodId,
-            ChangeinReserve,
-            ForecastReserve30,
-            ROUND(ABS(ChangeinReserve) / NULLIF(ForecastReserve30, 0) * 100, 1)
+            COMPANYID, DOCNO, DOCTYPE, PAYITM,
+            FISCALPERIODID,
+            CHANGEINRESERVE,
+            FORECASTRESERVE30,
+            ROUND(ABS(CHANGEINRESERVE) / NULLIF(FORECASTRESERVE30, 0) * 100, 1)
                 AS reserve_change_pct,
-            OpenAmount
-        FROM RL_JDE.FactARDetails
-        WHERE ForecastReserve30 > 0
-          AND ABS(ChangeinReserve) / ForecastReserve30 > 0.20
-          AND OpenAmount > 1000
-        ORDER BY ABS(ChangeinReserve) DESC
+            OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS
+        WHERE FORECASTRESERVE30 > 0
+          AND ABS(CHANGEINRESERVE) / FORECASTRESERVE30 > 0.20
+          AND OPENAMOUNT > 1000
+        ORDER BY ABS(CHANGEINRESERVE) DESC
       samples limit: 20
       description: >
         Leakage Signal L7: Reserve changed by >20% vs 30-day forecast.
@@ -1427,7 +1609,7 @@ rules:
         events. Systematic L7 signals indicate the reserve model needs recalibration.
         [Threshold: 20% — pending Analytics sign-off]
 
-  - anomaly detection for sum(OpenAmount):
+  - anomaly detection for sum(OPENAMOUNT):
       name: total_open_ar_anomaly
       dimension: accuracy
       description: >
@@ -1436,7 +1618,7 @@ rules:
         indicate duplicate invoice loading. Either event requires Finance review
         before period-end reporting.
 
-  - anomaly detection for sum(CurrentReserve):
+  - anomaly detection for sum(CURRENTRESERVE):
       name: total_reserve_balance_anomaly
       dimension: accuracy
       description: >
@@ -1450,40 +1632,40 @@ rules:
       name: fact_invoice_count_not_dropping
       dimension: timeliness
       description: >
-        A 10%+ drop in FactARDetails rows signals that invoice measures were not
+        A 10%+ drop in FACTARDETAILS rows signals that invoice measures were not
         loaded for a portion of the portfolio — those invoices will show $0 open
         amount on dashboards (they will appear financially settled when they are not).
 ```
 
 ```yaml
 # ═══════════════════════════════════════════════════════════════════════════
-# dq/FactARCollection.yml
+# dq/FACTARCOLLECTION.yml
 # ═══════════════════════════════════════════════════════════════════════════
 # Business purpose: Monitor collection performance facts — the home of CEI,
 # unapplied cash, and receipt volume. Data errors here translate directly to
 # incorrect CEI reported to the Collections Manager and GM.
-# "Our CEI is 87%" is only true if FactARCollection is clean.
+# "Our CEI is 87%" is only true if FACTARCOLLECTION is clean.
 kind: dq
-name: FactARCollection_dq
-depends_on: RL_JDE.FactARCollection
+name: FACTARCOLLECTION_dq
+depends_on: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
 
 profiles:
-  - TotalReceipts
-  - CashApplied
-  - CollectionEfficiency
-  - FiscalPeriodId
+  - TOTALRECEIPTS
+  - CASHAPPLIED
+  - COLLECTIONEFFICIENCY
+  - FISCALPERIODID
   - LOB
 
 rules:
 
   # ── Completeness ─────────────────────────────────────────────────────────
 
-  - missing_count(FiscalPeriodId) = 0:
+  - missing_count(FISCALPERIODID) = 0:
       name: fiscal_period_required_in_collection_facts
       dimension: completeness
       description: >
-        FiscalPeriodId is the grain key and primary time dimension for CEI trend.
-        Null FiscalPeriodId = this customer's collection performance is not included
+        FISCALPERIODID is the grain key and primary time dimension for CEI trend.
+        Null FISCALPERIODID = this customer's collection performance is not included
         in any period-based KPI. Zero tolerance.
 
   - missing_count(LOB) = 0:
@@ -1496,11 +1678,11 @@ rules:
 
   # ── Uniqueness ────────────────────────────────────────────────────────────
 
-  - duplicate_count(CompanyId, CustomerNumber, FiscalPeriodId, LOB) = 0:
+  - duplicate_count(COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB) = 0:
       name: collection_grain_must_be_unique
       dimension: uniqueness
       description: >
-        Duplicate grain rows double-count TotalReceipts and CashApplied in CEI.
+        Duplicate grain rows double-count TOTALRECEIPTS and CASHAPPLIED in CEI.
         A CEI of 92% computed from duplicated data may actually be 84% — this is
         a material misstatement of the primary AR health KPI. Zero tolerance.
 
@@ -1511,16 +1693,16 @@ rules:
       dimension: validity
       fail query: |
         SELECT
-            CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-            TotalReceipts,
-            CashApplied,
-            ROUND(CashApplied - TotalReceipts, 2)     AS over_application_amount,
-            ROUND(CashApplied / NULLIF(TotalReceipts, 0) * 100, 1) AS applied_pct
-        FROM RL_JDE.FactARCollection
-        WHERE CashApplied > TotalReceipts * 1.005
+            COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+            TOTALRECEIPTS,
+            CASHAPPLIED,
+            ROUND(CASHAPPLIED - TOTALRECEIPTS, 2)     AS over_application_amount,
+            ROUND(CASHAPPLIED / NULLIF(TOTALRECEIPTS, 0) * 100, 1) AS applied_pct
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+        WHERE CASHAPPLIED > TOTALRECEIPTS * 1.005
       samples limit: 20
       description: >
-        CashApplied > TotalReceipts is a JDE misposting error — impossible in real
+        CASHAPPLIED > TOTALRECEIPTS is a JDE misposting error — impossible in real
         operations. Each row directly inflates CEI for that customer × period × LOB.
         Root cause: duplicate receipt entry or cross-period posting mismatch.
 
@@ -1528,34 +1710,15 @@ rules:
       name: total_receipts_must_not_be_negative
       dimension: validity
       fail query: |
-        SELECT CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-               TotalReceipts, CashApplied
-        FROM RL_JDE.FactARCollection
-        WHERE TotalReceipts < -0.01
+        SELECT COMPANYID, CUSTOMERNUMBER, FISCALPERIODID, LOB,
+               TOTALRECEIPTS, CASHAPPLIED
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+        WHERE TOTALRECEIPTS < -0.01
       samples limit: 10
       description: >
-        Negative TotalReceipts indicates a reversed receipt not offset by a
+        Negative TOTALRECEIPTS indicates a reversed receipt not offset by a
         correcting entry. This makes unapplied cash % appear artificially high
         and may cause CEI to exceed 1.0 for that customer-period.
-
-  - failed rows:
-      name: collection_efficiency_in_valid_range
-      dimension: accuracy
-      fail query: |
-        SELECT
-            CompanyId, CustomerNumber, FiscalPeriodId, LOB,
-            CollectionEfficiency,
-            TotalReceipts, CashApplied
-        FROM RL_JDE.FactARCollection
-        WHERE CollectionEfficiency < 0
-           OR CollectionEfficiency > 1.5
-      samples limit: 10
-      description: >
-        Pre-computed CEI must be in range [0, 1.5]. Below 0 = data error.
-        Above 1.5 = probable duplicate receipt or mis-applied prepayment.
-        Note: Always recompute CEI from raw CashApplied/(OpenAmount+TotalReceipts)
-        for trend analysis — do not average this stored pre-computed ratio.
-        [Threshold: 1.5 — calibrate after deployment based on observed maximums]
 
   # ── Accuracy: Leakage Signal Monitoring ──────────────────────────────────
 
@@ -1564,18 +1727,18 @@ rules:
       dimension: accuracy
       fail query: |
         SELECT
-            CompanyId,
-            CustomerNumber,
-            FiscalPeriodId,
+            COMPANYID,
+            CUSTOMERNUMBER,
+            FISCALPERIODID,
             LOB,
-            TotalReceipts,
-            CashApplied,
-            TotalReceipts - CashApplied                                 AS unapplied_cash,
-            ROUND((TotalReceipts - CashApplied) / NULLIF(TotalReceipts, 0) * 100, 1)
+            TOTALRECEIPTS,
+            CASHAPPLIED,
+            TOTALRECEIPTS - CASHAPPLIED                                 AS unapplied_cash,
+            ROUND((TOTALRECEIPTS - CASHAPPLIED) / NULLIF(TOTALRECEIPTS, 0) * 100, 1)
                                                                         AS unapplied_pct
-        FROM RL_JDE.FactARCollection
-        WHERE TotalReceipts > 0
-          AND (TotalReceipts - CashApplied) / TotalReceipts > 0.20
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+        WHERE TOTALRECEIPTS > 0
+          AND (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS > 0.20
         ORDER BY unapplied_cash DESC
       samples limit: 20
       description: >
@@ -1585,17 +1748,7 @@ rules:
         whether these are timing differences, mispostings, or disputed items.
         [Threshold: 20% — calibrate to your normal cash application cycle time]
 
-  - anomaly detection for avg(CollectionEfficiency):
-      name: portfolio_cei_anomaly
-      dimension: accuracy
-      description: >
-        Detects statistically unusual shifts in average CEI across the portfolio.
-        A sudden drop in CEI (>2 sigma below baseline) triggers an immediate
-        investigation: is it a real collections deterioration, a data quality event,
-        or a seasonal effect? Early detection prevents Finance from reporting a
-        bad CEI number before the cause is understood.
-
-  - anomaly detection for sum(TotalReceipts):
+  - anomaly detection for sum(TOTALRECEIPTS):
       name: total_receipt_volume_anomaly
       dimension: accuracy
       description: >
@@ -1612,13 +1765,13 @@ rules:
       fail query: |
         WITH recent_lobs AS (
             SELECT DISTINCT LOB
-            FROM RL_JDE.FactARCollection
-            WHERE FiscalPeriodId >= (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection) - 3
+            FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+            WHERE FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION) - 3
         ),
         current_period_lobs AS (
             SELECT DISTINCT LOB
-            FROM RL_JDE.FactARCollection
-            WHERE FiscalPeriodId = (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection)
+            FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+            WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
         )
         SELECT r.LOB AS missing_lob,
                'LOB present in recent periods but absent in current period — CEI for this LOB cannot be reported'
@@ -1639,9 +1792,35 @@ rules:
       name: collection_records_not_dropping
       dimension: timeliness
       description: >
-        A 15%+ drop in FactARCollection rows may signal that one or more companies
+        A 15%+ drop in FACTARCOLLECTION rows may signal that one or more companies
         or LOBs were not loaded for the current period. Collections Manager will
         see incomplete CEI data for that period without any visible error indicator.
+```
+
+```yaml
+# ═══════════════════════════════════════════════════════════════════════════
+# dq/FACTDSO.yml
+# ═══════════════════════════════════════════════════════════════════════════
+kind: dq
+name: FACTDSO_dq
+depends_on: JDE_PRODUCTION.RL_JDE.FACTDSO
+
+profiles:
+  - DSO
+  - TOTALGROSSINVOICED
+  - CEI
+  - COLLECTIONPRIORITY
+
+rules:
+  - anomaly detection for avg(DSO):
+      name: dso_spike
+      dimension: accuracy
+  - anomaly detection for sum(TOTALGROSSINVOICED):
+      name: gross_invoiced_spike
+      dimension: accuracy
+  - anomaly detection for avg(CEI):
+      name: portfolio_cei_anomaly
+      dimension: accuracy
 ```
 
 ---
@@ -1650,25 +1829,25 @@ rules:
 
 | SLO Name | Table(s) | Threshold | Business Commitment |
 |---|---|---|---|
-| `ar_fact_dim_grain_integrity` | DimARDetails + FactARDetails | 0 orphan fact rows with OpenAmount > 0 | No financial exposure is invisible in dashboards |
-| `lob_coverage_99pct` | DimARDetails | < 1% null LOB on open invoices | LOB-level CEI dashboards cover ≥99% of open AR |
-| `dispute_co_population` | DimARDetails | 0 partial dispute records | Dispute Resolution Rate KPI is accurate |
-| `cash_application_sanity` | FactARCollection | 0 rows CashApplied > TotalReceipts × 1.005 | CEI is not inflated by mispostings |
-| `period_company_completeness` | FactARCollection | 0 companies missing from current period | Period-end CEI report covers all legal entities |
-| `payment_term_reference_coverage` | DimARDetails + ARPaymentTerm | 0 open invoices with unmapped PaymentTermCode | Payment term compliance analysis covers 100% of open AR |
-| `data_freshness` | All 3 fact/dim tables | InsertDate/ModifyDate ≤ 48h old | Daily dashboard consumers have same-day data |
+| `ar_fact_dim_grain_integrity` | DIMARDETAILS + FACTARDETAILS | 0 orphan fact rows with OPENAMOUNT > 0 | No financial exposure is invisible in dashboards |
+| `lob_coverage_99pct` | DIMARDETAILS | < 1% null LOB on open invoices | LOB-level CEI dashboards cover ≥99% of open AR |
+| `dispute_co_population` | DIMARDETAILS | 0 partial dispute records | Dispute Resolution Rate KPI is accurate |
+| `cash_application_sanity` | FACTARCOLLECTION | 0 rows CASHAPPLIED > TOTALRECEIPTS × 1.005 | CEI is not inflated by mispostings |
+| `period_company_completeness` | FACTARCOLLECTION | 0 companies missing from current period | Period-end CEI report covers all legal entities |
+| `payment_term_reference_coverage` | DIMARDETAILS + ARPAYMENTTERM | 0 open invoices with unmapped PAYMENTTERMCODE | Payment term compliance analysis covers 100% of open AR |
+| `data_freshness` | All 6 RL_JDE external tables | INSERTDATE/MODIFYDATE ≤ 48h old | Daily dashboard consumers have same-day data |
 
 ### Coverage Gaps (address at build time)
 
 - **HIGH — Reserve Threshold Calibration**: All `[Estimated threshold]` and `[Threshold: X]` values in DQ rules (1% null LOB, $5,000 open amount, $10,000 hold flag, 20% unapplied cash, 20% reserve change, CEI range 0-1.5) must be replaced with values derived from `vulcan evaluate` output after the first 30-day deployment baseline. Do NOT use these estimates for production alerts.
-- **HIGH — Amount Reconciliation vs JDE Source**: No audit currently compares FactARDetails.SUM(OpenAmount) against `pl_jde.F03B11` source totals (DQ1 in design doc). This requires `pl_jde.*` to be accessible at Vulcan runtime. Work with Data Engineering to either: (a) expose a `pl_jde_control_totals` summary view, or (b) implement a prior-period snapshot comparison model.
-- **MEDIUM — Workday Email Coverage**: Add `missing_percent(WorkdayEmail) < 20` rule to `dq/DimARDetails.yml` once the Workday reference table schema is confirmed. Currently excluded because the table name/schema is an open question.
-- **LOW — FactARCollection ↔ DimARDetails Customer Referential Integrity**: Add a `failed rows` consistency check in `dq/FactARCollection.yml` verifying every CustomerNumber in FactARCollection has at least one row in DimARDetails. Deferred until both tables are confirmed stable post-deployment.
+- **HIGH — Amount Reconciliation vs JDE Source**: No audit currently compares FACTARDETAILS.SUM(OPENAMOUNT) against `pl_jde.F03B11` source totals (DQ1 in design doc). This requires `pl_jde.*` to be accessible at Vulcan runtime. Work with Data Engineering to either: (a) expose a `pl_jde_control_totals` summary view, or (b) implement a prior-period snapshot comparison model.
+- **MEDIUM — Workday Email Coverage**: Add `missing_percent(WORKDAYEMAIL) < 20` rule to `dq/DIMARDETAILS.yml` once the Workday reference table schema is confirmed. Currently excluded because the table name/schema is an open question.
+- **LOW — FACTARCOLLECTION ↔ DIMARDETAILS Customer Referential Integrity**: Add a `failed rows` consistency check in `dq/FACTARCOLLECTION.yml` verifying every CUSTOMERNUMBER in FACTARCOLLECTION has at least one row in DIMARDETAILS. Deferred until both tables are confirmed stable post-deployment.
 ---
 
 ## 15.5 AI Context (for semantic layer)
 
-### Semantic Model — DimARDetails (Invoice Dimension)
+### Semantic Model — DIMARDETAILS (Invoice Dimension)
 
 ```yaml
 ai_context:
@@ -1678,83 +1857,83 @@ ai_context:
       what status it is in, whether it is disputed, whether the customer is on credit hold,
       what LOB it belongs to, or what the latest collection comment says.
     - >
-      One row = one invoice / pay-item. The grain key is CompanyId + DocumentCompany +
-      DocNo + DocType + PayItm. Group by Collector for performance attribution;
+      One row = one invoice / pay-item. The grain key is COMPANYID + DOCUMENTCOMPANY +
+      DOCNO + DOCTYPE + PAYITM. Group by COLLECTOR for performance attribution;
       group by LOB for line-of-business analysis.
     - >
-      For financial amounts and aging numbers, JOIN to FactARDetails on the same grain key.
+      For financial amounts and aging numbers, JOIN to FACTARDETAILS on the same grain key.
       This model carries attributes only — not amounts.
   synonyms:
     - invoice details
     - AR dimension
     - invoice attributes
-    - DimAR
+    - DIMARDETAILS
     - invoice master
   examples:
     - description: "Which customers have overdue invoices with no dispute?"
       format: sql
       query: |
-        SELECT d.CustomerNumber, d.Collector, COUNT(*) AS overdue_count
-        FROM RL_JDE.DimARDetails d
-        JOIN RL_JDE.FactARDetails f
-          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
-          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
-        WHERE f.AgingDays > 30
-          AND d.DisputeStatus IS NULL
-        GROUP BY d.CustomerNumber, d.Collector
+        SELECT d.CUSTOMERNUMBER, d.COLLECTOR, COUNT(*) AS overdue_count
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCNO = f.DOCNO
+          AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE f.AGINGDAYS > 30
+          AND d.DISPUTESTATUS IS NULL
+        GROUP BY d.CUSTOMERNUMBER, d.COLLECTOR
         ORDER BY overdue_count DESC
 
     - description: "Which invoices are on credit hold with outstanding balance?"
       format: sql
       query: |
-        SELECT d.CustomerNumber, d.CompanyId, d.DocNo, d.HoldFlag, f.OpenAmount
-        FROM RL_JDE.DimARDetails d
-        JOIN RL_JDE.FactARDetails f
-          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
-          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
-        WHERE d.HoldFlag = 'Y'
-          AND f.OpenAmount > 0
+        SELECT d.CUSTOMERNUMBER, d.COMPANYID, d.DOCNO, d.HOLDFLAG, f.OPENAMOUNT
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCNO = f.DOCNO
+          AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE d.HOLDFLAG = 'Y'
+          AND f.OPENAMOUNT > 0
 
     - description: "Show open disputes by LOB and resolver"
       format: sql
       query: |
-        SELECT d.LOB, d.ResolverName, COUNT(*) AS open_dispute_count,
-               SUM(f.OpenAmount) AS total_disputed_amount
-        FROM RL_JDE.DimARDetails d
-        JOIN RL_JDE.FactARDetails f
-          ON d.CompanyId = f.CompanyId AND d.DocNo = f.DocNo
-          AND d.DocType = f.DocType AND d.PayItm = f.PayItm
-        WHERE d.DisputeStatus = 'Open'
-        GROUP BY d.LOB, d.ResolverName
+        SELECT d.LOB, d.RESOLVERNAME, COUNT(*) AS open_dispute_count,
+               SUM(f.OPENAMOUNT) AS total_disputed_amount
+        FROM JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+        JOIN JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+          ON d.COMPANYID = f.COMPANYID AND d.DOCNO = f.DOCNO
+          AND d.DOCTYPE = f.DOCTYPE AND d.PAYITM = f.PAYITM
+        WHERE d.DISPUTESTATUS = 'Open'
+        GROUP BY d.LOB, d.RESOLVERNAME
         ORDER BY total_disputed_amount DESC
 ```
 
-### Dimensions — DimARDetails
+### Dimensions — DIMARDETAILS
 
-- **CustomerNumber**:
+- **CUSTOMERNUMBER**:
   - `synonyms`: ["customer", "customer ID", "account number", "customer no"]
-- **Collector**:
+- **COLLECTOR**:
   - `synonyms`: ["collections rep", "AR collector", "collections person"]
-  - `caveats`: ["Collector is the individual responsible for chasing payment; CollectionManager is their manager — do not confuse the two when grouping for performance reports"]
+  - `caveats`: ["COLLECTOR is the individual responsible for chasing payment; COLLECTIONMANAGER is their manager — do not confuse the two when grouping for performance reports"]
 - **LOB**:
   - `synonyms`: ["line of business", "business line", "division", "segment"]
-  - `caveats`: ["LOB is derived from GLOffset via the DimARCollectionLOB reference table — a null LOB means the GL Offset was unrecognised at load time; exclude these rows from LOB-level KPIs"]
-- **DisputeStatus**:
+  - `caveats`: ["LOB is derived from GLOFFSET via the DIMARCOLLECTIONLOB reference table — a null LOB means the GL Offset was unrecognised at load time; exclude these rows from LOB-level KPIs"]
+- **DISPUTESTATUS**:
   - `synonyms`: ["dispute", "dispute flag", "dispute state"]
-  - `caveats`: ["A null DisputeStatus means the invoice has no recorded dispute — treat null as 'not disputed', not as unknown"]
-- **HoldFlag**:
+  - `caveats`: ["A null DISPUTESTATUS means the invoice has no recorded dispute — treat null as 'not disputed', not as unknown"]
+- **HOLDFLAG**:
   - `synonyms`: ["credit hold", "hold", "on hold"]
-  - `caveats`: ["Y = on credit hold, N = not on hold, null = unknown; filter to HoldFlag = 'Y' to identify credit hold exposure"]
-- **DueDate**:
+  - `caveats`: ["Y = on credit hold, N = not on hold, null = unknown; filter to HOLDFLAG = 'Y' to identify credit hold exposure"]
+- **DUEDATE**:
   - `synonyms`: ["payment due", "due", "payment deadline"]
-  - `caveats`: ["DueDate is the contractual payment deadline; PromiseToPay is the customer-committed date — they differ for disputed/negotiated invoices"]
-- **FiscalPeriodId**:
+  - `caveats`: ["DUEDATE is the contractual payment deadline; PROMISETOPAY is the customer-committed date — they differ for disputed/negotiated invoices"]
+- **FISCALPERIODID**:
   - `synonyms`: ["fiscal period", "period", "accounting period", "month"]
-  - `caveats`: ["FiscalPeriodId is an integer key computed as ((Century * 100 + Year) * 100) + Month. Do not sum or average this field — use it for filtering and grouping only. Example: 20260800 = August 2026"]
+  - `caveats`: ["FISCALPERIODID is an integer key computed as ((Century * 100 + Year) * 100) + Month. Do not sum or average this field — use it for filtering and grouping only. Example: 20260800 = August 2026"]
 
 ---
 
-### Semantic Model — FactARDetails (Invoice Measures)
+### Semantic Model — FACTARDETAILS (Invoice Measures)
 
 ```yaml
 ai_context:
@@ -1763,16 +1942,16 @@ ai_context:
       Use this model for questions about invoice amounts, reserves, forecasts, and aging.
       One row = one invoice / pay-item. This is where all financial KPIs live.
     - >
-      For leakage detection, the key signals are: ChangeinReserve (sudden reserve
-      movements), ForecastReserve30/60/90 (future exposure), and ReserveCashApplied
+      For leakage detection, the key signals are: CHANGEINRESERVE (sudden reserve
+      movements), FORECASTRESERVE30/60/90 (future exposure), and RESERVECASHAPPLIED
       (whether reserve cash has been utilised).
     - >
-      JOIN to DimARDetails on CompanyId + DocNo + DocType + PayItm for collector,
+      JOIN to DIMARDETAILS on COMPANYID + DOCNO + DOCTYPE + PAYITM for collector,
       customer, LOB, and dispute attributes.
   synonyms:
     - AR facts
     - invoice measures
-    - FactAR
+    - FACTARDETAILS
     - invoice financials
     - AR amounts
   examples:
@@ -1780,61 +1959,61 @@ ai_context:
       format: sql
       query: |
         SELECT d.LOB,
-               SUM(f.CurrentReserve) AS total_reserve,
-               SUM(f.ForecastReserve30) AS total_forecast_30,
-               SUM(f.CurrentReserve - f.ForecastReserve30) AS reserve_vs_forecast_gap
-        FROM RL_JDE.FactARDetails f
-        JOIN RL_JDE.DimARDetails d
-          ON f.CompanyId = d.CompanyId AND f.DocNo = d.DocNo
-          AND f.DocType = d.DocType AND f.PayItm = d.PayItm
+               SUM(f.CURRENTRESERVE) AS total_reserve,
+               SUM(f.FORECASTRESERVE30) AS total_forecast_30,
+               SUM(f.CURRENTRESERVE - f.FORECASTRESERVE30) AS reserve_vs_forecast_gap
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+        JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+          ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
+          AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
         GROUP BY d.LOB
         ORDER BY reserve_vs_forecast_gap DESC
 
     - description: "Which invoices have the highest change in reserve (top leakage risk)?"
       format: sql
       query: |
-        SELECT f.CompanyId, f.DocNo, f.ChangeinReserve, f.ForecastReserve30,
-               d.CustomerNumber, d.Collector,
-               ABS(f.ChangeinReserve) / NULLIF(f.ForecastReserve30, 0) AS reserve_change_ratio
-        FROM RL_JDE.FactARDetails f
-        JOIN RL_JDE.DimARDetails d
-          ON f.CompanyId = d.CompanyId AND f.DocNo = d.DocNo
-          AND f.DocType = d.DocType AND f.PayItm = d.PayItm
-        WHERE f.ForecastReserve30 > 0
-          AND ABS(f.ChangeinReserve) / f.ForecastReserve30 > 0.20
+        SELECT f.COMPANYID, f.DOCNO, f.CHANGEINRESERVE, f.FORECASTRESERVE30,
+               d.CUSTOMERNUMBER, d.COLLECTOR,
+               ABS(f.CHANGEINRESERVE) / NULLIF(f.FORECASTRESERVE30, 0) AS reserve_change_ratio
+        FROM JDE_PRODUCTION.RL_JDE.FACTARDETAILS f
+        JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+          ON f.COMPANYID = d.COMPANYID AND f.DOCNO = d.DOCNO
+          AND f.DOCTYPE = d.DOCTYPE AND f.PAYITM = d.PAYITM
+        WHERE f.FORECASTRESERVE30 > 0
+          AND ABS(f.CHANGEINRESERVE) / f.FORECASTRESERVE30 > 0.20
         ORDER BY reserve_change_ratio DESC
         LIMIT 50
 ```
 
-### Measures — FactARDetails
+### Measures — FACTARDETAILS
 
 - **OPEN_AMOUNT**:
   - `synonyms`: ["open balance", "outstanding", "AR balance", "amount due", "receivable"]
   - `behavior`: flow — accumulates per period
-  - `caveats`: ["OpenAmount is the current outstanding amount as of AgeAsOfDate — it changes as payments are received and adjustments are posted"]
+  - `caveats`: ["OPENAMOUNT is the current outstanding amount as of AGEASOFDATE — it changes as payments are received and adjustments are posted"]
 - **CURRENT_RESERVE**:
   - `synonyms`: ["reserve", "doubtful debt reserve", "bad debt reserve"]
   - `behavior`: stock — point-in-time value; do not sum across periods
-  - `caveats`: ["CurrentReserve is a point-in-time balance. Do not SUM across multiple fiscal periods — use the latest FiscalPeriodId snapshot"]
+  - `caveats`: ["CURRENTRESERVE is a point-in-time balance. Do not SUM across multiple fiscal periods — use the latest FISCALPERIODID snapshot"]
 - **CHANGE_IN_RESERVE**:
   - `synonyms`: ["reserve movement", "reserve change", "delta reserve"]
-  - `caveats`: ["A positive ChangeinReserve means reserve increased (more doubtful debt provisioned). A negative value means reserve was released (improvement). This is the primary leakage signal L2"]
-- **COLLECTION_EFFICIENCY** (in FactARCollection):
+  - `caveats`: ["A positive CHANGEINRESERVE means reserve increased (more doubtful debt provisioned). A negative value means reserve was released (improvement). This is the primary leakage signal L2"]
+- **COLLECTION_EFFICIENCY** (in FACTARCOLLECTION):
   - `synonyms`: ["CEI", "collection efficiency index", "collection rate", "efficiency"]
-  - `behavior`: ratio — numerator: CashApplied, denominator: (OpenAmount + TotalReceipts)
-  - `caveats`: ["CEI = CashApplied / (OpenAmount + TotalReceipts). Do not average pre-computed CEI values across time periods — query CashApplied, OpenAmount, and TotalReceipts separately and divide the sums"]
+  - `behavior`: ratio — numerator: CASHAPPLIED, denominator: (OPENAMOUNT + TOTALRECEIPTS)
+  - `caveats`: ["CEI = CASHAPPLIED / (OPENAMOUNT + TOTALRECEIPTS). Do not average pre-computed CEI values across time periods — query CASHAPPLIED, OPENAMOUNT, and TOTALRECEIPTS separately and divide the sums"]
 - **UNAPPLIED_CASH_PCT**:
   - `synonyms`: ["unapplied cash", "unapplied receipts", "cash not applied"]
   - `behavior`: ratio
-  - `caveats`: ["Query numerator (TotalReceipts - CashApplied) and denominator (TotalReceipts) separately when grouping by time; averaging pre-computed percentages across periods is mathematically incorrect"]
+  - `caveats`: ["Query numerator (TOTALRECEIPTS - CASHAPPLIED) and denominator (TOTALRECEIPTS) separately when grouping by time; averaging pre-computed percentages across periods is mathematically incorrect"]
 - **RESERVE_ACCURACY_PCT**:
   - `synonyms`: ["reserve accuracy", "forecast accuracy", "reserve vs forecast"]
   - `behavior`: ratio
-  - `caveats`: ["Reserve accuracy = 1 - ABS(ChangeinReserve / ForecastReserve30). Values close to 1.0 = accurate forecasting. Values significantly below 1.0 = reserve was mis-estimated. Do not sum this across invoices — it is an invoice-level ratio"]
+  - `caveats`: ["Reserve accuracy = 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30). Values close to 1.0 = accurate forecasting. Values significantly below 1.0 = reserve was mis-estimated. Do not sum this across invoices — it is an invoice-level ratio"]
 
 ---
 
-### Semantic Model — FactARCollection (Collection Facts)
+### Semantic Model — FACTARCOLLECTION (Collection Facts)
 
 ```yaml
 ai_context:
@@ -1844,9 +2023,9 @@ ai_context:
       applied, and unapplied cash. One row = one customer × fiscal period × LOB.
     - >
       This is the primary model for answering "how are we collecting?" questions.
-      For invoice-level detail or dispute context, JOIN to DimARDetails.
+      For invoice-level detail or dispute context, JOIN to DIMARDETAILS.
     - >
-      FiscalPeriodId is the time dimension — filter to a specific period for
+      FISCALPERIODID is the time dimension — filter to a specific period for
       point-in-time analysis, or group by period for trend analysis.
   synonyms:
     - collection facts
@@ -1859,52 +2038,52 @@ ai_context:
       format: sql
       query: |
         SELECT LOB,
-               SUM(CashApplied) AS total_cash_applied,
-               SUM(TotalReceipts) AS total_receipts,
-               SUM(CashApplied) / NULLIF(SUM(TotalReceipts), 0) AS collection_efficiency
-        FROM RL_JDE.FactARCollection
-        WHERE FiscalPeriodId = (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection)
+               SUM(CASHAPPLIED) AS total_cash_applied,
+               SUM(TOTALRECEIPTS) AS total_receipts,
+               SUM(CASHAPPLIED) / NULLIF(SUM(TOTALRECEIPTS), 0) AS collection_efficiency
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+        WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
         GROUP BY LOB
         ORDER BY collection_efficiency ASC
 
     - description: "Who are the top 10 collectors by cash collected this quarter?"
       format: sql
       query: |
-        SELECT d.Collector,
-               SUM(c.CashApplied) AS total_cash_applied,
-               SUM(c.TotalReceipts) AS total_receipts
-        FROM RL_JDE.FactARCollection c
-        JOIN RL_JDE.DimARDetails d
-          ON c.CompanyId = d.CompanyId AND c.CustomerNumber = d.CustomerNumber
-        WHERE c.FiscalPeriodId >= (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection) - 2
-        GROUP BY d.Collector
+        SELECT d.COLLECTOR,
+               SUM(c.CASHAPPLIED) AS total_cash_applied,
+               SUM(c.TOTALRECEIPTS) AS total_receipts
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION c
+        JOIN JDE_PRODUCTION.RL_JDE.DIMARDETAILS d
+          ON c.COMPANYID = d.COMPANYID AND c.CUSTOMERNUMBER = d.CUSTOMERNUMBER
+        WHERE c.FISCALPERIODID >= (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION) - 2
+        GROUP BY d.COLLECTOR
         ORDER BY total_cash_applied DESC
         LIMIT 10
 
     - description: "Show unapplied cash percentage by customer this month"
       format: sql
       query: |
-        SELECT CustomerNumber, LOB,
-               TotalReceipts,
-               CashApplied,
-               TotalReceipts - CashApplied AS unapplied_cash,
-               ROUND((TotalReceipts - CashApplied) / NULLIF(TotalReceipts, 0) * 100, 2) AS unapplied_pct
-        FROM RL_JDE.FactARCollection
-        WHERE FiscalPeriodId = (SELECT MAX(FiscalPeriodId) FROM RL_JDE.FactARCollection)
-          AND TotalReceipts > 0
+        SELECT CUSTOMERNUMBER, LOB,
+               TOTALRECEIPTS,
+               CASHAPPLIED,
+               TOTALRECEIPTS - CASHAPPLIED AS unapplied_cash,
+               ROUND((TOTALRECEIPTS - CASHAPPLIED) / NULLIF(TOTALRECEIPTS, 0) * 100, 2) AS unapplied_pct
+        FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
+        WHERE FISCALPERIODID = (SELECT MAX(FISCALPERIODID) FROM JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION)
+          AND TOTALRECEIPTS > 0
         ORDER BY unapplied_cash DESC
 ```
 
-### Segments (for FactARDetails and DimARDetails)
+### Segments (for FACTARDETAILS and DIMARDETAILS)
 
 ```yaml
-# On FactARDetails semantic model:
+# On FACTARDETAILS semantic model:
 segments:
   - name: high_leakage_risk
     expression: >
-      {FactARDetails.AgingDays} > 30
-      AND {FactARDetails.ReserveCashApplied} = 0
-      AND {FactARDetails.CurrentReserve} > 0
+      {FACTARDETAILS.AGINGDAYS} > 30
+      AND {FACTARDETAILS.RESERVECASHAPPLIED} = 0
+      AND {FACTARDETAILS.CURRENTRESERVE} > 0
     description: >
       Invoices overdue >30 days with reserve held but no reserve cash applied —
       the highest-value leakage signal in the portfolio (Signal L6)
@@ -1913,22 +2092,22 @@ segments:
 
   - name: reserve_movement_alert
     expression: >
-      ABS({FactARDetails.ChangeinReserve}) / NULLIF({FactARDetails.ForecastReserve30}, 0) > 0.20
+      ABS({FACTARDETAILS.CHANGEINRESERVE}) / NULLIF({FACTARDETAILS.FORECASTRESERVE30}, 0) > 0.20
     description: >
       Invoices where reserve changed by more than 20% vs 30-day forecast —
       signals potential reserve mis-estimation (Signal L7)
 
-# On DimARDetails semantic model:
+# On DIMARDETAILS semantic model:
 segments:
   - name: credit_hold_with_open_balance
     expression: >
-      {DimARDetails.HoldFlag} = 'Y'
-    description: Customers on credit hold — join to FactARDetails to see open exposure (Signal L8)
+      {DIMARDETAILS.HOLDFLAG} = 'Y'
+    description: Customers on credit hold — join to FACTARDETAILS to see open exposure (Signal L8)
 
   - name: overdue_no_dispute
-    expression: "{DimARDetails.DisputeStatus} IS NULL"
+    expression: "{DIMARDETAILS.DISPUTESTATUS} IS NULL"
     description: >
-      Invoices with no active dispute — combine with AgingDays > 30 in FactARDetails
+      Invoices with no active dispute — combine with AGINGDAYS > 30 in FACTARDETAILS
       for the "overdue without action" leakage signal (Signal L4)
 ```
 
@@ -1939,63 +2118,63 @@ segments:
 ### Dimensions
 
 ```yaml
-# DimARDetails semantic model
-- CompanyId:
+# DIMARDETAILS semantic model
+- COMPANYID:
     behavior:
       type: identifier
-- DocumentCompany:
+- DOCUMENTCOMPANY:
     behavior:
       type: identifier
-- DocNo:
+- DOCNO:
     behavior:
       type: identifier
-- DocType:
+- DOCTYPE:
     behavior:
       type: identifier
-- PayItm:
+- PAYITM:
     behavior:
       type: identifier
-- CustomerNumber:
+- CUSTOMERNUMBER:
     behavior:
       type: identifier
-- ParentCustomer:
+- PARENTCUSTOMER:
     behavior:
       type: identifier
-- Collector:
+- COLLECTOR:
     behavior:
       type: categorical
-- CollectionManager:
+- COLLECTIONMANAGER:
     behavior:
       type: categorical
-- SalesRep:
+- SALESREP:
     behavior:
       type: categorical
 - LOB:
     behavior:
       type: categorical
-- BusinessUnit:
+- BUSINESSUNIT:
     behavior:
       type: categorical
-- PaymentTermCode:
+- PAYMENTTERMCODE:
     behavior:
       type: categorical
-- DisputeStatus:
+- DISPUTESTATUS:
     behavior:
       type: categorical
-- DisputeReasonCode:
+- DISPUTEREASONCODE:
     behavior:
       type: categorical
-- ResolverCode:
+- RESOLVERCODE:
     behavior:
       type: categorical
-- HoldFlag:
+- HOLDFLAG:
     behavior:
       type: categorical
-- CurrencyCode:
+- CURRENCYCODE:
     behavior:
       type: categorical
-# FiscalPeriodId — integer key used as categorical time bucket, NOT summed
-- FiscalPeriodId:
+# FISCALPERIODID — integer key used as categorical time bucket, NOT summed
+- FISCALPERIODID:
     behavior:
       type: categorical
 ```
@@ -2003,7 +2182,7 @@ segments:
 ### Measures
 
 ```yaml
-# FactARDetails measures
+# FACTARDETAILS measures
 - OPEN_AMOUNT:
     behavior:
       type: flow
@@ -2046,32 +2225,32 @@ segments:
 - CURRENT_RESERVE:
     behavior:
       type: stock
-      time_dimension: FiscalPeriodId
+      time_dimension: FISCALPERIODID
       period_treatment: last
       period_grain: month
 
 - FORECAST_RESERVE_30:
     behavior:
       type: stock
-      time_dimension: FiscalPeriodId
+      time_dimension: FISCALPERIODID
       period_treatment: last
       period_grain: month
 
 - FORECAST_RESERVE_60:
     behavior:
       type: stock
-      time_dimension: FiscalPeriodId
+      time_dimension: FISCALPERIODID
       period_treatment: last
       period_grain: month
 
 - FORECAST_RESERVE_90:
     behavior:
       type: stock
-      time_dimension: FiscalPeriodId
+      time_dimension: FISCALPERIODID
       period_treatment: last
       period_grain: month
 
-# FactARCollection measures
+# FACTARCOLLECTION measures
 - TOTAL_RECEIPTS:
     behavior:
       type: flow
@@ -2095,21 +2274,21 @@ segments:
       numerator: CASH_APPLIED
       denominator: OPEN_AMOUNT_PLUS_RECEIPTS
     # Fallback if CLI rejects ratio type: use type: number with expression
-    # SUM(CashApplied) / NULLIF(SUM(OpenAmount) + SUM(TotalReceipts), 0)
+    # SUM(CASHAPPLIED) / NULLIF(SUM(OPENAMOUNT) + SUM(TOTALRECEIPTS), 0)
 
 - UNAPPLIED_CASH_PCT:
     behavior:
       type: ratio
       numerator: UNAPPLIED_CASH
       denominator: TOTAL_RECEIPTS
-    # Fallback expression: (SUM(TotalReceipts) - SUM(CashApplied)) / NULLIF(SUM(TotalReceipts), 0)
+    # Fallback expression: (SUM(TOTALRECEIPTS) - SUM(CASHAPPLIED)) / NULLIF(SUM(TOTALRECEIPTS), 0)
 
 - RESERVE_ACCURACY_PCT:
     behavior:
       type: ratio
       numerator: ABS_CHANGE_IN_RESERVE
       denominator: FORECAST_RESERVE_30
-    # Fallback expression: 1 - ABS(SUM(ChangeinReserve)) / NULLIF(SUM(ForecastReserve30), 0)
+    # Fallback expression: 1 - ABS(SUM(CHANGEINRESERVE)) / NULLIF(SUM(FORECASTRESERVE30), 0)
 
 - DISPUTE_RESOLUTION_RATE:
     behavior:
@@ -2117,8 +2296,8 @@ segments:
       numerator: RESOLVED_DISPUTE_COUNT
       denominator: TOTAL_DISPUTE_COUNT
     # Helper measures (define as filtered count measures):
-    # RESOLVED_DISPUTE_COUNT: count with filter DisputeStatus = 'Resolved'
-    # TOTAL_DISPUTE_COUNT: count with filter DisputeStatus IS NOT NULL
+    # RESOLVED_DISPUTE_COUNT: count with filter DISPUTESTATUS = 'Resolved'
+    # TOTAL_DISPUTE_COUNT: count with filter DISPUTESTATUS IS NOT NULL
 
 - RESERVE_CASH_COVERAGE:
     behavior:
@@ -2132,8 +2311,8 @@ segments:
       numerator: OVERDUE_NO_DISPUTE_COUNT
       denominator: OVERDUE_COUNT
     # Helper measures:
-    # OVERDUE_COUNT: count with filter AgingDays > 30
-    # OVERDUE_NO_DISPUTE_COUNT: count with filter AgingDays > 30 AND DisputeStatus IS NULL
+    # OVERDUE_COUNT: count with filter AGINGDAYS > 30
+    # OVERDUE_NO_DISPUTE_COUNT: count with filter AGINGDAYS > 30 AND DISPUTESTATUS IS NULL
 ```
 
 ---
@@ -2142,16 +2321,17 @@ segments:
 
 - [x] Goal and consumers confirmed by stakeholder — extracted from design document, confirmed
 - [x] Data sources verified accessible — RL_JDE tables confirmed existing by user; pl_jde sources documented
-- [x] Grain explicitly defined (not UNKNOWN) — DimARDetails/FactARDetails: CompanyId+DocumentCompany+DocNo+DocType+PayItm; FactARCollection: CompanyId+CustomerNumber+FiscalPeriodId+LOB
-- [x] Measures vs Metrics distinction clear — 20+ measures documented in Section 6; 7 metrics in Section 7
-- [x] Entity relationships and joins documented — 6 joins documented in Section 4
-- [x] Measure/metric reasoning documented — Section 9 rationale chain complete
-- [x] Model architecture decided and documented — EXTERNAL (5 RL_JDE tables) + SEMANTIC + METRIC + DQ
-- [x] All EXTERNAL models identified, ownership confirmed, and documented in Section 13 — 5 RL_JDE tables are EXTERNAL (owned by JDE pipeline)
-- [x] All [Assumption] tags reviewed with stakeholder — 11 assumptions listed in Section 11; CEI formula and backfill confirmed
-- [ ] Open questions resolved or documented as out-of-scope — 3 remaining open questions in Section 12 (reserve threshold, USD normalization, Workday table name) — non-blocking for build
+- [x] Grain explicitly defined (not UNKNOWN) — DIMARDETAILS/FACTARDETAILS: COMPANYID+DOCUMENTCOMPANY+DOCNO+DOCTYPE+PAYITM; FACTARCOLLECTION: COMPANYID+CUSTOMERNUMBER+FISCALPERIODID+LOB; **FACTDSO: COMPANYID+FISCALYEAR+FISCALMONTH+COLLECTIONPRIORITY**
+- [x] Measures vs Metrics distinction clear — FACTDSO-native measures in Section 6; 14 primary metrics in Section 7 (proxy DSO/dispute recovery removed)
+- [x] Entity relationships and joins documented — 8 joins documented in Section 4 (includes FACTDSO)
+- [x] Measure/metric reasoning documented — Section 9 rationale chain complete (FACTDSO-native DSO, dispute recovery, prioritization)
+- [x] Model architecture decided and documented — EXTERNAL (6 RL_JDE tables) + SEMANTIC + METRIC + DQ
+- [x] All EXTERNAL models identified, ownership confirmed, and documented in Section 13 — 6 RL_JDE tables are EXTERNAL (owned by JDE pipeline)
+- [x] All [Assumption] tags reviewed with stakeholder — assumptions listed in Section 11 including D2b resolved, D10–D11 updated
+- [ ] Open questions resolved or documented as out-of-scope — FACTDSO refresh cadence, DISPUTERECOVERYRATIO wording in Section 12 — non-blocking for build
 - [x] YAML contract parseable and complete — Section 14 complete
-- [x] Quality rules reviewed and added to spec (Section 15) — 3 DQ YAML files + 5 custom audit files documented
-- [x] AI context drafted and confirmed (Section 15.5) — all 5 semantic models + key measures/dimensions covered
+- [x] Quality rules reviewed and updated per stakeholder feedback (Section 15) — COLLECTIONPRIORITY collector rules, FACTDSO DSO/gross spike anomalies, GROSSAMOUNT > 0; consolidated CEI on FACTDSO
+- [x] AI context drafted and confirmed (Section 15.5) — all 6 semantic models + key measures/dimensions covered
 - [x] Semantic types (behavior) drafted and confirmed (Section 15.6) — all dimensions typed; all measures typed with stock/flow/ratio behavior
-- [x] Ready for implementation → proceed to the build-data-product skill
+- [x] "Is it a right fit for me?" guidance documented in Section 1 and `usage.yml`
+- [x] Ready for implementation → proceed to semantic artifact updates

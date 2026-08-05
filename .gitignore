@@ -2,6 +2,7 @@
 .DS_Store
 .vscode/
 .idea/
+**/.cursor/
 *.swp
 
 # Local runtime / temp artifacts (any subdirectory)
@@ -46,4 +47,4 @@ id_ed25519
 **/*.whl
 
 # Local docs/vendor bundles not required in repo
-local-ldk/**/dpbs-docs/
+**/dpbs-docs/

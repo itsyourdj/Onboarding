@@ -1,89 +1,117 @@
-# Source: design spec > Section 1 Business Context + Section 12 Open Questions
-# Business-facing usage guidance for Customer Invoices Analysis data product.
+# Source: design spec > Section 1 Business Context + stakeholder feedback
+# Business-facing usage guidance for Customer Invoices Insights (Core) data product.
+# Studio maps good_for/not_for → "Is it a right fit for me?" and what_it_answers → "What it answers".
+
+what_it_answers:
+  - question: "How long does it take to collect cash? (Days Sales Outstanding)"
+    metric: DSO_TREND
+    source: FactDSO.DSO
+    formula: "(TotalOpenAR / TotalGrossInvoiced) × DaysInPeriod"
+    notes: >
+      Denominator uses invoiced gross (RPAAP) as the sales proxy until F4211 is integrated.
+      Future: compare to contractual terms (DSO_VARIANCE_FROM_TERMS_TREND) and invoice amount bands.
+
+  - question: "How much disputed amount is accumulating?"
+    metrics:
+      - DISPUTED_AMOUNT_ROLLING_30_TREND
+      - DISPUTED_AMOUNT_ROLLING_60_TREND
+      - DISPUTED_AMOUNT_ROLLING_90_TREND
+      - DISPUTED_AMOUNT_ROLLING_180_TREND
+    source: FactDSO.DisputedAmountRolling30/60/90/180
+    formula: "SUM(disputed) WHERE COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - N days"
+    notes: >
+      Calendar-day rolling totals from SP_LOAD_FACTDSO (DATEADD pattern).
+      Sum across fiscal periods for portfolio exposure; values refresh on each SP run.
+
+  - question: "What proportion of resolved disputed invoices is recovered?"
+    metric: DISPUTE_RECOVERY_RATIO_TREND
+    source: FactDSO.DisputeRecoveryRatio
+    formula: "Recovered / Gross for resolved disputes"
+    notes: >
+      Remaining obligation (amount payer still owes / total disputed) = 1 - DisputeRecoveryRatio.
+      Indicates how much of disputed balance Otis is (un)likely to collect.
+
+  - question: "Is collection prioritization working?"
+    metric: DSO_BY_COLLECTION_PRIORITY
+    source: FactDSO.DSO segmented by CollectionPriority
+    notes: >
+      Compare DSO and CEI across H/M/L (prioritized) vs NONE (not prioritized).
+      Also use CEI_TREND for unified collection effectiveness by priority segment.
+
+  - question: "What is our collection effectiveness (CEI)?"
+    metric: CEI_TREND
+    source: FactDSO.CEI
+    notes: >
+      Executive portfolio CEI. For cash-application detail at customer × LOB grain,
+      use COLLECTION_EFFICIENCY_TREND on FactARCollection (different formula/grain).
 
 good_for:
-  - title: Collection Efficiency Index (CEI) tracking and trend analysis
+  - title: Days Sales Outstanding (DSO) and DSO vs payment terms
     details: >
-      Monitor monthly CEI by fiscal period, LOB, and collector. Track whether
-      collection efficiency is improving or deteriorating. Benchmark: CEI >= 0.85.
+      How long it takes to collect cash. Native DSO from FactDSO; compare to contractual
+      terms via DSOVarianceFromTerms. Future analysis by invoice amount band.
+
+  - title: Disputed amount rolling trends and recovery
+    details: >
+      Rolling 30/60/90/180-day disputed exposure and dispute recovery ratio —
+      how much of disputed balance Otis is (un)likely to collect after resolution.
+
+  - title: Collection prioritization effectiveness
+    details: >
+      DSO and CEI by collection-prioritized (H/M/L) vs not-prioritized (NONE) segments.
 
   - title: Collection leakage detection
     details: >
-      Identify and quantify unapplied cash (Signal L1), reserve inaccuracy (L2),
-      adjusted collection gaps (L3), overdue invoices without collection action (L4),
-      reserve cash not applied (L6), high reserve change (L7), and credit hold
-      open invoices (L8).
+      Unapplied cash, reserve inaccuracy, overdue without action, credit hold exposure,
+      and other leakage signals on invoice/receipt grain.
 
-  - title: Dispute tracking and resolution rate monitoring
+  - title: Reserve vs forecast accuracy, payment term compliance, executive AR dashboards
     details: >
-      Track open disputes by LOB, resolver, and aging. Monitor Dispute Resolution Rate
-      (resolved / total disputes) and Promise-to-Pay compliance.
+      Finance period-end provisioning, compliance (AgingDays vs NetDays), and GM roll-ups.
 
-  - title: Reserve vs forecast accuracy analysis
+  - title: AI natural-language AR queries (Cortex Analyst)
     details: >
-      Compare CurrentReserve against PreviousForecastReserve and ForecastReserve30/60/90.
-      Used by Finance for IFRS/GAAP doubtful debt provision sign-off.
-
-  - title: Payment term compliance analysis
-    details: >
-      Identify invoices where AgingDays > NetDays (payment term breached). Requires
-      joining DimARDetails to ARPaymentTerm on PaymentTermCode.
-
-  - title: Executive KPI dashboards (Collections, Finance, GM)
-    details: >
-      Roll-up summaries by CompanyId, FiscalPeriodId, and LOB for period-end reporting.
-      Covers open AR, CEI, reserve accuracy, and overdue aging.
-
-  - title: AI agent natural language AR queries (Cortex Analyst)
-    details: >
-      All 5 semantic models include synonyms, instructions, and example queries
-      enabling Snowflake Cortex Analyst to answer business questions in natural language.
+      Six semantic models with synonyms, instructions, and example SQL.
 
 not_for:
-  - Real-time or near-real-time alerting — this product refreshes daily from the JDE pipeline
-  - Rebuilding the underlying star schema tables — DimARDetails, FactARDetails, FactARCollection, DimARCollectionLOB, and ARPaymentTerm are owned and managed by the JDE ERP pipeline, not by this data product
-  - Sub-invoice-line detail — the grain is invoice / pay-item level (not individual line items within an invoice)
-  - Multi-currency USD normalisation — local currency only in this version; USD-normalized amounts are a future phase
+  - Real-time alerting — daily JDE pipeline refresh only
+  - Rebuilding RL_JDE gold tables (owned by JDE/data engineering)
+  - Sub-invoice-line detail — grain is invoice / pay-item
+  - F4211 sales-order-based DSO — current denominator is invoiced gross (RPAAP)
+  - Multi-currency USD normalisation — local currency only
+  - Invoice-level reserve-forecast DQ enforcement
 
 caveats:
-  - title: SNOWFLAKE_DB placeholder in all SQL
+  - title: "Is it a right fit for me?" copy pending
     details: >
-      All table references use "SNOWFLAKE_DB" as a placeholder for the actual Snowflake
-      database name. Replace "SNOWFLAKE_DB" with your database name in inputs.yaml,
-      all semantic model depends_on fields, all DQ depends_on fields, and all audit SQL files
-      before running vulcan plan.
-    severity: high
-
-  - title: Estimated DQ thresholds require calibration
-    details: >
-      DQ rules marked [Estimated threshold] (CEI range 0-1.5, unapplied cash >20%,
-      reserve change >20%, credit hold >$10,000 and 90 days, etc.) must be replaced with
-      data-driven thresholds derived from 30 days of baseline data post-deployment.
-      Do NOT use these estimates for production alerting.
-    severity: high
-
-  - title: InsertDate used as metric time axis
-    details: >
-      All 5 trend metrics use InsertDate (the daily load timestamp) as the time dimension,
-      since FiscalPeriodId is an INTEGER key (not a date) and business DATE columns cannot
-      be used as Vulcan TIMESTAMP time dimensions. InsertDate approximates business date
-      for a daily-refresh product.
+      Stakeholder Collections/Finance language for Studio good_for/not_for will be
+      finalized tomorrow. Structure above is ready to receive that copy.
     severity: low
 
-  - title: CEI formula pending Finance sign-off
+  - title: DSO denominator uses invoiced gross, not book sales
     details: >
-      The Collection Efficiency Index uses CashApplied / TotalReceipts (simplified formula).
-      The full industry-standard formula CashApplied / (OpenAmount + TotalReceipts) requires
-      a cross-model join between FactARCollection and FactARDetails.
-      Finance to confirm the agreed formula before using CEI in executive reports.
+      TotalGrossInvoiced (RPAAP) substitutes for Total Sales until F4211 is integrated.
+      Acceptable for Otis service/maintenance AR.
     severity: medium
 
-  - title: Workday email integration
+  - title: Two CEI metrics — different grains, not duplicates
     details: >
-      WorkdayEmail in DimARDetails comes from a pre-loaded Workday reference table with
-      scheduled refresh (not a live SQL Server call). Confirm the Workday reference table
-      schema with Data Engineering before enabling email-based action triggers.
+      CEI_TREND (FactDSO) = executive portfolio CEI by collection priority.
+      COLLECTION_EFFICIENCY_TREND (FactARCollection) = cash application at receipt grain.
+      portfolio_cei_anomaly DQ runs on FactDSO only.
     severity: low
+
+  - title: DisputeRecoveryRatio framing
+    details: >
+      Gold layer stores recovered proportion. Remaining obligation = 1 - ratio.
+      Confirm Finance wording before executive reporting.
+    severity: medium
+
+  - title: Estimated DQ thresholds require calibration post-deployment
+    details: >
+      Collector tiers (30/60/90), unapplied cash >20%, reserve change >20%, etc.
+      Replace with data-driven thresholds after 30-day baseline.
+    severity: high
 
 references:
   - title: Design Document

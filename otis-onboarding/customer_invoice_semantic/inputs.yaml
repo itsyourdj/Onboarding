@@ -1,5 +1,5 @@
 # Source: design spec > Section 13.1 External Model Definitions
-# All 5 tables exist in Snowflake under the RL_JDE schema — managed by the JDE pipeline.
+# All 6 tables exist in Snowflake under the RL_JDE schema — managed by the JDE pipeline.
 # Vulcan registers these as EXTERNAL metadata stubs. No transformation is applied.
 #
 # NOTE: Database references use JDE_PRODUCTION from config.yaml.
@@ -24,6 +24,7 @@
     - name: ar_fact_dim_grain_integrity
     - name: ar_dispute_co_population_integrity
     - name: ar_payment_term_orphan
+    - name: ar_collector_unassigned_on_overdue
   columns:
     COMPANYID:           VARCHAR(10)
     DOCUMENTCOMPANY:     VARCHAR(10)
@@ -34,6 +35,7 @@
     PARENTCUSTOMER:      VARCHAR(20)
     SALESREP:            VARCHAR(50)
     COLLECTOR:           VARCHAR(50)
+    COLLECTIONPRIORITY: VARCHAR(10)
     COLLECTIONMANAGER:   VARCHAR(50)
     GLOFFSET:            VARCHAR(10)
     LOB:                 VARCHAR(50)
@@ -66,6 +68,7 @@
     PAYITM: "Pay item suffix; part of invoice grain key."
     CUSTOMERNUMBER: "JDE customer number used for customer-level AR analysis."
     COLLECTOR: "COLLECTOR responsible for recovery follow-up; owner field for collection operations."
+    COLLECTIONPRIORITY: "Collection priority segment (H/M/L/NONE) from F03012; NONE = not prioritized."
     LOB: "Line of Business derived via GLOFFSET mapping; key for LOB-level KPI reporting."
     PAYMENTTERMCODE: "Payment term code used to join ARPAYMENTTERM for compliance checks."
     DISPUTESTATUS: "Current dispute state (Open/Resolved/null)."
@@ -83,6 +86,7 @@
     PAYITM: ["grain", "identifier"]
     CUSTOMERNUMBER: ["dimension", "customer", "join_key", "kpi"]
     COLLECTOR: ["dimension", "ownership", "kpi", "action_trigger"]
+    COLLECTIONPRIORITY: ["dimension", "collections", "priority", "kpi"]
     LOB: ["dimension", "lob", "kpi", "dashboard"]
     PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
     DISPUTESTATUS: ["dimension", "dispute", "kpi"]
@@ -138,6 +142,7 @@
     DUEDATE:                 DATE
     AGEASOFDATE:             DATE
     LATESTRECEIPTDATE:       DATE
+    DISPUTEDATE:             DATE
     INSERTDATE:              TIMESTAMP_NTZ
   column_descriptions:
     COMPANYID: "JDE company identifier; part of invoice grain key."
@@ -157,6 +162,7 @@
     AGINGDAYS: "Days outstanding beyond due date; >30 marks overdue."
     FISCALPERIODID: "Fiscal period integer key ((Century*100+Year)*100+Month)."
     AGEASOFDATE: "As-of date used for aging calculation."
+    DISPUTEDATE: "Date dispute was opened (RPDPDT); used with GLDate as dispute date anchor in FactDSO rolling."
     INSERTDATE: "Load timestamp used for trend metric time axis."
   column_tags:
     COMPANYID: ["grain", "identifier", "join_key"]
@@ -296,3 +302,78 @@
     PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
     DESCRIPTION: ["dimension", "compliance", "display"]
     NETDAYS: ["measure", "compliance", "threshold"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. FACTDSO — DSO & Dispute Analytics Fact
+#    Grain: COMPANYID + FISCALYEAR + FISCALMONTH + COLLECTIONPRIORITY
+# ─────────────────────────────────────────────────────────────────────────────
+- name: JDE_PRODUCTION.RL_JDE.FACTDSO
+  description: >
+    DSO & Dispute Analytics Fact — pre-aggregated at company × fiscal period ×
+    collection-priority grain. Native DSO, DSO vs terms, calendar-day disputed rolling
+    totals (DATEADD day windows), dispute recovery ratio, and unified CEI.
+    Maintained by JDE stored procedure SP_LOAD_FACTDSO.
+  grains:
+    - COMPANYID
+    - FISCALYEAR
+    - FISCALMONTH
+    - COLLECTIONPRIORITY
+  audits: []
+  columns:
+    COMPANYID:                  VARCHAR(10)
+    FISCALYEAR:                 INTEGER
+    FISCALMONTH:                INTEGER
+    COLLECTIONPRIORITY:         VARCHAR(10)
+    TOTALOPENAR:                DECIMAL(18, 2)
+    TOTALGROSSINVOICED:         DECIMAL(18, 2)
+    DAYSINPERIOD:               INTEGER
+    DSO:                        DECIMAL(18, 4)
+    AVGCONTRACTUALNETDAYS:      DECIMAL(18, 4)
+    DSOVARIANCEFROMTERMS:       DECIMAL(18, 4)
+    DISPUTEDAMOUNTTOTAL:        DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING30:    DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING60:    DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING90:    DECIMAL(18, 2)
+    DISPUTEDAMOUNTROLLING180:   DECIMAL(18, 2)
+    RESOLVEDDISPUTEGROSS:       DECIMAL(18, 2)
+    RESOLVEDDISPUTERECOVERED:   DECIMAL(18, 2)
+    DISPUTERECOVERYRATIO:       DECIMAL(10, 6)
+    CEI:                        DECIMAL(10, 6)
+    INVOICECOUNT:               INTEGER
+  column_descriptions:
+    COMPANYID: "JDE company identifier; part of FactDSO grain key."
+    FISCALYEAR: "Fiscal year; part of FactDSO grain key."
+    FISCALMONTH: "Fiscal month (1-12); part of FactDSO grain key and trend time axis."
+    COLLECTIONPRIORITY: "Collection priority segment (H/M/L/NONE from F03012); part of grain key."
+    TOTALOPENAR: "Sum of open amounts for invoices in this segment/period."
+    TOTALGROSSINVOICED: "Sum of gross invoiced amounts in period (RPAAP denominator for DSO)."
+    DAYSINPERIOD: "Calendar days in the fiscal month."
+    DSO: "Days Sales Outstanding = (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod."
+    AVGCONTRACTUALNETDAYS: "Average contractual net days from payment terms (F0014)."
+    DSOVARIANCEFROMTERMS: "DSO minus avg contractual net days; positive = slower than terms."
+    DISPUTEDAMOUNTTOTAL: "Total disputed amount for disputes open in this period."
+    DISPUTEDAMOUNTROLLING30: "Sum of disputed amounts where COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - 30 days."
+    DISPUTEDAMOUNTROLLING60: "Sum of disputed amounts where dispute date anchor >= CURRENT_DATE - 60 days."
+    DISPUTEDAMOUNTROLLING90: "Sum of disputed amounts where dispute date anchor >= CURRENT_DATE - 90 days."
+    DISPUTEDAMOUNTROLLING180: "Sum of disputed amounts where dispute date anchor >= CURRENT_DATE - 180 days."
+    RESOLVEDDISPUTEGROSS: "Total gross amount of resolved disputed invoices."
+    RESOLVEDDISPUTERECOVERED: "Amount recovered on resolved disputes."
+    DISPUTERECOVERYRATIO: "Proportion recovered = Recovered / Gross for resolved disputes."
+    CEI: "Collection Effectiveness Index for this priority segment."
+    INVOICECOUNT: "Number of invoices in this segment/period."
+  column_tags:
+    COMPANYID: ["grain", "identifier", "join_key"]
+    FISCALYEAR: ["grain", "time_dimension", "period"]
+    FISCALMONTH: ["grain", "time_dimension", "period", "kpi"]
+    COLLECTIONPRIORITY: ["grain", "dimension", "collections", "priority", "kpi"]
+    TOTALOPENAR: ["measure", "amount", "kpi", "finance"]
+    TOTALGROSSINVOICED: ["measure", "amount", "kpi", "finance"]
+    DSO: ["measure", "kpi", "dso", "dashboard"]
+    DSOVARIANCEFROMTERMS: ["measure", "kpi", "compliance"]
+    DISPUTEDAMOUNTROLLING30: ["measure", "dispute", "kpi", "trend"]
+    DISPUTEDAMOUNTROLLING60: ["measure", "dispute", "kpi", "trend"]
+    DISPUTEDAMOUNTROLLING90: ["measure", "dispute", "kpi", "trend"]
+    DISPUTEDAMOUNTROLLING180: ["measure", "dispute", "kpi", "trend"]
+    DISPUTERECOVERYRATIO: ["measure", "dispute", "kpi", "ratio"]
+    CEI: ["measure", "kpi", "cei", "dashboard"]
+    INVOICECOUNT: ["measure", "count"]

@@ -9,6 +9,7 @@ MODEL (
     LOBKEY = 'Surrogate key for LOB mapping record.',
     COMPANYID = 'Company identifier.',
     LOBCODE = 'Line of business code.',
+    LOB = 'Line of business code (join alias matching fact/dimension LOB column).',
     LOBDESCRIPTION = 'Line of business description.',
     GLOFFSET = 'General ledger offset used for LOB derivation.',
     GLOBJECTACCOUNT = 'GL object account number when available.',
@@ -20,6 +21,7 @@ MODEL (
     LOBKEY = ('GRAIN', 'PRIMARY_KEY'),
     COMPANYID = ('IDENTIFIER', 'JOIN_KEY'),
     LOBCODE = ('DIMENSION', 'LOB'),
+    LOB = ('DIMENSION', 'LOB'),
     GLOFFSET = ('DIMENSION', 'JOIN_KEY'),
     GLOBJECTACCOUNT = ('DIMENSION', 'GL_ACCOUNT'),
     REVENUECATEGORY = ('DIMENSION', 'REPORTING_CATEGORY')
@@ -34,6 +36,7 @@ SELECT
   ABS(HASH(COALESCE(GACO, ''), COALESCE(GAID, ''))) AS LOBKEY,
   @normalize_key(GACO) AS COMPANYID,
   @normalize_key(GAID) AS LOBCODE,
+  @normalize_key(GAID) AS LOB,
   TRIM(GADL01) AS LOBDESCRIPTION,
   @normalize_key(GAID) AS GLOFFSET,
   @normalize_key(GAOBJ) AS GLOBJECTACCOUNT,

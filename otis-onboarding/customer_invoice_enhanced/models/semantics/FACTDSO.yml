@@ -284,7 +284,7 @@ segments:
 joins:
   - name: DIMARDETAILS
     type: one_to_many
-    expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
+    on: COMPANYID
     ai_context:
       instructions: >
         Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY

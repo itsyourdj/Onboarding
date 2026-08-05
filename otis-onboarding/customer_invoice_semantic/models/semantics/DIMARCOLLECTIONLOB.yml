@@ -42,6 +42,14 @@ dimensions:
         - "LOB"
         - "LOB code"
         - "line of business code"
+  - name: LOB
+    behavior:
+      type: categorical
+    ai_context:
+      synonyms:
+        - "LOB code"
+        - "line of business code"
+        - "join key to DIMARDETAILS and FACTARCOLLECTION"
   - name: LOBDESCRIPTION
     behavior:
       type: categorical

@@ -14,7 +14,7 @@ tags:
 ai_context:
   instructions: >
     Use this model to look up the full description of a Line of Business code (LOBDESCRIPTION).
-    Join from FACTARCOLLECTION or DIMARDETAILS on LOBCODE / LOB column.
+    Join from FACTARCOLLECTION or DIMARDETAILS on LOBCODE.
   synonyms:
     - "LOB reference"
     - "line of business reference"
@@ -42,14 +42,6 @@ dimensions:
         - "LOB"
         - "LOB code"
         - "line of business code"
-  - name: LOB
-    behavior:
-      type: categorical
-    ai_context:
-      synonyms:
-        - "LOB code"
-        - "line of business code"
-        - "join key to DIMARDETAILS and FACTARCOLLECTION"
   - name: LOBDESCRIPTION
     behavior:
       type: categorical

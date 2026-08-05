@@ -1,12 +1,12 @@
 kind: semantic
 name: SVC_CONTRACT_COMPLIANCE
 depends_on: NAABO_PROD.REPORTING.SVC_COMPLIANCE
-description: Trailing-12-month contract visit compliance.
+description: "Trailing-12-month contract visit compliance."
 measures:
   - name: LATEST_ACTUAL_VISIT
     type: max
     expression: '{SVC_CONTRACT_COMPLIANCE.ACTUALVISITS12MONTHS}'
-    description: Most recent actual maintenance visit (12m)
+    description: "Most recent actual maintenance visit (12m)"
     ai_context:
       instructions: Use to identify recency of latest maintenance execution.
       caveats:
@@ -17,7 +17,7 @@ measures:
   - name: TOTAL_EXPECTED_VISITS
     type: sum
     expression: '{SVC_CONTRACT_COMPLIANCE.VISITS12MONTHS}'
-    description: Sum of expected visits (12m)
+    description: "Sum of expected visits (12m)"
     ai_context:
       instructions: Use as planned maintenance obligation over trailing 12 months.
       caveats:
@@ -27,30 +27,30 @@ measures:
         - planned visits
 dimensions:
   - name: CONTRACT_ID
-    description: Contract governing the required visits.
+    description: "Contract governing the required visits."
     ai_context:
       instructions: Use to evaluate compliance by service agreement.
       synonyms:
         - contract
         - agreement id
   - name: GBO
-    description: Global business organization / branch grouping.
+    description: "Global business organization / branch grouping."
   - name: REGION
-    description: Region the unit belongs to.
+    description: "Region the unit belongs to."
     ai_context:
       instructions: Use for geographic compliance rollups.
       synonyms:
         - geography
         - area
   - name: UNIT_ID
-    description: Unit the compliance row is for (FK to UNITS).
+    description: "Unit the compliance row is for (FK to UNITS)."
     ai_context:
       instructions: Use for unit-level contract compliance tracking.
       synonyms:
         - unit
         - equipment id
   - name: ACTUALVISITS12MONTHS
-    description: Timestamp of the last actual maintenance visit in the trailing 12 months (source column is a timestamp, not a count).
+    description: "Timestamp of the last actual maintenance visit in the trailing 12 months (source column is a timestamp, not a count)."
     ai_context:
       instructions: Use as the source recency field for last visit analysis.
       caveats:
@@ -59,7 +59,7 @@ dimensions:
         - actual visit date
         - last maintenance date
   - name: VISITS12MONTHS
-    description: Contracted/required visits in the trailing 12 months.
+    description: "Contracted/required visits in the trailing 12 months."
     ai_context:
       instructions: Use as required visit baseline for compliance KPIs.
       synonyms:

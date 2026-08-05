@@ -4,12 +4,7 @@
 kind: semantic
 name: FACTDSO
 depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.FACTDSO
-description: >
-  DSO & Dispute Analytics Fact — pre-aggregated collection performance snapshot.
-  Native DSO, DSO vs contractual terms, calendar-day disputed rolling totals (30/60/90/180),
-  dispute recovery ratio, and unified CEI by collection priority segment.
-  Rolling columns use DisputeDate >= DATEADD(day, -N, CURRENT_DATE()) in FACTDSO.sql.
-  Use for executive DSO/dispute/CEI trends; JOIN to DIMARDETAILS for invoice drill-down.
+description: "DSO & Dispute Analytics Fact — pre-aggregated collection performance snapshot. Native DSO, DSO vs contractual terms, calendar-day disputed rolling totals (30/60/90/180), dispute recovery ratio, and unified CEI by collection priority segment. Rolling columns use DisputeDate >= DATEADD(day, -N, CURRENT_DATE()) in FACTDSO.sql. Use for executive DSO/dispute/CEI trends; JOIN to DIMARDETAILS for invoice drill-down."
 
 tags:
   - accounts-receivable
@@ -122,18 +117,23 @@ measures:
   - name: TOTAL_OPEN_AR
     type: sum
     expression: "{FACTDSO.TOTALOPENAR}"
-    description: Total open AR in this company × period × priority segment.
+    description: "Total open AR in this company × period × priority segment."
     behavior:
       type: stock
+      time_dimension: FISCALMONTH
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "open AR"
         - "outstanding AR"
+      caveats:
+        - "Point-in-time open AR balance per fiscal period snapshot. Do not sum across FISCALYEAR/FISCALMONTH — filter to the latest period or use period_treatment last."
 
   - name: TOTAL_GROSS_INVOICED
     type: sum
     expression: "{FACTDSO.TOTALGROSSINVOICED}"
-    description: Total gross invoiced in period (DSO denominator).
+    description: "Total gross invoiced in period (DSO denominator)."
     behavior:
       type: flow
     ai_context:
@@ -144,23 +144,21 @@ measures:
   - name: DSO
     type: avg
     expression: "{FACTDSO.DSO}"
-    description: >
-      Days Sales Outstanding from gold layer: (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod.
-      Uses native DSO column maintained by JDE stored procedure.
+    description: "Days Sales Outstanding from gold layer: (TotalOpenAR / TotalGrossInvoiced) * DaysInPeriod. Uses native DSO column maintained by JDE stored procedure."
     behavior:
-      type: ratio
+      type: simple
     ai_context:
       synonyms:
         - "days sales outstanding"
         - "DSO"
         - "collection cycle"
       caveats:
-        - "Denominator is invoiced gross (RPAAP), not F4211 sales orders."
+        - "Pre-computed DSO column from gold layer; do not re-average as a ratio — filter to a fiscal period window. Denominator is invoiced gross (RPAAP), not F4211 sales orders."
 
   - name: DSO_VARIANCE_FROM_TERMS
     type: avg
     expression: "{FACTDSO.DSOVARIANCEFROMTERMS}"
-    description: DSO minus average contractual net days. Positive = collecting slower than terms.
+    description: "DSO minus average contractual net days. Positive = collecting slower than terms."
     behavior:
       type: flow
     ai_context:
@@ -171,17 +169,14 @@ measures:
   - name: AVG_CONTRACTUAL_NET_DAYS
     type: avg
     expression: "{FACTDSO.AVGCONTRACTUALNETDAYS}"
-    description: Average contractual net days from F0014 payment terms.
+    description: "Average contractual net days from F0014 payment terms."
     behavior:
       type: flow
 
   - name: DISPUTED_AMOUNT_ROLLING_30
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING30}"
-    description: >
-      Total disputed amount in the last 30 calendar days (load snapshot).
-      Gold logic: SUM where DisputeCode IS NOT NULL
-      AND COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE()).
+    description: "Total disputed amount in the last 30 calendar days (load snapshot). Gold logic: SUM where DisputeCode IS NOT NULL AND COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE())."
     behavior:
       type: flow
     ai_context:
@@ -194,7 +189,7 @@ measures:
   - name: DISPUTED_AMOUNT_ROLLING_60
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING60}"
-    description: Total disputed amount where dispute date >= CURRENT_DATE - 60 days.
+    description: "Total disputed amount where dispute date >= CURRENT_DATE - 60 days."
     behavior:
       type: flow
     ai_context:
@@ -204,7 +199,7 @@ measures:
   - name: DISPUTED_AMOUNT_ROLLING_90
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING90}"
-    description: Total disputed amount where dispute date >= CURRENT_DATE - 90 days.
+    description: "Total disputed amount where dispute date >= CURRENT_DATE - 90 days."
     behavior:
       type: flow
     ai_context:
@@ -214,7 +209,7 @@ measures:
   - name: DISPUTED_AMOUNT_ROLLING_180
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING180}"
-    description: Total disputed amount where dispute date >= CURRENT_DATE - 180 days.
+    description: "Total disputed amount where dispute date >= CURRENT_DATE - 180 days."
     behavior:
       type: flow
     ai_context:
@@ -224,10 +219,9 @@ measures:
   - name: DISPUTE_RECOVERY_RATIO
     type: avg
     expression: "{FACTDSO.DISPUTERECOVERYRATIO}"
-    description: Proportion recovered on resolved disputes (Recovered / Gross).
-      Remaining obligation (amount still owed / disputed) = 1 - DisputeRecoveryRatio.
+    description: "Proportion recovered on resolved disputes (Recovered / Gross). Remaining obligation (amount still owed / disputed) = 1 - DisputeRecoveryRatio."
     behavior:
-      type: ratio
+      type: simple
     ai_context:
       synonyms:
         - "dispute recovery"
@@ -240,9 +234,9 @@ measures:
   - name: CEI
     type: avg
     expression: "{FACTDSO.CEI}"
-    description: Unified Collection Effectiveness Index for this priority segment.
+    description: "Unified Collection Effectiveness Index for this priority segment."
     behavior:
-      type: ratio
+      type: simple
     ai_context:
       synonyms:
         - "CEI"
@@ -254,28 +248,26 @@ measures:
   - name: INVOICE_COUNT
     type: sum
     expression: "{FACTDSO.INVOICECOUNT}"
-    description: Number of invoices in this segment/period.
+    description: "Number of invoices in this segment/period."
     behavior:
       type: flow
 
 segments:
   - name: collection_prioritized
     expression: "{FACTDSO.COLLECTIONPRIORITY} IN ('H', 'M', 'L')"
-    description: >
-      Collection-prioritized segments (H/M/L). Compare DSO and CEI against not_prioritized
-      to assess whether prioritization improves collection effectiveness.
+    description: "Collection-prioritized segments (H/M/L). Compare DSO and CEI against not_prioritized to assess whether prioritization improves collection effectiveness."
   - name: priority_high
     expression: "{FACTDSO.COLLECTIONPRIORITY} = 'H'"
-    description: High collection priority segment.
+    description: "High collection priority segment."
   - name: priority_medium
     expression: "{FACTDSO.COLLECTIONPRIORITY} = 'M'"
-    description: Medium collection priority segment.
+    description: "Medium collection priority segment."
   - name: priority_low
     expression: "{FACTDSO.COLLECTIONPRIORITY} = 'L'"
-    description: Low collection priority segment.
+    description: "Low collection priority segment."
   - name: not_prioritized
     expression: "{FACTDSO.COLLECTIONPRIORITY} = 'NONE' OR {FACTDSO.COLLECTIONPRIORITY} IS NULL"
-    description: Not collection-prioritized (NONE or null).
+    description: "Not collection-prioritized (NONE or null)."
 
 joins:
   - name: DIMARDETAILS

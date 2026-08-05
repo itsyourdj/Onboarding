@@ -104,7 +104,7 @@ measures:
   - name: total_callbacks
     type: count
     expression: "{callbacks.CALLBACKID}"
-    description: Total number of callback events
+    description: "Total number of callback events"
     behavior:
       type: flow
     ai_context:
@@ -117,7 +117,7 @@ measures:
     expression: "{callbacks.CALLBACKID}"
     filters:
       - "{callbacks.TCB_FLAG} = 'Y'"
-    description: Numerator helper for trouble_callback_rate — count of trouble callbacks
+    description: "Numerator helper for trouble_callback_rate — count of trouble callbacks"
     behavior:
       type: flow
 
@@ -126,7 +126,7 @@ measures:
     expression: "{callbacks.CALLBACKID}"
     filters:
       - "{callbacks.TRAPPED_PASSENGER_FLAG} = 'Y'"
-    description: Numerator helper for entrapment_rate — count of entrapment callbacks
+    description: "Numerator helper for entrapment_rate — count of entrapment callbacks"
     behavior:
       type: flow
 
@@ -135,7 +135,7 @@ measures:
     expression: "{callbacks.CALLBACKID}"
     filters:
       - "{callbacks.OUT_OF_SERVICE_FLAG} = 'Y'"
-    description: Numerator helper for out_of_service_rate — count of out-of-service callbacks
+    description: "Numerator helper for out_of_service_rate — count of out-of-service callbacks"
     behavior:
       type: flow
 
@@ -144,7 +144,7 @@ measures:
     expression: "{callbacks.CALLBACKID}"
     filters:
       - "{callbacks.FTFR_FLAG} = 'Y'"
-    description: Numerator helper for first_time_fix_rate — count of first-time-fixed callbacks
+    description: "Numerator helper for first_time_fix_rate — count of first-time-fixed callbacks"
     behavior:
       type: flow
 
@@ -211,10 +211,10 @@ measures:
 segments:
   - name: trouble_callbacks_only
     expression: "{callbacks.TCB_FLAG} = 'Y'"
-    description: Only trouble callbacks
+    description: "Only trouble callbacks"
   - name: entrapment_callbacks_only
     expression: "{callbacks.TRAPPED_PASSENGER_FLAG} = 'Y'"
-    description: Only entrapment callbacks
+    description: "Only entrapment callbacks"
 
 joins:
   - name: contract_compliance

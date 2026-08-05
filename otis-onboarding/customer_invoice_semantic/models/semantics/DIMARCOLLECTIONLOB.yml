@@ -4,10 +4,7 @@
 kind: semantic
 name: DIMARCOLLECTIONLOB
 depends_on: JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
-description: >
-  Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
-  One row per LOBKEY (company + LOB code). Used to classify invoices and
-  collection records by business line across all fact tables.
+description: "Line of Business Reference Dimension — maps GL Offset codes to LOB labels. One row per LOBKEY (company + LOB code). Used to classify invoices and collection records by business line across all fact tables."
 
 tags:
   - accounts-receivable

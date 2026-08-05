@@ -35,6 +35,6 @@ measures:
   - name: customer_count
     type: count
     expression: "{customers.CUSTOMER_ID}"
-    description: Number of customers
+    description: "Number of customers"
     behavior:
       type: flow

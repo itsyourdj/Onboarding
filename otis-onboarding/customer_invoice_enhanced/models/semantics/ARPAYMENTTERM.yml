@@ -4,10 +4,7 @@
 kind: semantic
 name: ARPAYMENTTERM
 depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.ARPAYMENTTERM
-description: >
-  Payment Term Reference Dimension — defines payment terms used across invoices.
-  One row per PAYMENTTERMKEY. NETDAYS is the key business metric:
-  AGINGDAYS > NETDAYS = invoice has breached its contractual payment term.
+description: "Payment Term Reference Dimension — defines payment terms used across invoices. One row per PAYMENTTERMKEY. NETDAYS is the key business metric: AGINGDAYS > NETDAYS = invoice has breached its contractual payment term."
 
 tags:
   - accounts-receivable

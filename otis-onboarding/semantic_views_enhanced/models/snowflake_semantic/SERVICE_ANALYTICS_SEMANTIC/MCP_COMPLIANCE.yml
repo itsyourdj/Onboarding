@@ -1,12 +1,12 @@
 kind: semantic
 name: MCP_COMPLIANCE
 depends_on: NAABO_PROD.REPORTING.MCP_COMPLIANCE_REPORT
-description: Maintenance-control-plan compliance by unit-month.
+description: "Maintenance-control-plan compliance by unit-month."
 measures:
   - name: AVG_COMPLIANCE_PCT
     type: avg
     expression: '{MCP_COMPLIANCE.COMPLIANCE_PCT}'
-    description: Average compliance percentage
+    description: "Average compliance percentage"
     ai_context:
       instructions: Headline KPI for maintenance plan adherence.
       caveats:
@@ -17,7 +17,7 @@ measures:
   - name: TOTAL_COMPLETED_VISITS
     type: sum
     expression: '{MCP_COMPLIANCE.COMPLETED_VISITS}'
-    description: Sum of completed visits
+    description: "Sum of completed visits"
     ai_context:
       instructions: Total executed maintenance visits in scope.
       synonyms:
@@ -26,7 +26,7 @@ measures:
   - name: TOTAL_MISSED_VISITS
     type: sum
     expression: '{MCP_COMPLIANCE.MISSED_VISITS}'
-    description: Sum of missed visits
+    description: "Sum of missed visits"
     ai_context:
       instructions: Use to quantify maintenance execution gaps.
       synonyms:
@@ -35,7 +35,7 @@ measures:
   - name: TOTAL_SCHEDULED_VISITS
     type: sum
     expression: '{MCP_COMPLIANCE.SCHEDULED_VISITS}'
-    description: Sum of scheduled visits
+    description: "Sum of scheduled visits"
     ai_context:
       instructions: Planned maintenance visit denominator for compliance tracking.
       synonyms:
@@ -50,37 +50,37 @@ dimensions:
         - customer
         - account
   - name: GBO
-    description: Global business organization / branch grouping.
+    description: "Global business organization / branch grouping."
   - name: REGION
-    description: Region the unit belongs to.
+    description: "Region the unit belongs to."
     ai_context:
       instructions: Use for regional compliance benchmarking.
       synonyms:
         - geography
         - area
   - name: REPORT_MONTH
-    description: Reporting month (first day of month).
+    description: "Reporting month (first day of month)."
     ai_context:
       instructions: Monthly time grain for compliance trends.
       synonyms:
         - compliance month
         - report period
   - name: UNIT_ID
-    description: Unit the compliance row is for (FK to UNITS).
+    description: "Unit the compliance row is for (FK to UNITS)."
     ai_context:
       instructions: Unit-level key for maintenance plan compliance.
       synonyms:
         - unit
         - equipment id
   - name: COMPLETED_VISITS
-    description: Maintenance visits completed in the month.
+    description: "Maintenance visits completed in the month."
     ai_context:
       instructions: Completed maintenance count at row grain.
       synonyms:
         - completed visits
         - done maintenance
   - name: COMPLIANCE_PCT
-    description: Compliance percentage (completed / scheduled).
+    description: "Compliance percentage (completed / scheduled)."
     ai_context:
       instructions: Row-level compliance ratio for unit-month records.
       caveats:
@@ -89,14 +89,14 @@ dimensions:
         - compliance percent
         - adherence rate
   - name: MISSED_VISITS
-    description: Maintenance visits missed in the month.
+    description: "Maintenance visits missed in the month."
     ai_context:
       instructions: Missed maintenance count at row grain.
       synonyms:
         - missed maintenance
         - overdue visits
   - name: SCHEDULED_VISITS
-    description: Maintenance visits scheduled in the month.
+    description: "Maintenance visits scheduled in the month."
     ai_context:
       instructions: Scheduled maintenance count at row grain.
       synonyms:

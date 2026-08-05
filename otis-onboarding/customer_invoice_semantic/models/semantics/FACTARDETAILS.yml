@@ -4,10 +4,7 @@
 kind: semantic
 name: FACTARDETAILS
 depends_on: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-description: >
-  Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item.
-  Use this model for questions about amounts, reserves, aging, and forecasts.
-  For invoice attributes (collector, LOB, dispute status), JOIN to DIMARDETAILS.
+description: "Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item. Use this model for questions about amounts, reserves, aging, and forecasts. For invoice attributes (collector, LOB, dispute status), JOIN to DIMARDETAILS."
 
 tags:
   - accounts-receivable
@@ -145,7 +142,7 @@ measures:
   - name: OPEN_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.OPENAMOUNT}"
-    description: Total outstanding invoice balance. Primary AR exposure metric.
+    description: "Total outstanding invoice balance. Primary AR exposure metric."
     behavior:
       type: flow
     ai_context:
@@ -167,21 +164,21 @@ measures:
   - name: GROSS_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.GROSSAMOUNT}"
-    description: Original invoice face value before any adjustments or credit memos.
+    description: "Original invoice face value before any adjustments or credit memos."
     behavior:
       type: flow
 
   - name: TAX_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.TAXAMOUNT}"
-    description: Tax component of invoice amounts.
+    description: "Tax component of invoice amounts."
     behavior:
       type: flow
 
   - name: DISPUTED_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.DISPUTEDAMOUNT}"
-    description: Amount formally under dispute. Rising trend = leakage risk.
+    description: "Amount formally under dispute. Rising trend = leakage risk."
     behavior:
       type: flow
     ai_context:
@@ -192,10 +189,7 @@ measures:
   - name: CHANGE_IN_RESERVE
     type: sum
     expression: "{FACTARDETAILS.CHANGEINRESERVE}"
-    description: >
-      Net period-over-period change in doubtful debt reserve.
-      Positive = more reserve provisioned; Negative = reserve released.
-      Primary reserve leakage signal (L2).
+    description: "Net period-over-period change in doubtful debt reserve. Positive = more reserve provisioned; Negative = reserve released. Primary reserve leakage signal (L2)."
     behavior:
       type: flow
     ai_context:
@@ -209,21 +203,21 @@ measures:
   - name: RESERVE_CASH_APPLIED
     type: sum
     expression: "{FACTARDETAILS.RESERVECASHAPPLIED}"
-    description: Reserve cash that has been applied to invoices. Zero on aged invoices = leakage signal L6.
+    description: "Reserve cash that has been applied to invoices. Zero on aged invoices = leakage signal L6."
     behavior:
       type: flow
 
   - name: ADJUSTMENT_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.ADJUSTMENTAMOUNT}"
-    description: Sum of adjustment amounts posted against invoices.
+    description: "Sum of adjustment amounts posted against invoices."
     behavior:
       type: flow
 
   - name: DRAFT_OPEN_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.DRAFTOPENAMOUNT}"
-    description: Draft / unconfirmed open amounts.
+    description: "Draft / unconfirmed open amounts."
     behavior:
       type: flow
 
@@ -231,9 +225,7 @@ measures:
   - name: CURRENT_RESERVE
     type: sum
     expression: "{FACTARDETAILS.CURRENTRESERVE}"
-    description: >
-      Current doubtful debt reserve held. Point-in-time balance.
-      DO NOT sum across fiscal periods — read at the latest FISCALPERIODID snapshot.
+    description: "Current doubtful debt reserve held. Point-in-time balance. DO NOT sum across fiscal periods — read at the latest FISCALPERIODID snapshot."
     behavior:
       type: stock
       time_dimension: INSERTDATE
@@ -250,7 +242,7 @@ measures:
   - name: FORECAST_RESERVE_30
     type: sum
     expression: "{FACTARDETAILS.FORECASTRESERVE30}"
-    description: 30-day forward reserve forecast. Denominator in Reserve Accuracy % and leakage signal L7.
+    description: "30-day forward reserve forecast. Denominator in Reserve Accuracy % and leakage signal L7."
     behavior:
       type: stock
       time_dimension: INSERTDATE
@@ -260,7 +252,7 @@ measures:
   - name: FORECAST_RESERVE_60
     type: sum
     expression: "{FACTARDETAILS.FORECASTRESERVE60}"
-    description: 60-day forward reserve forecast.
+    description: "60-day forward reserve forecast."
     behavior:
       type: stock
       time_dimension: INSERTDATE
@@ -270,7 +262,7 @@ measures:
   - name: FORECAST_RESERVE_90
     type: sum
     expression: "{FACTARDETAILS.FORECASTRESERVE90}"
-    description: 90-day forward reserve forecast. Used for IFRS/GAAP provisioning.
+    description: "90-day forward reserve forecast. Used for IFRS/GAAP provisioning."
     behavior:
       type: stock
       time_dimension: INSERTDATE
@@ -280,7 +272,7 @@ measures:
   # ── Count measures ──────────────────────────────────────────────────────────
   - name: INVOICE_COUNT
     type: count
-    description: Total count of invoice / pay-item records.
+    description: "Total count of invoice / pay-item records."
     behavior:
       type: flow
 
@@ -288,9 +280,7 @@ measures:
     type: count
     filters:
       - "{FACTARDETAILS.AGINGDAYS} > 30"
-    description: >
-      Count of invoices more than 30 days past due.
-      Primary input for OVERDUE_INVOICE_TREND metric.
+    description: "Count of invoices more than 30 days past due. Primary input for OVERDUE_INVOICE_TREND metric."
     behavior:
       type: flow
     ai_context:
@@ -306,9 +296,7 @@ measures:
     type: number
     expression: >
       1 - AVG(ABS({FACTARDETAILS.CHANGEINRESERVE} / NULLIF({FACTARDETAILS.FORECASTRESERVE30}, 0)))
-    description: >
-      Reserve forecast accuracy: 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30).
-      Values near 1.0 = accurate forecasting. Below 0.8 = recalibration needed.
+    description: "Reserve forecast accuracy: 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30). Values near 1.0 = accurate forecasting. Below 0.8 = recalibration needed."
     behavior:
       type: ratio
       numerator: CHANGE_IN_RESERVE
@@ -327,9 +315,7 @@ segments:
       {FACTARDETAILS.AGINGDAYS} > 30
       AND {FACTARDETAILS.RESERVECASHAPPLIED} = 0
       AND {FACTARDETAILS.CURRENTRESERVE} > 0
-    description: >
-      Invoices overdue >30 days with reserve held but no reserve cash applied.
-      Highest-value leakage signal (Signal L6).
+    description: "Invoices overdue >30 days with reserve held but no reserve cash applied. Highest-value leakage signal (Signal L6)."
     ai_context:
       synonyms:
         - "at-risk invoices"
@@ -340,9 +326,7 @@ segments:
     expression: >
       {FACTARDETAILS.FORECASTRESERVE30} > 0
       AND ABS({FACTARDETAILS.CHANGEINRESERVE} / {FACTARDETAILS.FORECASTRESERVE30}) > 0.20
-    description: >
-      Invoices where reserve changed by >20% vs 30-day forecast (Signal L7).
-      Signals potential reserve mis-estimation.
+    description: "Invoices where reserve changed by >20% vs 30-day forecast (Signal L7). Signals potential reserve mis-estimation."
 
 joins:
   - name: DIMARDETAILS

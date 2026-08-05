@@ -1,12 +1,12 @@
 kind: semantic
 name: NPS_SURVEYS
 depends_on: MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
-description: Qualtrics NPS / voice-of-customer survey responses.
+description: "Qualtrics NPS / voice-of-customer survey responses."
 measures:
   - name: AVG_NPS_SCORE
     type: avg
     expression: '{NPS_SURVEYS.NPS_SCORE}'
-    description: Average NPS score (0-10)
+    description: "Average NPS score (0-10)"
     ai_context:
       instructions: Use for average customer advocacy rating trends.
       caveats:
@@ -17,7 +17,7 @@ measures:
   - name: AVG_SATISFACTION
     type: avg
     expression: '{NPS_SURVEYS.SATISFACTION_RATING}'
-    description: Average satisfaction rating
+    description: "Average satisfaction rating"
     ai_context:
       instructions: Use to track overall customer satisfaction level.
       synonyms:
@@ -26,7 +26,7 @@ measures:
   - name: DETRACTORS
     type: sum
     expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Detractor' THEN 1 ELSE 0 END
-    description: Count of detractors (NPS 0-6)
+    description: "Count of detractors (NPS 0-6)"
     ai_context:
       instructions: Use to count dissatisfied respondents by slice.
       caveats:
@@ -37,7 +37,7 @@ measures:
   - name: NPS
     type: number
     expression: ROUND((SUM(CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Promoter' THEN 1 ELSE 0 END) - SUM(CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Detractor' THEN 1 ELSE 0 END)) * 100.0 / NULLIF(COUNT({NPS_SURVEYS.NPS_CATEGORY}), 0), 1)
-    description: Net Promoter Score = (%promoters - %detractors)
+    description: "Net Promoter Score = (%promoters - %detractors)"
     ai_context:
       instructions: Headline loyalty KPI for OTIS customer sentiment.
       caveats:
@@ -49,7 +49,7 @@ measures:
   - name: PASSIVES
     type: sum
     expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Passive' THEN 1 ELSE 0 END
-    description: Count of passives (NPS 7-8)
+    description: "Count of passives (NPS 7-8)"
     ai_context:
       instructions: Use to quantify neutral respondents.
       synonyms:
@@ -58,7 +58,7 @@ measures:
   - name: PROMOTERS
     type: sum
     expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Promoter' THEN 1 ELSE 0 END
-    description: Count of promoters (NPS 9-10)
+    description: "Count of promoters (NPS 9-10)"
     ai_context:
       instructions: Use to count strong advocates among respondents.
       caveats:
@@ -69,7 +69,7 @@ measures:
   - name: TOTAL_RESPONSES
     type: count
     expression: '{NPS_SURVEYS.RESPONSEID}'
-    description: Count of survey responses
+    description: "Count of survey responses"
     ai_context:
       instructions: Base denominator for NPS and sentiment analysis.
       synonyms:
@@ -86,25 +86,25 @@ measures:
         - mean sentiment score
 dimensions:
   - name: CUSTOMER_ID
-    description: Customer who responded (FK to CUSTOMERS).
+    description: "Customer who responded (FK to CUSTOMERS)."
     ai_context:
       instructions: Use for account-level voice-of-customer analysis.
       synonyms:
         - customer
         - account
   - name: GBO
-    description: Global business organization / branch grouping.
+    description: "Global business organization / branch grouping."
   - name: NPS_CATEGORY
-    description: NPS bucket (Promoter / Passive / Detractor).
+    description: "NPS bucket (Promoter / Passive / Detractor)."
     ai_context:
       instructions: Core segmentation field for NPS component analysis.
       synonyms:
         - promoter passive detractor
         - nps bucket
   - name: NPS_SENTIMENT
-    description: Derived sentiment of the response.
+    description: "Derived sentiment of the response."
   - name: RESPONSEID
-    description: Unique Qualtrics survey response identifier.
+    description: "Unique Qualtrics survey response identifier."
     behavior:
       type: identifier
     ai_context:
@@ -113,14 +113,14 @@ dimensions:
         - response id
         - survey id
   - name: RESPONSE_DATE
-    description: Date the survey response was submitted.
+    description: "Date the survey response was submitted."
     ai_context:
       instructions: Use for period-over-period sentiment trends.
       synonyms:
         - survey date
         - submission date
   - name: RISK_COLOR
-    description: Churn-risk RAG color (Red / Amber / Green).
+    description: "Churn-risk RAG color (Red / Amber / Green)."
     ai_context:
       instructions: Use for quick churn-risk segmentation.
       caveats:
@@ -129,7 +129,7 @@ dimensions:
         - rag status
         - churn color
   - name: NPS_SCORE
-    description: Raw NPS score 0-10 given by the respondent.
+    description: "Raw NPS score 0-10 given by the respondent."
     ai_context:
       instructions: Use raw score for detailed distribution analysis.
       caveats:
@@ -138,7 +138,7 @@ dimensions:
         - recommendation score
         - nps rating
   - name: RISK_SCORE
-    description: Derived churn-risk score.
+    description: "Derived churn-risk score."
     ai_context:
       instructions: Use for prioritizing at-risk customer follow-up.
       caveats:
@@ -147,7 +147,7 @@ dimensions:
         - churn risk score
         - retention risk
   - name: SATISFACTION_RATING
-    description: Overall satisfaction rating from the survey.
+    description: "Overall satisfaction rating from the survey."
     ai_context:
       instructions: Use as satisfaction signal complementary to NPS.
       synonyms:

@@ -1,23 +1,23 @@
 kind: semantic
 name: MAINTENANCE_PROCEDURES
 depends_on: SSD_NAA_PROD.RL_AMERICA.FLAT_MAINTENANCE_EVENT
-description: Preventive-maintenance procedure events.
+description: "Preventive-maintenance procedure events."
 measures:
 - name: TOTAL_PROCEDURES
   type: count
-  description: Count of maintenance procedures
+  description: "Count of maintenance procedures"
 - name: TOTAL_WORK_HOURS
   type: sum
   expression: '{MAINTENANCE_PROCEDURES.WORKTIME}'
-  description: Sum of logged work hours
+  description: "Sum of logged work hours"
 dimensions:
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: PROCEDURENUMBER
-  description: Preventive-maintenance procedure number.
+  description: "Preventive-maintenance procedure number."
 - name: SCHEDULETASKSTATUS
-  description: Scheduled task status (completed / missed / ...).
+  description: "Scheduled task status (completed / missed / ...)."
 - name: UNIT_ID
-  description: Unit the procedure was performed on (FK to UNITS).
+  description: "Unit the procedure was performed on (FK to UNITS)."
 - name: WORKTIME
-  description: Logged work time in hours for the procedure.
+  description: "Logged work time in hours for the procedure."

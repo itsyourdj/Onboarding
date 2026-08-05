@@ -44,6 +44,6 @@ measures:
   - name: unit_count
     type: count
     expression: "{units.UNIT_ID}"
-    description: Number of units
+    description: "Number of units"
     behavior:
       type: flow

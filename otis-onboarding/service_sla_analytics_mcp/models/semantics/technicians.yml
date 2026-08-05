@@ -31,6 +31,6 @@ measures:
   - name: technician_count
     type: count
     expression: "{technicians.TECHNICIAN_ID}"
-    description: Number of technicians
+    description: "Number of technicians"
     behavior:
       type: flow

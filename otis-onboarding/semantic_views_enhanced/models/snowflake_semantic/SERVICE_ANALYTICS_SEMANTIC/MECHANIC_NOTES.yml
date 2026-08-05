@@ -1,12 +1,12 @@
 kind: semantic
 name: MECHANIC_NOTES
 depends_on: NAABO_PROD.REPORTING.MESSAGEDETAILSDATASET
-description: Free-text mechanic work notes.
+description: "Free-text mechanic work notes."
 measures:
   - name: TOTAL_NOTES
     type: count
     expression: '{MECHANIC_NOTES.UNIQUEID}'
-    description: Count of mechanic notes
+    description: "Count of mechanic notes"
     ai_context:
       instructions: Use to quantify field documentation activity.
       caveats:
@@ -16,7 +16,7 @@ measures:
         - mechanic comments
 dimensions:
   - name: UNIQUEID
-    description: Unique mechanic-note identifier.
+    description: "Unique mechanic-note identifier."
     behavior:
       type: identifier
     ai_context:
@@ -25,7 +25,7 @@ dimensions:
         - note id
         - message id
   - name: UNIT_ID
-    description: Unit the note refers to (FK to UNITS).
+    description: "Unit the note refers to (FK to UNITS)."
     ai_context:
       instructions: Use to connect notes with unit history and performance.
       synonyms:
@@ -39,7 +39,7 @@ dimensions:
         - customer
         - account
   - name: WORKCOMPLETIONDATE
-    description: Date the work described in the note was completed.
+    description: "Date the work described in the note was completed."
     ai_context:
       instructions: Use for timelines of completed work notes.
       synonyms:

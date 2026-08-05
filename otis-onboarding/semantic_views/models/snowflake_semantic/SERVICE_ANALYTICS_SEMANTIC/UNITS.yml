@@ -1,28 +1,28 @@
 kind: semantic
 name: UNITS
 depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_UNIT_MASTER
-description: Golden unit/equipment master (analytic hub).
+description: "Golden unit/equipment master (analytic hub)."
 measures:
 - name: AVG_UNIT_HEALTH
   type: avg
   expression: '{UNITS.CURRENT_HEALTH_SCORE}'
-  description: Average current health score (0-1)
+  description: "Average current health score (0-1)"
 - name: CONNECTED_UNITS
   type: sum
   expression: CASE WHEN {UNITS.IS_CONNECTED} THEN 1 ELSE 0 END
-  description: Units flagged as connected
+  description: "Units flagged as connected"
 - name: OTIS_ONE_ENROLLED_UNITS
   type: sum
   expression: CASE WHEN {UNITS.OTIS_ONE_ENROLLED} THEN 1 ELSE 0 END
-  description: Units enrolled in Otis ONE
+  description: "Units enrolled in Otis ONE"
 - name: UNITS_AT_RISK
   type: sum
   expression: CASE WHEN {UNITS.CURRENT_HEALTH_SCORE} < 0.5 THEN 1 ELSE 0 END
-  description: Units with health score below 0.5
+  description: "Units with health score below 0.5"
 - name: UNIT_COUNT
   type: count
   expression: '{UNITS.UNIT_ID}'
-  description: Number of units
+  description: "Number of units"
 joins:
 - name: CALLBACKS
   type: one_to_many
@@ -47,34 +47,34 @@ joins:
   on: UNIT_ID
 dimensions:
 - name: BLDG_CITY
-  description: City of the building the unit is installed in.
+  description: "City of the building the unit is installed in."
 - name: BUILDING_ID
-  description: Building the unit is installed in (FK to BUILDINGS).
+  description: "Building the unit is installed in (FK to BUILDINGS)."
 - name: CONTRACT_ID
-  description: Service contract covering the unit (FK to CONTRACTS).
+  description: "Service contract covering the unit (FK to CONTRACTS)."
 - name: CUSTOMER_ID
-  description: Owning customer surrogate key (FK to CUSTOMERS).
+  description: "Owning customer surrogate key (FK to CUSTOMERS)."
 - name: ERP_SOURCE_SYSTEM_CD
-  description: Winning source ERP for this golden record (JDE / NAABO).
+  description: "Winning source ERP for this golden record (JDE / NAABO)."
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: IS_CONNECTED
-  description: Boolean connectivity flag standardized from True/False/Y/N/1/0.
+  description: "Boolean connectivity flag standardized from True/False/Y/N/1/0."
 - name: MACHINE_NUMBER
-  description: Equipment/machine number.
+  description: "Equipment/machine number."
 - name: OTIS_ONE_ENROLLED
-  description: Boolean Otis ONE enrollment flag.
+  description: "Boolean Otis ONE enrollment flag."
 - name: PRODUCT_CLASS
-  description: Product class (elevator / escalator / ...).
+  description: "Product class (elevator / escalator / ...)."
 - name: PRODUCT_NAME
-  description: Product/model name.
+  description: "Product/model name."
 - name: PRODUCT_SUBCLASS
-  description: Product subclass within the product class.
+  description: "Product subclass within the product class."
 - name: UNIT_ID
-  description: Surrogate unit/equipment key (UNIT_ + last 6 chars of UNIT_EID).
+  description: "Surrogate unit/equipment key (UNIT_ + last 6 chars of UNIT_EID)."
   behavior:
     type: identifier
 - name: UNIT_STATUS
-  description: Unit lifecycle status (active / removed / ...).
+  description: "Unit lifecycle status (active / removed / ...)."
 - name: CURRENT_HEALTH_SCORE
-  description: Latest unit health score 0-1; out-of-range values dropped during merge.
+  description: "Latest unit health score 0-1; out-of-range values dropped during merge."

@@ -1,56 +1,56 @@
 kind: semantic
 name: NPS_SURVEYS
 depends_on: MARKETING_DASHBOARD.MARKETING_RL.QUALTRICS_RESPONSE
-description: Qualtrics NPS / voice-of-customer survey responses.
+description: "Qualtrics NPS / voice-of-customer survey responses."
 measures:
 - name: AVG_NPS_SCORE
   type: avg
   expression: '{NPS_SURVEYS.NPS_SCORE}'
-  description: Average NPS score (0-10)
+  description: "Average NPS score (0-10)"
 - name: AVG_SATISFACTION
   type: avg
   expression: '{NPS_SURVEYS.SATISFACTION_RATING}'
-  description: Average satisfaction rating
+  description: "Average satisfaction rating"
 - name: DETRACTORS
   type: sum
   expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Detractor' THEN 1 ELSE 0 END
-  description: Count of detractors (NPS 0-6)
+  description: "Count of detractors (NPS 0-6)"
 - name: NPS
   type: number
   expression: ROUND((SUM(CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Promoter' THEN 1 ELSE 0 END) - SUM(CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Detractor' THEN 1 ELSE 0 END)) * 100.0 / NULLIF(COUNT({NPS_SURVEYS.NPS_CATEGORY}), 0), 1)
-  description: Net Promoter Score = (%promoters - %detractors)
+  description: "Net Promoter Score = (%promoters - %detractors)"
 - name: PASSIVES
   type: sum
   expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Passive' THEN 1 ELSE 0 END
-  description: Count of passives (NPS 7-8)
+  description: "Count of passives (NPS 7-8)"
 - name: PROMOTERS
   type: sum
   expression: CASE WHEN {NPS_SURVEYS.NPS_CATEGORY} = 'Promoter' THEN 1 ELSE 0 END
-  description: Count of promoters (NPS 9-10)
+  description: "Count of promoters (NPS 9-10)"
 - name: TOTAL_RESPONSES
   type: count
   expression: '{NPS_SURVEYS.RESPONSEID}'
-  description: Count of survey responses
+  description: "Count of survey responses"
 dimensions:
 - name: CUSTOMER_ID
-  description: Customer who responded (FK to CUSTOMERS).
+  description: "Customer who responded (FK to CUSTOMERS)."
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: NPS_CATEGORY
-  description: NPS bucket (Promoter / Passive / Detractor).
+  description: "NPS bucket (Promoter / Passive / Detractor)."
 - name: NPS_SENTIMENT
-  description: Derived sentiment of the response.
+  description: "Derived sentiment of the response."
 - name: RESPONSEID
-  description: Unique Qualtrics survey response identifier.
+  description: "Unique Qualtrics survey response identifier."
   behavior:
     type: identifier
 - name: RESPONSE_DATE
-  description: Date the survey response was submitted.
+  description: "Date the survey response was submitted."
 - name: RISK_COLOR
-  description: Churn-risk RAG color (Red / Amber / Green).
+  description: "Churn-risk RAG color (Red / Amber / Green)."
 - name: NPS_SCORE
-  description: Raw NPS score 0-10 given by the respondent.
+  description: "Raw NPS score 0-10 given by the respondent."
 - name: RISK_SCORE
-  description: Derived churn-risk score.
+  description: "Derived churn-risk score."
 - name: SATISFACTION_RATING
-  description: Overall satisfaction rating from the survey.
+  description: "Overall satisfaction rating from the survey."

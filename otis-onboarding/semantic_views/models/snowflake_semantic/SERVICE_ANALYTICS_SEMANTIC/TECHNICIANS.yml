@@ -1,26 +1,26 @@
 kind: semantic
 name: TECHNICIANS
 depends_on: NAABO_PROD.REPORTING.TBL_MECHANIC
-description: Field technician (mechanic) master.
+description: "Field technician (mechanic) master."
 measures:
 - name: TECHNICIAN_COUNT
   type: count
   expression: '{TECHNICIANS.TECHNICIAN_ID}'
-  description: Number of technicians
+  description: "Number of technicians"
 joins:
 - name: WORKFORCE
   type: one_to_many
   on: TECHNICIAN_ID
 dimensions:
 - name: EMPLOYEE_FULL_NAME
-  description: Technician full name. PII - handle per data classification.
+  description: "Technician full name. PII - handle per data classification."
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: OFFICE_CODE
-  description: Home office/branch code for the technician.
+  description: "Home office/branch code for the technician."
 - name: STATUS
-  description: Employment/assignment status.
+  description: "Employment/assignment status."
 - name: TECHNICIAN_ID
-  description: Surrogate technician (mechanic) key.
+  description: "Surrogate technician (mechanic) key."
   behavior:
     type: identifier

@@ -1,12 +1,12 @@
 kind: semantic
 name: AR_OPENAR
 depends_on: JDE_PRODUCTION.RL_JDE.TBL_AR_OPENAR
-description: Accounts-receivable open balances by contract-month.
+description: "Accounts-receivable open balances by contract-month."
 measures:
   - name: DELINQUENT_CONTRACT_MONTHS
     type: sum
     expression: CASE WHEN {AR_OPENAR.DELINQUENT} = 'Y' THEN 1 ELSE 0 END
-    description: Count of contract-months flagged delinquent
+    description: "Count of contract-months flagged delinquent"
     ai_context:
       instructions: Use to quantify delinquent AR exposure by contract-month.
       caveats:
@@ -18,7 +18,7 @@ measures:
   - name: TOTAL_AR_OVER_90
     type: sum
     expression: '{AR_OPENAR.AR_OVER_90_DAYS}'
-    description: Sum of AR aged over 90 days
+    description: "Sum of AR aged over 90 days"
     ai_context:
       instructions: Use for aged receivables risk and collections prioritization.
       caveats:
@@ -30,7 +30,7 @@ measures:
   - name: TOTAL_DISPUTED
     type: sum
     expression: '{AR_OPENAR.DISPUTEDAMOUNT}'
-    description: Sum of disputed amount
+    description: "Sum of disputed amount"
     ai_context:
       instructions: Use to track receivables currently under dispute.
       caveats:
@@ -41,7 +41,7 @@ measures:
   - name: TOTAL_OPEN_AR
     type: sum
     expression: '{AR_OPENAR.OPEN_AR}'
-    description: Sum of open AR
+    description: "Sum of open AR"
     ai_context:
       instructions: Primary measure for total outstanding receivables.
       caveats:
@@ -51,21 +51,21 @@ measures:
         - AR balance
 dimensions:
   - name: CONTRACT_ID
-    description: Contract the AR balance is for (FK to CONTRACTS).
+    description: "Contract the AR balance is for (FK to CONTRACTS)."
     ai_context:
       instructions: Filter and group AR by service contract.
       synonyms:
         - contract
         - service agreement
   - name: CUSTOMER_ID
-    description: Customer the AR balance is for.
+    description: "Customer the AR balance is for."
     ai_context:
       instructions: Use to roll up AR at customer-account level.
       synonyms:
         - customer
         - account
   - name: DELINQUENT
-    description: Delinquency flag for the contract-month (Y/N).
+    description: "Delinquency flag for the contract-month (Y/N)."
     ai_context:
       instructions: Use as delinquency status filter.
       caveats:
@@ -74,14 +74,14 @@ dimensions:
         - overdue flag
         - past due flag
   - name: GBO
-    description: Global business organization / branch grouping.
+    description: "Global business organization / branch grouping."
     ai_context:
       instructions: Use for organizational slicing of receivables.
       synonyms:
         - branch
         - business unit
   - name: AR_MONTH
-    description: Accounting month of the AR snapshot (cast to TIMESTAMP_NTZ at source).
+    description: "Accounting month of the AR snapshot (cast to TIMESTAMP_NTZ at source)."
     ai_context:
       instructions: Use as the month of AR position for trend analysis.
       caveats:
@@ -90,23 +90,23 @@ dimensions:
         - AR period
         - accounting month
   - name: AR_OVER_120_DAYS
-    description: AR balance aged more than 120 days.
+    description: "AR balance aged more than 120 days."
   - name: AR_OVER_90_DAYS
-    description: AR balance aged more than 90 days.
+    description: "AR balance aged more than 90 days."
     ai_context:
       instructions: Use this aged bucket for severe overdue analysis.
       synonyms:
         - 90+ day AR
         - overdue bucket
   - name: DISPUTEDAMOUNT
-    description: Portion of the balance under dispute.
+    description: "Portion of the balance under dispute."
     ai_context:
       instructions: Use for dispute pipeline monitoring.
       synonyms:
         - disputed amount
         - contested balance
   - name: OPEN_AR
-    description: Total open accounts-receivable balance.
+    description: "Total open accounts-receivable balance."
     ai_context:
       instructions: Base receivable amount at row grain.
       caveats:

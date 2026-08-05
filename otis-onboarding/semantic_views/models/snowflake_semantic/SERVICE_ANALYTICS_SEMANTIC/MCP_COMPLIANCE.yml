@@ -1,38 +1,38 @@
 kind: semantic
 name: MCP_COMPLIANCE
 depends_on: NAABO_PROD.REPORTING.MCP_COMPLIANCE_REPORT
-description: Maintenance-control-plan compliance by unit-month.
+description: "Maintenance-control-plan compliance by unit-month."
 measures:
 - name: AVG_COMPLIANCE_PCT
   type: avg
   expression: '{MCP_COMPLIANCE.COMPLIANCE_PCT}'
-  description: Average compliance percentage
+  description: "Average compliance percentage"
 - name: TOTAL_COMPLETED_VISITS
   type: sum
   expression: '{MCP_COMPLIANCE.COMPLETED_VISITS}'
-  description: Sum of completed visits
+  description: "Sum of completed visits"
 - name: TOTAL_MISSED_VISITS
   type: sum
   expression: '{MCP_COMPLIANCE.MISSED_VISITS}'
-  description: Sum of missed visits
+  description: "Sum of missed visits"
 - name: TOTAL_SCHEDULED_VISITS
   type: sum
   expression: '{MCP_COMPLIANCE.SCHEDULED_VISITS}'
-  description: Sum of scheduled visits
+  description: "Sum of scheduled visits"
 dimensions:
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: REGION
-  description: Region the unit belongs to.
+  description: "Region the unit belongs to."
 - name: REPORT_MONTH
-  description: Reporting month (first day of month).
+  description: "Reporting month (first day of month)."
 - name: UNIT_ID
-  description: Unit the compliance row is for (FK to UNITS).
+  description: "Unit the compliance row is for (FK to UNITS)."
 - name: COMPLETED_VISITS
-  description: Maintenance visits completed in the month.
+  description: "Maintenance visits completed in the month."
 - name: COMPLIANCE_PCT
-  description: Compliance percentage (completed / scheduled).
+  description: "Compliance percentage (completed / scheduled)."
 - name: MISSED_VISITS
-  description: Maintenance visits missed in the month.
+  description: "Maintenance visits missed in the month."
 - name: SCHEDULED_VISITS
-  description: Maintenance visits scheduled in the month.
+  description: "Maintenance visits scheduled in the month."

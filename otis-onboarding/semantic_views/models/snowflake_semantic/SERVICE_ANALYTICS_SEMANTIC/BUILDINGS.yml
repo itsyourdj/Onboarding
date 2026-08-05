@@ -1,28 +1,28 @@
 kind: semantic
 name: BUILDINGS
 depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_BUILDING_MASTER
-description: Golden building/site master.
+description: "Golden building/site master."
 measures:
 - name: BUILDING_COUNT
   type: count
   expression: '{BUILDINGS.BUILDING_ID}'
-  description: Number of buildings
+  description: "Number of buildings"
 joins:
 - name: UNITS
   type: one_to_many
   on: BUILDING_ID
 dimensions:
 - name: BLDG_CITY
-  description: Building city (trimmed).
+  description: "Building city (trimmed)."
 - name: BUILDING_ID
-  description: Surrogate building/site key.
+  description: "Surrogate building/site key."
   behavior:
     type: identifier
 - name: BUILDING_NAME
-  description: Building/site name.
+  description: "Building/site name."
 - name: CUSTOMER_ID
-  description: Owning customer surrogate key (FK to CUSTOMERS).
+  description: "Owning customer surrogate key (FK to CUSTOMERS)."
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: REGION_DESC
-  description: Region description for the site.
+  description: "Region description for the site."

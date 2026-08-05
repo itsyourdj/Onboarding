@@ -4,11 +4,7 @@
 kind: semantic
 name: FACTARCOLLECTION
 depends_on: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-description: >
-  Collection Facts Table — aggregated collection performance per customer, LOB,
-  and fiscal period. Primary source for CEI, unapplied cash, and receipt volume KPIs.
-  Use for "how are we collecting?" questions.
-  For invoice-level detail or dispute context, JOIN to DIMARDETAILS.
+description: "Collection Facts Table — aggregated collection performance per customer, LOB, and fiscal period. Primary source for CEI, unapplied cash, and receipt volume KPIs. Use for \"how are we collecting?\" questions. For invoice-level detail or dispute context, JOIN to DIMARDETAILS."
 
 tags:
   - accounts-receivable
@@ -103,7 +99,7 @@ measures:
   - name: TOTAL_RECEIPTS
     type: sum
     expression: "{FACTARCOLLECTION.TOTALRECEIPTS}"
-    description: Total cash receipts posted for this customer × period × LOB.
+    description: "Total cash receipts posted for this customer × period × LOB."
     behavior:
       type: flow
     ai_context:
@@ -115,7 +111,7 @@ measures:
   - name: CASH_APPLIED
     type: sum
     expression: "{FACTARCOLLECTION.CASHAPPLIED}"
-    description: Cash receipts matched and applied against open invoices. Numerator in CEI.
+    description: "Cash receipts matched and applied against open invoices. Numerator in CEI."
     behavior:
       type: flow
     ai_context:
@@ -127,14 +123,14 @@ measures:
   - name: RESERVE_CASH
     type: sum
     expression: "{FACTARCOLLECTION.RESERVECASH}"
-    description: Reserve cash component of total receipts.
+    description: "Reserve cash component of total receipts."
     behavior:
       type: flow
 
   - name: ADJUSTED_COLLECTION
     type: sum
     expression: "{FACTARCOLLECTION.ADJUSTEDCOLLECTION}"
-    description: Collection amount after adjustments (discounts, write-offs, credit memos). Leakage signal L3.
+    description: "Collection amount after adjustments (discounts, write-offs, credit memos). Leakage signal L3."
     behavior:
       type: flow
 
@@ -142,9 +138,7 @@ measures:
     type: number
     expression: >
       SUM({FACTARCOLLECTION.CASHAPPLIED}) / NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
-    description: >
-      Collection Efficiency Index (CEI) — simplified as CASHAPPLIED / TOTALRECEIPTS.
-      Industry standard target: CEI >= 0.85.
+    description: "Collection Efficiency Index (CEI) — simplified as CASHAPPLIED / TOTALRECEIPTS. Industry standard target: CEI >= 0.85."
     behavior:
       type: ratio
       numerator: CASH_APPLIED
@@ -171,7 +165,7 @@ measures:
     type: number
     expression: >
       SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})
-    description: Absolute unapplied cash amount. Key leakage signal L1.
+    description: "Absolute unapplied cash amount. Key leakage signal L1."
     behavior:
       type: flow
     ai_context:
@@ -185,10 +179,7 @@ measures:
     expression: >
       (SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})) /
       NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
-    description: >
-      Percentage of receipts not yet applied to open invoices.
-      Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS.
-      Rising trend = cash posting process failure (leakage signal L1).
+    description: "Percentage of receipts not yet applied to open invoices. Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS. Rising trend = cash posting process failure (leakage signal L1)."
     behavior:
       type: ratio
       numerator: UNAPPLIED_CASH_AMT
@@ -205,9 +196,7 @@ segments:
     expression: >
       {FACTARCOLLECTION.TOTALRECEIPTS} > 0
       AND ({FACTARCOLLECTION.TOTALRECEIPTS} - {FACTARCOLLECTION.CASHAPPLIED}) / {FACTARCOLLECTION.TOTALRECEIPTS} > 0.20
-    description: >
-      Customer × period × LOB where >20% of receipts are unapplied.
-      Leakage Signal L1 — direct collection process failure.
+    description: "Customer × period × LOB where >20% of receipts are unapplied. Leakage Signal L1 — direct collection process failure."
     ai_context:
       synonyms:
         - "unapplied cash signal"

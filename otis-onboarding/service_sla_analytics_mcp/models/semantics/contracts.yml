@@ -36,6 +36,6 @@ measures:
   - name: contract_count
     type: count
     expression: "{contracts.CONTRACT_ID}"
-    description: Number of contracts
+    description: "Number of contracts"
     behavior:
       type: flow

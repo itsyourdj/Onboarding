@@ -1,30 +1,30 @@
 kind: semantic
 name: WORKFORCE
 depends_on: JDE_PRODUCTION.RL_JDE.WORKDAY
-description: Workday HR worker master.
+description: "Workday HR worker master."
 measures:
 - name: WORKER_COUNT
   type: count
   expression: '{WORKFORCE.WORKER_ID}'
-  description: Number of workers
+  description: "Number of workers"
 dimensions:
 - name: DEPARTMENT
-  description: Worker department.
+  description: "Worker department."
 - name: EMPLOYEE_TYPE
-  description: Employment type (full-time / contractor / ...).
+  description: "Employment type (full-time / contractor / ...)."
 - name: JOB_FAMILY
-  description: Job family grouping.
+  description: "Job family grouping."
 - name: LOCATION_COUNTRY
-  description: Worker's work-location country.
+  description: "Worker's work-location country."
 - name: MANAGEMENT_LEVEL
-  description: Management level/grade.
+  description: "Management level/grade."
 - name: SUPERVISOR_EMAIL
-  description: Email address of the worker's supervisor. PII - handle per data classification.
+  description: "Email address of the worker's supervisor. PII - handle per data classification."
 - name: SUPERVISOR_NAME
-  description: Full name of the worker's supervisor. PII - handle per data classification.
+  description: "Full name of the worker's supervisor. PII - handle per data classification."
 - name: TECHNICIAN_ID
-  description: Linked technician key (FK to TECHNICIANS).
+  description: "Linked technician key (FK to TECHNICIANS)."
 - name: WORKER_ID
-  description: Workday worker identifier.
+  description: "Workday worker identifier."
 - name: WORK_EMAIL
-  description: Worker's work email address. PII - handle per data classification.
+  description: "Worker's work email address. PII - handle per data classification."

@@ -1,50 +1,50 @@
 kind: semantic
 name: OPEN_ORDERS
 depends_on: NAABO_PROD.REPORTING.OPORD_CNRCT_FCT
-description: Open-order / repair-job financial facts.
+description: "Open-order / repair-job financial facts."
 measures:
 - name: OPEN_ORDER_COUNT
   type: count
   expression: '{OPEN_ORDERS.ORDER_KEY}'
-  description: Count of open orders / repair jobs
+  description: "Count of open orders / repair jobs"
 - name: OVERALL_MARGIN_PCT
   type: number
   expression: ROUND(SUM({OPEN_ORDERS.JOB_MARGIN}) * 100.0 / NULLIF(SUM({OPEN_ORDERS.JOB_REVENUE}), 0), 1)
-  description: Total margin as a percent of total revenue
+  description: "Total margin as a percent of total revenue"
 - name: TOTAL_JOB_COST
   type: sum
   expression: '{OPEN_ORDERS.JOB_COST}'
-  description: Sum of job cost
+  description: "Sum of job cost"
 - name: TOTAL_JOB_MARGIN
   type: sum
   expression: '{OPEN_ORDERS.JOB_MARGIN}'
-  description: Sum of job margin
+  description: "Sum of job margin"
 - name: TOTAL_JOB_REVENUE
   type: sum
   expression: '{OPEN_ORDERS.JOB_REVENUE}'
-  description: Sum of job revenue
+  description: "Sum of job revenue"
 dimensions:
 - name: CONTRACT_ID
-  description: Contract the order relates to.
+  description: "Contract the order relates to."
 - name: GBO
-  description: Global business organization / branch grouping.
+  description: "Global business organization / branch grouping."
 - name: ORDER_DATE
-  description: Date the order was opened.
+  description: "Date the order was opened."
 - name: ORDER_KEY
-  description: Unique open-order / repair-job key.
+  description: "Unique open-order / repair-job key."
   behavior:
     type: identifier
 - name: ORDER_STATUS
-  description: Order status (open / closed / ...).
+  description: "Order status (open / closed / ...)."
 - name: ORDER_TYPE
-  description: Order type (repair / modernization / ...).
+  description: "Order type (repair / modernization / ...)."
 - name: UNIT_ID
-  description: Unit the order relates to (FK to UNITS).
+  description: "Unit the order relates to (FK to UNITS)."
 - name: JOB_COST
-  description: Cost incurred for the job.
+  description: "Cost incurred for the job."
 - name: JOB_MARGIN
-  description: Job margin (revenue minus cost).
+  description: "Job margin (revenue minus cost)."
 - name: JOB_REVENUE
-  description: Revenue booked for the job.
+  description: "Revenue booked for the job."
 - name: MARGIN_PCT
-  description: Job margin as a percent of revenue.
+  description: "Job margin as a percent of revenue."

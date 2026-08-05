@@ -37,14 +37,14 @@ measures:
   - name: fault_count
     type: sum
     expression: "{unit_health_daily.FAULT_COUNT}"
-    description: Sum of faults recorded in the IoT snapshot window
+    description: "Sum of faults recorded in the IoT snapshot window"
     behavior:
       type: flow
 
   - name: alarm_count
     type: sum
     expression: "{unit_health_daily.ALARM_COUNT}"
-    description: Sum of alarms raised in the IoT snapshot window
+    description: "Sum of alarms raised in the IoT snapshot window"
     behavior:
       type: flow
 

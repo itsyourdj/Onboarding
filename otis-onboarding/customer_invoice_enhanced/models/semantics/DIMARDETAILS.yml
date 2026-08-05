@@ -4,13 +4,7 @@
 kind: semantic
 name: DIMARDETAILS
 depends_on: JDE_PRODUCTION.RL_JDE_VULCAN.DIMARDETAILS
-description: >
-  Invoice Dimension — the descriptive backbone of Customer Invoices Analysis.
-  One row per invoice / pay-item (grain: COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM).
-  Use this model when questions involve: who owns an invoice (COLLECTOR, SALESREP),
-  what status it is in (DISPUTESTATUS, HOLDFLAG), which LOB it belongs to,
-  or what the latest collection comment says.
-  For financial amounts and aging, JOIN to FACTARDETAILS on the same grain key.
+description: "Invoice Dimension — the descriptive backbone of Customer Invoices Analysis. One row per invoice / pay-item (grain: COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM). Use this model when questions involve: who owns an invoice (COLLECTOR, SALESREP), what status it is in (DISPUTESTATUS, HOLDFLAG), which LOB it belongs to, or what the latest collection comment says. For financial amounts and aging, JOIN to FACTARDETAILS on the same grain key."
 
 tags:
   - accounts-receivable
@@ -229,7 +223,7 @@ measures:
   # ── Count measures ──────────────────────────────────────────────────────────
   - name: INVOICE_COUNT
     type: count
-    description: Total number of invoices / pay-item records
+    description: "Total number of invoices / pay-item records"
     behavior:
       type: flow
     ai_context:
@@ -249,7 +243,7 @@ measures:
     type: count
     filters:
       - "{DIMARDETAILS.DISPUTESTATUS} = 'Resolved'"
-    description: Count of invoices where DISPUTESTATUS = Resolved
+    description: "Count of invoices where DISPUTESTATUS = Resolved"
     behavior:
       type: flow
     ai_context:
@@ -263,7 +257,7 @@ measures:
     type: count
     filters:
       - "{DIMARDETAILS.DISPUTESTATUS} IS NOT NULL"
-    description: Count of invoices with any dispute status recorded (open or resolved)
+    description: "Count of invoices with any dispute status recorded (open or resolved)"
     behavior:
       type: flow
     ai_context:
@@ -277,7 +271,7 @@ measures:
     type: count
     filters:
       - "{DIMARDETAILS.HOLDFLAG} = 'Y'"
-    description: Count of invoices where the customer is on credit hold
+    description: "Count of invoices where the customer is on credit hold"
     behavior:
       type: flow
     ai_context:
@@ -288,9 +282,7 @@ measures:
 segments:
   - name: overdue_no_dispute
     expression: "{DIMARDETAILS.DISPUTESTATUS} IS NULL"
-    description: >
-      Invoices with no active dispute on record. Combine with AGINGDAYS > 30 in FACTARDETAILS
-      for the 'overdue without action' leakage signal (Signal L4).
+    description: "Invoices with no active dispute on record. Combine with AGINGDAYS > 30 in FACTARDETAILS for the 'overdue without action' leakage signal (Signal L4)."
     ai_context:
       synonyms:
         - "undisputed invoices"
@@ -307,9 +299,7 @@ segments:
 
   - name: credit_hold_with_balance
     expression: "{DIMARDETAILS.HOLDFLAG} = 'Y'"
-    description: >
-      Customers on credit hold. Join to FACTARDETAILS.OPENAMOUNT to see outstanding
-      exposure (leakage signal L8: credit hold + open AR > 0).
+    description: "Customers on credit hold. Join to FACTARDETAILS.OPENAMOUNT to see outstanding exposure (leakage signal L8: credit hold + open AR > 0)."
     ai_context:
       synonyms:
         - "credit hold"

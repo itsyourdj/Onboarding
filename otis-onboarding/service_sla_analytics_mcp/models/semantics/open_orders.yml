@@ -39,28 +39,28 @@ measures:
   - name: open_order_count
     type: count
     expression: "{open_orders.ORDER_KEY}"
-    description: Count of open orders / repair jobs
+    description: "Count of open orders / repair jobs"
     behavior:
       type: flow
 
   - name: total_job_revenue
     type: sum
     expression: "{open_orders.JOB_REVENUE}"
-    description: Sum of job revenue
+    description: "Sum of job revenue"
     behavior:
       type: flow
 
   - name: total_job_cost
     type: sum
     expression: "{open_orders.JOB_COST}"
-    description: Sum of job cost
+    description: "Sum of job cost"
     behavior:
       type: flow
 
   - name: total_job_margin
     type: sum
     expression: "{open_orders.JOB_MARGIN}"
-    description: Sum of job margin
+    description: "Sum of job margin"
     behavior:
       type: flow
 

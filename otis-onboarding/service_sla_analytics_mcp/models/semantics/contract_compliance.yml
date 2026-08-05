@@ -44,7 +44,7 @@ measures:
   - name: expected_visits_sum
     type: sum
     expression: "{contract_compliance.VISITS12MONTHS}"
-    description: Denominator helper for contract_visit_compliance_rate
+    description: "Denominator helper for contract_visit_compliance_rate"
     behavior:
       type: flow
 

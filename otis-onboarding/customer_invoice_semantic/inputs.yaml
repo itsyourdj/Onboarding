@@ -9,11 +9,7 @@
 #    Grain: COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.DIMARDETAILS
-  description: >
-    Invoice Dimension Table — the descriptive backbone of Customer Invoices Analysis.
-    One row per invoice / pay-item. Carries all attributes: collector ownership,
-    dispute status, LOB, credit hold flag, and latest collection comments.
-    Source: JDE ERP pipeline (F03B11, F0101, F03012, F5803B2I/C, F0006, Workday).
+  description: "Invoice Dimension Table — the descriptive backbone of Customer Invoices Analysis. One row per invoice / pay-item. Carries all attributes: collector ownership, dispute status, LOB, credit hold flag, and latest collection comments. Source: JDE ERP pipeline (F03B11, F0101, F03012, F5803B2I/C, F0006, Workday)."
   grains:
     - COMPANYID
     - DOCUMENTCOMPANY
@@ -119,11 +115,7 @@
 #    Grain: COMPANYID + DOCUMENTCOMPANY + DOCNO + DOCTYPE + PAYITM
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.FACTARDETAILS
-  description: >
-    Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item.
-    Open amounts, doubtful debt reserves, 30/60/90-day forecasts, aging days,
-    and reserve cash applied. The financial heart of Customer Invoices Analysis.
-    Source: JDE ERP pipeline (F03B11, F59HQ084).
+  description: "Invoice Measures Table — all quantitative AR KPIs per invoice / pay-item. Open amounts, doubtful debt reserves, 30/60/90-day forecasts, aging days, and reserve cash applied. The financial heart of Customer Invoices Analysis. Source: JDE ERP pipeline (F03B11, F59HQ084)."
   grains:
     - COMPANYID
     - DOCUMENTCOMPANY
@@ -214,11 +206,7 @@
 #    Grain: COMPANYID + CUSTOMERNUMBER + FISCALPERIODID + LOB
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.FACTARCOLLECTION
-  description: >
-    Collection Facts Table — aggregated collection performance per customer,
-    LOB, and fiscal period. Home of the Collection Efficiency Index (CEI),
-    unapplied cash, and receipt volume KPIs.
-    Source: JDE ERP pipeline (F03B14, F03B13, F0006).
+  description: "Collection Facts Table — aggregated collection performance per customer, LOB, and fiscal period. Home of the Collection Efficiency Index (CEI), unapplied cash, and receipt volume KPIs. Source: JDE ERP pipeline (F03B14, F03B13, F0006)."
   grains:
     - COMPANYID
     - CUSTOMERNUMBER
@@ -270,11 +258,7 @@
 #    Grain: LOBKEY
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.DIMARCOLLECTIONLOB
-  description: >
-    Line of Business Reference Dimension — maps GL Offset codes to LOB labels.
-    One row per LOBKEY. Used to classify invoices and collection records
-    by business line across all fact tables.
-    Source: JDE ERP pipeline (F0012 GL Offset descriptions).
+  description: "Line of Business Reference Dimension — maps GL Offset codes to LOB labels. One row per LOBKEY. Used to classify invoices and collection records by business line across all fact tables. Source: JDE ERP pipeline (F0012 GL Offset descriptions)."
   grains:
     - LOBKEY
   audits: []
@@ -302,11 +286,7 @@
 #    Grain: PAYMENTTERMKEY
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.ARPAYMENTTERM
-  description: >
-    Payment Term Reference Dimension — defines payment terms used across invoices.
-    One row per PAYMENTTERMKEY. NETDAYS drives payment term compliance analysis
-    (AGINGDAYS > NETDAYS = invoice has breached its agreed payment term).
-    Source: JDE ERP pipeline (F0014 Payment Terms).
+  description: "Payment Term Reference Dimension — defines payment terms used across invoices. One row per PAYMENTTERMKEY. NETDAYS drives payment term compliance analysis (AGINGDAYS > NETDAYS = invoice has breached its agreed payment term). Source: JDE ERP pipeline (F0014 Payment Terms)."
   grains:
     - PAYMENTTERMKEY
   audits: []
@@ -334,11 +314,7 @@
 #    Grain: COMPANYID + FISCALYEAR + FISCALMONTH + COLLECTIONPRIORITY
 # ─────────────────────────────────────────────────────────────────────────────
 - name: JDE_PRODUCTION.RL_JDE.FACTDSO
-  description: >
-    DSO & Dispute Analytics Fact — pre-aggregated at company × fiscal period ×
-    collection-priority grain. Native DSO, DSO vs terms, calendar-day disputed rolling
-    totals (DATEADD day windows), dispute recovery ratio, and unified CEI.
-    Maintained by JDE stored procedure SP_LOAD_FACTDSO.
+  description: "DSO & Dispute Analytics Fact — pre-aggregated at company × fiscal period × collection-priority grain. Native DSO, DSO vs terms, calendar-day disputed rolling totals (DATEADD day windows), dispute recovery ratio, and unified CEI. Maintained by JDE stored procedure SP_LOAD_FACTDSO."
   grains:
     - COMPANYID
     - FISCALYEAR

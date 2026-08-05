@@ -1,26 +1,26 @@
 kind: semantic
 name: CONTRACTS
 depends_on: MDM_NAA_PROD.MDM_OUTBOUND.GLOBAL_CONTRACT_MASTER
-description: Golden service-contract master.
+description: "Golden service-contract master."
 dimensions:
   - name: BUILDING_ID
-    description: Building covered by the contract (FK to BUILDINGS).
+    description: "Building covered by the contract (FK to BUILDINGS)."
   - name: CONTRACTSTATUS
-    description: Raw contract status text from source.
+    description: "Raw contract status text from source."
     ai_context:
       instructions: Use as source lifecycle status for contract-state analysis.
       synonyms:
         - contract status
         - agreement status
   - name: CONTRACTTYPE
-    description: Contract type (full-service / parts-only / ...).
+    description: "Contract type (full-service / parts-only / ...)."
     ai_context:
       instructions: Use to segment portfolio by service coverage type.
       synonyms:
         - service contract type
         - coverage type
   - name: CONTRACT_ID
-    description: Surrogate service-contract key.
+    description: "Surrogate service-contract key."
     behavior:
       type: identifier
     ai_context:
@@ -29,16 +29,16 @@ dimensions:
         - contract
         - agreement id
   - name: CUSTOMER_ID
-    description: Customer holding the contract (FK to CUSTOMERS).
+    description: "Customer holding the contract (FK to CUSTOMERS)."
     ai_context:
       instructions: Use for customer portfolio and revenue concentration views.
       synonyms:
         - customer
         - account
   - name: GBO
-    description: Global business organization / branch grouping.
+    description: "Global business organization / branch grouping."
   - name: ISACTIVE
-    description: Boolean active flag derived from contract status.
+    description: "Boolean active flag derived from contract status."
     ai_context:
       instructions: Preferred filter for active contract population.
       caveats:
@@ -47,14 +47,14 @@ dimensions:
         - active contract flag
         - live contract
   - name: SERVICETYPE
-    description: Service level/type on the contract.
+    description: "Service level/type on the contract."
     ai_context:
       instructions: Use to compare commitments and pricing by service level.
       synonyms:
         - service level
         - maintenance type
   - name: CONTRACTVALUE
-    description: Total contract value in billing currency.
+    description: "Total contract value in billing currency."
     ai_context:
       instructions: Use as principal commercial value field.
       caveats:
@@ -63,14 +63,14 @@ dimensions:
         - contract value
         - agreement value
   - name: GROSSMONTHLYBILLING
-    description: Gross monthly billing amount.
+    description: "Gross monthly billing amount."
     ai_context:
       instructions: Use for pre-adjustment recurring billing analysis.
       synonyms:
         - gross monthly billing
         - billed before adjustments
   - name: NETMONTHLYBILLING
-    description: Net monthly billing amount after adjustments.
+    description: "Net monthly billing amount after adjustments."
     ai_context:
       instructions: Use for realized recurring billing after adjustments.
       synonyms:
@@ -153,7 +153,7 @@ measures:
   - name: ACTIVE_CONTRACT_COUNT
     type: sum
     expression: CASE WHEN {CONTRACTS.ISACTIVE} THEN 1 ELSE 0 END
-    description: Number of active contracts
+    description: "Number of active contracts"
     ai_context:
       instructions: Core KPI for active service-contract base.
       caveats:
@@ -164,7 +164,7 @@ measures:
   - name: AVG_CONTRACT_VALUE
     type: avg
     expression: "{CONTRACTS.CONTRACTVALUE}"
-    description: Average contract value
+    description: "Average contract value"
     ai_context:
       instructions: Use to assess average portfolio deal size.
       caveats:
@@ -175,7 +175,7 @@ measures:
   - name: CONTRACT_COUNT
     type: count
     expression: "{CONTRACTS.CONTRACT_ID}"
-    description: Number of contracts
+    description: "Number of contracts"
     ai_context:
       instructions: Baseline count of contracts in scope.
       synonyms:
@@ -184,7 +184,7 @@ measures:
   - name: TOTAL_CONTRACT_VALUE
     type: sum
     expression: "{CONTRACTS.CONTRACTVALUE}"
-    description: Sum of contract value
+    description: "Sum of contract value"
     ai_context:
       instructions: Total commercial value across selected contracts.
       caveats:
@@ -195,7 +195,7 @@ measures:
   - name: TOTAL_GROSS_MONTHLY_BILLING
     type: sum
     expression: "{CONTRACTS.GROSSMONTHLYBILLING}"
-    description: Sum of gross monthly billing
+    description: "Sum of gross monthly billing"
     ai_context:
       instructions: Use for top-line monthly recurring billing.
       synonyms:
@@ -204,7 +204,7 @@ measures:
   - name: TOTAL_NET_MONTHLY_BILLING
     type: sum
     expression: "{CONTRACTS.NETMONTHLYBILLING}"
-    description: Sum of net monthly billing
+    description: "Sum of net monthly billing"
     ai_context:
       instructions: Use for net recurring billing performance.
       synonyms:
@@ -213,13 +213,13 @@ measures:
 segments:
   - name: active_contracts
     expression: "{CONTRACTS.ISACTIVE} = TRUE"
-    description: Contracts currently active for service delivery.
+    description: "Contracts currently active for service delivery."
   - name: high_value_contracts
     expression: "{CONTRACTS.CONTRACTVALUE} >= 100000"
-    description: Contracts with high annualized commercial value.
+    description: "Contracts with high annualized commercial value."
   - name: full_service_contracts
     expression: "UPPER({CONTRACTS.CONTRACTTYPE}) LIKE '%FULL%'"
-    description: Full-service coverage contracts.
+    description: "Full-service coverage contracts."
 joins:
   - name: AR_OPENAR
     type: one_to_many

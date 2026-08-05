@@ -34,11 +34,7 @@ spec:
       limit:
         cpu: "1000m"
         memory: "1Gi"
-    migrate:
-      command:
-        - vulcan
-      arguments:
-        - migrate
+
     plan:
       command:
         - vulcan

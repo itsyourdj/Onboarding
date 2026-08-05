@@ -17,7 +17,7 @@ measures:
 joins:
   - name: WORKFORCE
     type: one_to_many
-    expression: '{TECHNICIANS.TECHNICIAN_ID} = {WORKFORCE.TECHNICIAN_ID}'
+    on: '{TECHNICIANS.TECHNICIAN_ID} = {WORKFORCE.TECHNICIAN_ID}'
 dimensions:
   - name: EMPLOYEE_FULL_NAME
     description: Technician full name. PII - handle per data classification.

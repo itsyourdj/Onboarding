@@ -280,7 +280,7 @@ segments:
 joins:
   - name: DIMARDETAILS
     type: one_to_many
-    expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
+    on: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
     ai_context:
       instructions: >
         Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY
@@ -288,7 +288,7 @@ joins:
 
   - name: ARPAYMENTTERM
     type: many_to_one
-    expression: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
+    on: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
     ai_context:
       instructions: >
         Join via DIMARDETAILS when AvgContractualNetDays on FactDSO is insufficient

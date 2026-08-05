@@ -219,7 +219,7 @@ segments:
 joins:
   - name: contract_compliance
     type: many_to_one
-    expression: "{callbacks.CONTRACT_ID} = {contract_compliance.CONTRACT_ID} AND {callbacks.UNIT_ID} = {contract_compliance.UNIT_ID}"
+    on: "{callbacks.CONTRACT_ID} = {contract_compliance.CONTRACT_ID} AND {callbacks.UNIT_ID} = {contract_compliance.UNIT_ID}"
     ai_context:
       instructions: >
         Join to pull contract visit-compliance context (contract_visit_compliance_rate)
@@ -228,7 +228,7 @@ joins:
         many_to_one, no fan-out risk.
   - name: units
     type: many_to_one
-    expression: "{callbacks.UNIT_ID} = {units.UNIT_ID}"
+    on: "{callbacks.UNIT_ID} = {units.UNIT_ID}"
     ai_context:
       instructions: >
         Bridge join to the units dimension. Chain through here to connect
@@ -236,13 +236,13 @@ joins:
         unit attributes (Vulcan does not support many_to_many joins directly).
   - name: contracts
     type: many_to_one
-    expression: "{callbacks.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+    on: "{callbacks.CONTRACT_ID} = {contracts.CONTRACT_ID}"
   - name: customers
     type: many_to_one
-    expression: "{callbacks.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
+    on: "{callbacks.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
   - name: technicians
     type: many_to_one
-    expression: "{callbacks.TECHNICIAN_ID} = {technicians.TECHNICIAN_ID}"
+    on: "{callbacks.TECHNICIAN_ID} = {technicians.TECHNICIAN_ID}"
     ai_context:
       instructions: >
         Join to attribute callbacks to the attending technician (via EMP_NUMBER

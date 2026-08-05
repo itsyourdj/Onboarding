@@ -216,12 +216,12 @@ segments:
 joins:
   - name: DimARCollectionLOB
     type: many_to_one
-    expression: "{FactARCollection.LOB} = {DimARCollectionLOB.LOBCode}"
+    on: "{FactARCollection.LOB} = {DimARCollectionLOB.LOBCode}"
     ai_context:
       instructions: "Join to DimARCollectionLOB to access full LOB description for reporting."
 
   - name: ARPaymentTerm
     type: many_to_one
-    expression: "{FactARCollection.PaymentTermCode} = {ARPaymentTerm.PaymentTermCode}"
+    on: "{FactARCollection.PaymentTermCode} = {ARPaymentTerm.PaymentTermCode}"
     ai_context:
       instructions: "Join to ARPaymentTerm to access NetDays for payment term compliance context on collection records."

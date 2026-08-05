@@ -325,7 +325,7 @@ segments:
 joins:
   - name: DimARDetails
     type: many_to_one
-    expression: >
+    on: >
       {FactARDetails.CompanyId} = {DimARDetails.CompanyId}
       AND {FactARDetails.DocumentCompany} = {DimARDetails.DocumentCompany}
       AND {FactARDetails.DocNo} = {DimARDetails.DocNo}

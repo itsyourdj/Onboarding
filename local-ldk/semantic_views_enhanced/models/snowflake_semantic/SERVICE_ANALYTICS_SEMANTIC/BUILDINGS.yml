@@ -10,7 +10,7 @@ measures:
 joins:
 - name: UNITS
   type: one_to_many
-  expression: '{BUILDINGS.BUILDING_ID} = {UNITS.BUILDING_ID}'
+  on: '{BUILDINGS.BUILDING_ID} = {UNITS.BUILDING_ID}'
 dimensions:
 - name: BLDG_CITY
   description: Building city (trimmed).

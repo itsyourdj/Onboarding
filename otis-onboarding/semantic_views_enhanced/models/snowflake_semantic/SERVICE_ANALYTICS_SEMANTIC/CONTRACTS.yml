@@ -223,7 +223,7 @@ segments:
 joins:
   - name: AR_OPENAR
     type: one_to_many
-    expression: "{CONTRACTS.CONTRACT_ID} = {AR_OPENAR.CONTRACT_ID}"
+    on: "{CONTRACTS.CONTRACT_ID} = {AR_OPENAR.CONTRACT_ID}"
   - name: UNITS
     type: one_to_many
-    expression: "{CONTRACTS.CONTRACT_ID} = {UNITS.CONTRACT_ID}"
+    on: "{CONTRACTS.CONTRACT_ID} = {UNITS.CONTRACT_ID}"

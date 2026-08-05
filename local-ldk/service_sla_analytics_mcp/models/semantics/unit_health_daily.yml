@@ -51,7 +51,7 @@ measures:
 joins:
   - name: units
     type: many_to_one
-    expression: "{unit_health_daily.UNIT_ID} = {units.UNIT_ID}"
+    on: "{unit_health_daily.UNIT_ID} = {units.UNIT_ID}"
     ai_context:
       instructions: >
         Bridge join to the units dimension. Chain through here to connect
@@ -60,7 +60,7 @@ joins:
         between fact tables — this is the resolution).
   - name: contracts
     type: many_to_one
-    expression: "{unit_health_daily.CONTRACT_ID} = {contracts.CONTRACT_ID}"
+    on: "{unit_health_daily.CONTRACT_ID} = {contracts.CONTRACT_ID}"
   - name: customers
     type: many_to_one
-    expression: "{unit_health_daily.CUSTOMER_ID} = {customers.CUSTOMER_ID}"
+    on: "{unit_health_daily.CUSTOMER_ID} = {customers.CUSTOMER_ID}"

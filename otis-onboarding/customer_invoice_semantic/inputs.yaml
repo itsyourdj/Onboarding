@@ -222,7 +222,6 @@
     CUSTOMERNUMBER:       VARCHAR(20)
     FISCALPERIODID:       INTEGER
     LOB:                  VARCHAR(50)
-    LOBCODE:              VARCHAR(50)
     BUSINESSUNIT:         VARCHAR(10)
     PAYMENTTERMCODE:      VARCHAR(10)
     TOTALRECEIPTS:        DECIMAL(18, 2)
@@ -236,7 +235,6 @@
     CUSTOMERNUMBER: "Customer identifier; part of collection grain key."
     FISCALPERIODID: "Fiscal period key used for trend analysis."
     LOB: "Line of Business key for LOB-level CEI reporting."
-    LOBCODE: "LOB code for symmetric join to DIMARCOLLECTIONLOB (same value as LOB)."
     BUSINESSUNIT: "Primary business unit for this customer-period-LOB bucket."
     PAYMENTTERMCODE: "Payment term code for compliance context joins."
     TOTALRECEIPTS: "Total cash received in the customer-period-LOB bucket."
@@ -250,7 +248,6 @@
     CUSTOMERNUMBER: ["grain", "customer", "identifier", "join_key"]
     FISCALPERIODID: ["grain", "time_dimension", "period", "kpi"]
     LOB: ["grain", "dimension", "lob", "kpi"]
-    LOBCODE: ["dimension", "lob", "join_key", "kpi"]
     PAYMENTTERMCODE: ["dimension", "compliance", "join_key"]
     TOTALRECEIPTS: ["measure", "amount", "receipts", "kpi"]
     CASHAPPLIED: ["measure", "amount", "receipts", "kpi", "cei"]
@@ -272,21 +269,18 @@
     LOBKEY:         INTEGER
     COMPANYID:      VARCHAR(10)
     LOBCODE:        VARCHAR(20)
-    LOB:            VARCHAR(20)
     LOBDESCRIPTION: VARCHAR(100)
     GLOFFSET:       VARCHAR(10)
   column_descriptions:
     LOBKEY: "Surrogate key for LOB reference records."
     COMPANYID: "Company identifier associated with LOB mapping."
     LOBCODE: "LOB code used by fact and dimension tables."
-    LOB: "LOB code alias for symmetric joins with DIMARDETAILS and FACTARCOLLECTION."
     LOBDESCRIPTION: "Human-readable line of business label."
     GLOFFSET: "GL offset code used to derive LOB in invoice data."
   column_tags:
     LOBKEY: ["grain", "surrogate_key"]
     COMPANYID: ["identifier"]
     LOBCODE: ["dimension", "lob", "join_key", "kpi"]
-    LOB: ["dimension", "lob", "join_key", "kpi"]
     LOBDESCRIPTION: ["dimension", "lob", "display"]
     GLOFFSET: ["dimension", "lob", "join_key"]
 

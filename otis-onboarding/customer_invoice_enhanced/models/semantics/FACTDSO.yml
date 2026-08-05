@@ -28,8 +28,7 @@ ai_context:
     - >
       DisputedAmountRolling30/60/90/180 are point-in-time sums (not monthly averages):
       disputed invoices where COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - N days.
-      Sum across fiscal periods for portfolio totals; filter to latest FISCALYEAR/FISCALMONTH
-      for current-period snapshot reporting.
+      Filter to latest FISCALYEAR/FISCALMONTH or use period_treatment last — do not sum across periods.
   synonyms:
     - "DSO fact"
     - "dispute analytics"
@@ -78,7 +77,7 @@ dimensions:
         - "year"
   - name: FISCALMONTH
     behavior:
-      type: categorical
+      type: ordinal
     ai_context:
       synonyms:
         - "fiscal month"
@@ -88,7 +87,7 @@ dimensions:
         - "Use with FISCALYEAR for trend analysis. Values 1-12."
   - name: COLLECTIONPRIORITY
     behavior:
-      type: categorical
+      type: ordinal
     ai_context:
       synonyms:
         - "collection priority"
@@ -96,22 +95,6 @@ dimensions:
         - "priority band"
       caveats:
         - "H/M/L/NONE from F03012. NONE = not collection-prioritized."
-  - name: TOTALOPENAR
-  - name: TOTALGROSSINVOICED
-  - name: DAYSINPERIOD
-  - name: DSO
-  - name: AVGCONTRACTUALNETDAYS
-  - name: DSOVARIANCEFROMTERMS
-  - name: DISPUTEDAMOUNTTOTAL
-  - name: DISPUTEDAMOUNTROLLING30
-  - name: DISPUTEDAMOUNTROLLING60
-  - name: DISPUTEDAMOUNTROLLING90
-  - name: DISPUTEDAMOUNTROLLING180
-  - name: RESOLVEDDISPUTEGROSS
-  - name: RESOLVEDDISPUTERECOVERED
-  - name: DISPUTERECOVERYRATIO
-  - name: CEI
-  - name: INVOICECOUNT
 
 measures:
   - name: TOTAL_OPEN_AR
@@ -160,7 +143,7 @@ measures:
     expression: "{FACTDSO.DSOVARIANCEFROMTERMS}"
     description: "DSO minus average contractual net days. Positive = collecting slower than terms."
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "DSO vs terms"
@@ -171,27 +154,33 @@ measures:
     expression: "{FACTDSO.AVGCONTRACTUALNETDAYS}"
     description: "Average contractual net days from F0014 payment terms."
     behavior:
-      type: flow
+      type: simple
 
   - name: DISPUTED_AMOUNT_ROLLING_30
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING30}"
     description: "Total disputed amount in the last 30 calendar days (load snapshot). Gold logic: SUM where DisputeCode IS NOT NULL AND COALESCE(DisputeDate, GLDate) >= DATEADD(day, -30, CURRENT_DATE())."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: FISCALMONTH
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "disputed last 30 days"
         - "30 day rolling disputed"
       caveats:
-        - "Point-in-time as of SP load — not a historical monthly average. Sum across periods for portfolio total."
+        - "Point-in-time as of SP load — not a historical monthly average. Use period_treatment last; do not sum across fiscal periods."
 
   - name: DISPUTED_AMOUNT_ROLLING_60
     type: sum
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING60}"
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 60 days."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: FISCALMONTH
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "disputed last 60 days"
@@ -201,7 +190,10 @@ measures:
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING90}"
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 90 days."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: FISCALMONTH
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "disputed last 90 days"
@@ -211,7 +203,10 @@ measures:
     expression: "{FACTDSO.DISPUTEDAMOUNTROLLING180}"
     description: "Total disputed amount where dispute date >= CURRENT_DATE - 180 days."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: FISCALMONTH
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "disputed last 180 days"

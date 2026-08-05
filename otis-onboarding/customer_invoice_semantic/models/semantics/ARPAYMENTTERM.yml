@@ -61,6 +61,8 @@ dimensions:
         - "term description"
         - "term name"
   - name: NETDAYS
+    behavior:
+      type: ordinal
     ai_context:
       synonyms:
         - "net days"

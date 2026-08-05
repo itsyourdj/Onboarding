@@ -55,7 +55,6 @@ ai_context:
         ORDER BY total_disputed_amount DESC
 
 dimensions:
-  # ── Grain / Identity ────────────────────────────────────────────────────────
   - name: COMPANYID
     behavior:
       type: identifier
@@ -71,7 +70,6 @@ dimensions:
   - name: PAYITM
     behavior:
       type: identifier
-  # ── Customer & Ownership ────────────────────────────────────────────────────
   - name: CUSTOMERNUMBER
     behavior:
       type: identifier
@@ -109,7 +107,7 @@ dimensions:
         - "COLLECTIONMANAGER is their manager — do not confuse when grouping for performance reports"
   - name: COLLECTIONPRIORITY
     behavior:
-      type: categorical
+      type: ordinal
     ai_context:
       synonyms:
         - "collection priority"
@@ -120,7 +118,6 @@ dimensions:
   - name: COLLECTIONMANAGER
     behavior:
       type: categorical
-  # ── LOB & Business Unit ──────────────────────────────────────────────────────
   - name: GLOFFSET
     behavior:
       type: categorical
@@ -141,7 +138,6 @@ dimensions:
   - name: BUDESC
     behavior:
       type: categorical
-  # ── Payment Terms ────────────────────────────────────────────────────────────
   - name: PAYMENTTERMCODE
     behavior:
       type: categorical
@@ -149,7 +145,6 @@ dimensions:
       synonyms:
         - "payment terms"
         - "payment condition"
-  # ── Dispute Fields ───────────────────────────────────────────────────────────
   - name: DISPUTEREASONCODE
     behavior:
       type: categorical
@@ -172,7 +167,6 @@ dimensions:
   - name: RESOLVERNAME
     behavior:
       type: categorical
-  # ── Dates ─────────────────────────────────────────────────────────────────────
   - name: INVOICEDATE
   - name: DUEDATE
     ai_context:
@@ -190,7 +184,6 @@ dimensions:
         - "committed payment date"
   - name: ATTACHMENTSTARTDATE
   - name: ATTACHMENTENDDATE
-  # ── Customer Status ──────────────────────────────────────────────────────────
   - name: CURRENCYCODE
     behavior:
       type: categorical
@@ -212,20 +205,17 @@ dimensions:
   - name: CHARGEBACKCODE
     behavior:
       type: categorical
-  # ── Comments ──────────────────────────────────────────────────────────────────
   - name: LASTINVOICECOMMENT
   - name: LASTCUSTOMERCOMMENT
-  # ── Audit ─────────────────────────────────────────────────────────────────────
   - name: INSERTDATE
   - name: MODIFYDATE
 
 measures:
-  # ── Count measures ──────────────────────────────────────────────────────────
   - name: INVOICE_COUNT
     type: count
     description: "Total number of invoices / pay-item records"
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "invoice count"
@@ -245,7 +235,7 @@ measures:
       - "{DIMARDETAILS.DISPUTESTATUS} = 'Resolved'"
     description: "Count of invoices where DISPUTESTATUS = Resolved"
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "resolved disputes"
@@ -259,7 +249,7 @@ measures:
       - "{DIMARDETAILS.DISPUTESTATUS} IS NOT NULL"
     description: "Count of invoices with any dispute status recorded (open or resolved)"
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "all disputes"
@@ -273,7 +263,7 @@ measures:
       - "{DIMARDETAILS.HOLDFLAG} = 'Y'"
     description: "Count of invoices where the customer is on credit hold"
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "credit hold count"
@@ -281,9 +271,6 @@ measures:
 
   - name: DISPUTE_RESOLUTION_RATE
     type: number
-    expression: >
-      SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} = 'Resolved' THEN 1 ELSE 0 END) /
-      NULLIF(SUM(CASE WHEN {DIMARDETAILS.DISPUTESTATUS} IS NOT NULL THEN 1 ELSE 0 END), 0)
     description: "Fraction of disputes that have been resolved. Formula: COUNT(Resolved) / COUNT(any dispute status). Target: >= 0.80 (80% resolution rate)."
     behavior:
       type: ratio

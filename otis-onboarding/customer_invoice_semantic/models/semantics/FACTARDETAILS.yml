@@ -73,7 +73,6 @@ ai_context:
         ORDER BY ABS(f.CHANGEINRESERVE) DESC LIMIT 50
 
 dimensions:
-  # ── Grain keys ─────────────────────────────────────────────────────────────
   - name: COMPANYID
     behavior:
       type: identifier
@@ -89,23 +88,9 @@ dimensions:
   - name: PAYITM
     behavior:
       type: identifier
-  # ── Amount columns (needed as dimensions so measures can reference them) ──
-  - name: OPENAMOUNT
-  - name: GROSSAMOUNT
-  - name: TAXAMOUNT
-  - name: DISPUTEDAMOUNT
-  - name: CURRENTRESERVE
-  - name: ARCURRENTRESERVE
-  - name: PREVIOUSFORECASTRESERVE
-  - name: FORECASTRESERVE30
-  - name: FORECASTRESERVE60
-  - name: FORECASTRESERVE90
-  - name: CHANGEINRESERVE
-  - name: DRAFTOPENAMOUNT
-  - name: ADJUSTMENTAMOUNT
-  - name: RESERVECASHAPPLIED
-  # ── Aging & Period ──────────────────────────────────────────────────────────
   - name: AGINGDAYS
+    behavior:
+      type: ordinal
     ai_context:
       synonyms:
         - "days overdue"
@@ -123,7 +108,6 @@ dimensions:
         - "accounting period"
       caveats:
         - "FISCALPERIODID is an INTEGER key: ((Century * 100 + Year) * 100) + Month. Example: 20260800 = August 2026. Do NOT sum or average this field — use it for filtering and grouping only."
-  # ── Date dimensions ─────────────────────────────────────────────────────────
   - name: GLDATE
   - name: DUEDATE
   - name: AGEASOFDATE
@@ -138,13 +122,15 @@ dimensions:
   - name: INSERTDATE
 
 measures:
-  # ── Flow measures (additive within period) ──────────────────────────────────
   - name: OPEN_AMOUNT
     type: sum
     expression: "{FACTARDETAILS.OPENAMOUNT}"
     description: "Total outstanding invoice balance. Primary AR exposure metric."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: INSERTDATE
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "open balance"
@@ -180,7 +166,10 @@ measures:
     expression: "{FACTARDETAILS.DISPUTEDAMOUNT}"
     description: "Amount formally under dispute. Rising trend = leakage risk."
     behavior:
-      type: flow
+      type: stock
+      time_dimension: INSERTDATE
+      period_treatment: last
+      period_grain: month
     ai_context:
       synonyms:
         - "dispute amount"
@@ -221,7 +210,6 @@ measures:
     behavior:
       type: flow
 
-  # ── Stock measures (point-in-time balances — do NOT sum across periods) ──────
   - name: CURRENT_RESERVE
     type: sum
     expression: "{FACTARDETAILS.CURRENTRESERVE}"
@@ -269,12 +257,11 @@ measures:
       period_treatment: last
       period_grain: month
 
-  # ── Count measures ──────────────────────────────────────────────────────────
   - name: INVOICE_COUNT
     type: count
     description: "Total count of invoice / pay-item records."
     behavior:
-      type: flow
+      type: simple
 
   - name: OVERDUE_INVOICE_COUNT
     type: count
@@ -282,7 +269,7 @@ measures:
       - "{FACTARDETAILS.AGINGDAYS} > 30"
     description: "Count of invoices more than 30 days past due. Primary input for OVERDUE_INVOICE_TREND metric."
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "overdue count"
@@ -291,16 +278,13 @@ measures:
       caveats:
         - "Uses AGINGDAYS > 30 as the overdue threshold. This threshold is an assumption pending confirmation."
 
-  # ── Computed ratio measures ──────────────────────────────────────────────────
   - name: RESERVE_ACCURACY_PCT
     type: number
     expression: >
       1 - AVG(ABS({FACTARDETAILS.CHANGEINRESERVE} / NULLIF({FACTARDETAILS.FORECASTRESERVE30}, 0)))
     description: "Reserve forecast accuracy: 1 - ABS(CHANGEINRESERVE / FORECASTRESERVE30). Values near 1.0 = accurate forecasting. Below 0.8 = recalibration needed."
     behavior:
-      type: ratio
-      numerator: CHANGE_IN_RESERVE
-      denominator: FORECAST_RESERVE_30
+      type: simple
     ai_context:
       synonyms:
         - "reserve accuracy"

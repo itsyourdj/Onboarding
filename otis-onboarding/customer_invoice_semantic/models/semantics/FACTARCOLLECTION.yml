@@ -48,7 +48,6 @@ ai_context:
         GROUP BY d.COLLECTOR ORDER BY total_cash_applied DESC LIMIT 10
 
 dimensions:
-  # ── Grain keys ─────────────────────────────────────────────────────────────
   - name: COMPANYID
     behavior:
       type: identifier
@@ -79,20 +78,12 @@ dimensions:
         - "line of business"
         - "business line"
         - "division"
-  # ── Organisational ─────────────────────────────────────────────────────────
   - name: BUSINESSUNIT
     behavior:
       type: categorical
   - name: PAYMENTTERMCODE
     behavior:
       type: categorical
-  # ── Amount columns (needed as dimension refs for measures) ──────────────────
-  - name: TOTALRECEIPTS
-  - name: CASHAPPLIED
-  - name: RESERVECASH
-  - name: ADJUSTEDCOLLECTION
-  - name: COLLECTIONEFFICIENCY
-  # ── Audit ──────────────────────────────────────────────────────────────────
   - name: INSERTDATE
 
 measures:
@@ -136,8 +127,6 @@ measures:
 
   - name: COLLECTION_EFFICIENCY
     type: number
-    expression: >
-      SUM({FACTARCOLLECTION.CASHAPPLIED}) / NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
     description: "Collection Efficiency Index (CEI) — simplified as CASHAPPLIED / TOTALRECEIPTS. Industry standard target: CEI >= 0.85."
     behavior:
       type: ratio
@@ -167,7 +156,7 @@ measures:
       SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})
     description: "Absolute unapplied cash amount. Key leakage signal L1."
     behavior:
-      type: flow
+      type: simple
     ai_context:
       synonyms:
         - "unapplied cash"
@@ -176,9 +165,6 @@ measures:
 
   - name: UNAPPLIED_CASH_PCT
     type: number
-    expression: >
-      (SUM({FACTARCOLLECTION.TOTALRECEIPTS}) - SUM({FACTARCOLLECTION.CASHAPPLIED})) /
-      NULLIF(SUM({FACTARCOLLECTION.TOTALRECEIPTS}), 0)
     description: "Percentage of receipts not yet applied to open invoices. Formula: (TOTALRECEIPTS - CASHAPPLIED) / TOTALRECEIPTS. Rising trend = cash posting process failure (leakage signal L1)."
     behavior:
       type: ratio

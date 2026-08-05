@@ -281,12 +281,12 @@ segments:
     expression: "{FACTDSO.COLLECTIONPRIORITY} = 'NONE' OR {FACTDSO.COLLECTIONPRIORITY} IS NULL"
     description: "Not collection-prioritized (NONE or null)."
 
-joins:
-  - name: DIMARDETAILS
-    type: one_to_many
-    expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
-    ai_context:
-      instructions: >
-        Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY
-        to match FactDSO segment when comparing prioritized vs not-prioritized performance.
-        Chain through DIMARDETAILS to ARPAYMENTTERM or DIMARCOLLECTIONLOB for payment-term or LOB detail.
+# joins:
+#   - name: DIMARDETAILS
+#     type: one_to_many
+#     expression: "{FACTDSO.COMPANYID} = {DIMARDETAILS.COMPANYID}"
+#     ai_context:
+#       instructions: >
+#         Join to DIMARDETAILS for invoice-level drill-down. Filter DIMARDETAILS.COLLECTIONPRIORITY
+#         to match FactDSO segment when comparing prioritized vs not-prioritized performance.
+#         Chain through DIMARDETAILS to ARPAYMENTTERM or DIMARCOLLECTIONLOB for payment-term or LOB detail.

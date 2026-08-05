@@ -42,6 +42,7 @@ spec:
         - --log-to-stdout
         - plan
         - --auto-apply
+        - --migrate
     run:
       command:
         - vulcan

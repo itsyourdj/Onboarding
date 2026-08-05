@@ -1,50 +1,3 @@
-# Source: design spec > Section 1 Business Context + stakeholder feedback
-# Business-facing usage guidance for Customer Invoices Insights (Core) data product.
-# Studio maps good_for/not_for → "Is it a right fit for me?" and what_it_answers → "What it answers".
-
-what_it_answers:
-  - question: "How long does it take to collect cash? (Days Sales Outstanding)"
-    metric: DSO_TREND
-    source: FactDSO.DSO
-    formula: "(TotalOpenAR / TotalGrossInvoiced) × DaysInPeriod"
-    notes: >
-      Denominator uses invoiced gross (RPAAP) as the sales proxy until F4211 is integrated.
-      Future: compare to contractual terms (DSO_VARIANCE_FROM_TERMS_TREND) and invoice amount bands.
-
-  - question: "How much disputed amount is accumulating?"
-    metrics:
-      - DISPUTED_AMOUNT_ROLLING_30_TREND
-      - DISPUTED_AMOUNT_ROLLING_60_TREND
-      - DISPUTED_AMOUNT_ROLLING_90_TREND
-      - DISPUTED_AMOUNT_ROLLING_180_TREND
-    source: FactDSO.DisputedAmountRolling30/60/90/180
-    formula: "SUM(disputed) WHERE COALESCE(DisputeDate, GLDate) >= CURRENT_DATE - N days"
-    notes: >
-      Calendar-day rolling totals from SP_LOAD_FACTDSO (DATEADD pattern).
-      Sum across fiscal periods for portfolio exposure; values refresh on each SP run.
-
-  - question: "What proportion of resolved disputed invoices is recovered?"
-    metric: DISPUTE_RECOVERY_RATIO_TREND
-    source: FactDSO.DisputeRecoveryRatio
-    formula: "Recovered / Gross for resolved disputes"
-    notes: >
-      Remaining obligation (amount payer still owes / total disputed) = 1 - DisputeRecoveryRatio.
-      Indicates how much of disputed balance Otis is (un)likely to collect.
-
-  - question: "Is collection prioritization working?"
-    metric: DSO_BY_COLLECTION_PRIORITY
-    source: FactDSO.DSO segmented by CollectionPriority
-    notes: >
-      Compare DSO and CEI across H/M/L (prioritized) vs NONE (not prioritized).
-      Also use CEI_TREND for unified collection effectiveness by priority segment.
-
-  - question: "What is our collection effectiveness (CEI)?"
-    metric: CEI_TREND
-    source: FactDSO.CEI
-    notes: >
-      Executive portfolio CEI. For cash-application detail at customer × LOB grain,
-      use COLLECTION_EFFICIENCY_TREND on FactARCollection (different formula/grain).
-
 good_for:
   - title: Days Sales Outstanding (DSO) and DSO vs payment terms
     details: >
@@ -82,7 +35,7 @@ not_for:
   - Invoice-level reserve-forecast DQ enforcement
 
 caveats:
-  - title: "Is it a right fit for me?" copy pending
+  - title: "Is it a right fit for me?" 
     details: >
       Stakeholder Collections/Finance language for Studio good_for/not_for will be
       finalized tomorrow. Structure above is ready to receive that copy.

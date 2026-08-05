@@ -322,15 +322,15 @@ segments:
         - "on hold customers"
         - "hold flag Y"
 
-# joins:
-#   - name: DIMARCOLLECTIONLOB
-#     type: many_to_one
-#     expression: "{DIMARDETAILS.LOBCODE} = {DIMARCOLLECTIONLOB.LOBCODE}"
-#     ai_context:
-#       instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description (LOBDESCRIPTION field)."
+joins:
+  - name: DIMARCOLLECTIONLOB
+    type: many_to_one
+    expression: "{DIMARDETAILS.LOBCODE} = {DIMARCOLLECTIONLOB.LOBCODE}"
+    ai_context:
+      instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description (LOBDESCRIPTION field)."
 
-#   - name: ARPAYMENTTERM
-#     type: many_to_one
-#     expression: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
-#     ai_context:
-#       instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance analysis (AGINGDAYS > NETDAYS)."
+  - name: ARPAYMENTTERM
+    type: many_to_one
+    expression: "{DIMARDETAILS.PAYMENTTERMCODE} = {ARPAYMENTTERM.PAYMENTTERMCODE}"
+    ai_context:
+      instructions: "Join to ARPAYMENTTERM to access NETDAYS for payment term compliance analysis (AGINGDAYS > NETDAYS)."

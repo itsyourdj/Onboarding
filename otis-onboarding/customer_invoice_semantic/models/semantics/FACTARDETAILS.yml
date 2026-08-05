@@ -324,9 +324,9 @@ segments:
       AND ABS({FACTARDETAILS.CHANGEINRESERVE} / {FACTARDETAILS.FORECASTRESERVE30}) > 0.20
     description: "Invoices where reserve changed by >20% vs 30-day forecast (Signal L7). Signals potential reserve mis-estimation."
 
-# joins:
-#   - name: DIMARDETAILS
-#     type: many_to_one
-#     expression: "{FACTARDETAILS.COMPANYID} = {DIMARDETAILS.COMPANYID} AND {FACTARDETAILS.DOCUMENTCOMPANY} = {DIMARDETAILS.DOCUMENTCOMPANY} AND {FACTARDETAILS.DOCNO} = {DIMARDETAILS.DOCNO} AND {FACTARDETAILS.DOCTYPE} = {DIMARDETAILS.DOCTYPE} AND {FACTARDETAILS.PAYITM} = {DIMARDETAILS.PAYITM}"
-#     ai_context:
-#       instructions: "Join to DIMARDETAILS to access collector, LOB, dispute status, and credit hold attributes for each invoice."
+joins:
+  - name: DIMARDETAILS
+    type: many_to_one
+    expression: "{FACTARDETAILS.COMPANYID} = {DIMARDETAILS.COMPANYID} AND {FACTARDETAILS.DOCUMENTCOMPANY} = {DIMARDETAILS.DOCUMENTCOMPANY} AND {FACTARDETAILS.DOCNO} = {DIMARDETAILS.DOCNO} AND {FACTARDETAILS.DOCTYPE} = {DIMARDETAILS.DOCTYPE} AND {FACTARDETAILS.PAYITM} = {DIMARDETAILS.PAYITM}"
+    ai_context:
+      instructions: "Join to DIMARDETAILS to access collector, LOB, dispute status, and credit hold attributes for each invoice."

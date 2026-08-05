@@ -1,4 +1,4 @@
-name: customer-invoices-semantic
+name: customer-invoice-semantic
 version: v1alpha
 type: vulcan
 tags:
@@ -51,7 +51,7 @@ spec:
         - --log-to-stdout
         - plan
         - --auto-apply
-        - --migrate
+        # - --migrate
     run:
       command:
         - vulcan

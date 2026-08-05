@@ -78,16 +78,6 @@ dimensions:
         - "line of business"
         - "business line"
         - "division"
-
-  - name: LOBCODE
-    behavior:
-      type: categorical
-    ai_context:
-      synonyms:
-        - "LOB code"
-        - "line of business code"
-      caveats:
-        - "Symmetric join key to DIMARCOLLECTIONLOB.LOBCODE; same value as LOB."
   - name: BUSINESSUNIT
     behavior:
       type: categorical
@@ -211,7 +201,7 @@ segments:
 joins:
   - name: DIMARCOLLECTIONLOB
     type: many_to_one
-    expression: "{FACTARCOLLECTION.LOBCODE} = {DIMARCOLLECTIONLOB.LOBCODE}"
+    expression: "{FACTARCOLLECTION.LOB} = {DIMARCOLLECTIONLOB.LOBCODE}"
     ai_context:
       instructions: "Join to DIMARCOLLECTIONLOB to access full LOB description for reporting."
 

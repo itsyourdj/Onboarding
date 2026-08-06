@@ -1,7 +1,7 @@
 # Source: design spec > Section 7 (fault_trend)
 kind: metric
 name: fault_trend
-measure: unit_health_daily.fault_count
+measure: unit_health_daily.total_fault_count
 ts: unit_health_daily.SNAPSHOT_DATE
 granularity: day
 

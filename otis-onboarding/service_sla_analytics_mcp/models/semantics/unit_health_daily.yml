@@ -5,8 +5,8 @@ depends_on: analytics.gold_unit_health_daily
 
 ai_context:
   instructions: >
-    IoT telemetry snapshots — one row per unit per snapshot. Use fault_count/alarm_count
-    for fault trending.
+    IoT telemetry snapshots — one row per unit per snapshot. Use
+    total_fault_count/total_alarm_count for fault trending.
   synonyms:
     - "unit health"
     - "IoT telemetry"
@@ -34,14 +34,14 @@ dimensions:
       type: identifier
 
 measures:
-  - name: fault_count
+  - name: total_fault_count
     type: sum
     expression: "{unit_health_daily.FAULT_COUNT}"
     description: "Sum of faults recorded in the IoT snapshot window"
     behavior:
       type: flow
 
-  - name: alarm_count
+  - name: total_alarm_count
     type: sum
     expression: "{unit_health_daily.ALARM_COUNT}"
     description: "Sum of alarms raised in the IoT snapshot window"

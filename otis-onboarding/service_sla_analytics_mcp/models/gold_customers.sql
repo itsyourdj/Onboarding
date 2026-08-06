@@ -12,6 +12,9 @@ MODEL (
     not_null(columns := (CUSTOMER_ID)),
     unique_values(columns := (CUSTOMER_ID))
   ),
+  column_mask_expressions (
+    customer_name = SHA1(CUSTOMER_NAME)
+  ),
   column_descriptions (
     CUSTOMER_ID = 'Surrogate customer key',
     CUSTOMER_NAME = 'Customer legal name (PII)',

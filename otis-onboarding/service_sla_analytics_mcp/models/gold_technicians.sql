@@ -10,6 +10,9 @@ MODEL (
     not_null(columns := (TECHNICIAN_ID)),
     unique_values(columns := (TECHNICIAN_ID))
   ),
+  column_mask_expressions (
+    employee_full_name = SHA2(EMPLOYEE_FULL_NAME)
+  ),
   column_descriptions (
     TECHNICIAN_ID = 'Surrogate technician (mechanic) key',
     EMPLOYEE_FULL_NAME = 'Technician full name (PII)',

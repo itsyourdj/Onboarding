@@ -1,0 +1,19 @@
+type: policy
+name: employees_pii_masking
+depends_on:
+  - analytics.gold_technicians
+
+rules:
+  - group: ct_sandbox_tenant_admin
+
+  - group: ct_sandbox_data_admin
+    mask:
+      - EMPLOYEE_FULL_NAME
+    
+  - group: app_user
+    filter:
+      - member: STATUS
+        operator: in
+        values:
+          - Active
+          - Terminated

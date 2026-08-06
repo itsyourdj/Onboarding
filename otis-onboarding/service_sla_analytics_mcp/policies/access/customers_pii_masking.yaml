@@ -1,0 +1,18 @@
+type: policy
+name: customers_pii_masking
+depends_on:
+  - analytics.gold_customers
+
+rules:
+  - group: ct_sandbox_tenant_admin
+
+  - group: ct_sandbox_data_admin
+    mask:
+      - CUSTOMER_NAME
+    
+  - group: app_user
+    filter:
+      - member: COUNTRY_CD
+        operator: equals
+        values:
+          - US

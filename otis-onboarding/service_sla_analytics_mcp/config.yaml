@@ -25,6 +25,8 @@ gateways:
 
 default_gateway: default
 
+after_authorize: "plugins.auth_ext:resolve_user_groups"
+
 model_defaults:
   dialect: "snowflake"
   start: "2020-01-01"

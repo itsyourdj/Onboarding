@@ -1,4 +1,4 @@
-name: "customer-invoices-enhanced"
+name: "customer-invoice-enhanced"
 display_name: "Customer Invoices Insights (Enhanced)"
 description: >
   Centralised Accounts Receivable data product for the Customer Invoices domain.

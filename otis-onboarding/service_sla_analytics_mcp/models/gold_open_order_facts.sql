@@ -2,20 +2,20 @@
 MODEL (
   name analytics.gold_open_order_facts,
   kind FULL,
-  grain ORDER_KEY,
+  grain WORK_ORDER_ID,
   tags ('gold', 'open_orders', 'service', 'fact'),
   terms ('service.open_order', 'metric.repair_job_financials'),
   description 'Open-order / repair-job grain fact joining raw repair-job financial facts to unit and contract dimensions',
   assertions (
-    not_null(columns := (ORDER_KEY, UNIT_ID)),
-    unique_values(columns := (ORDER_KEY))
+    not_null(columns := (WORK_ORDER_ID, UNIT_ID)),
+    unique_values(columns := (WORK_ORDER_ID))
     -- assert_orphaned_order_contracts intentionally NOT attached here as a blocking
     -- assertion: real data shows 145 orders referencing contracts not yet in the
     -- MDM golden-record CONTRACT_MASTER (coverage gap, not a bug). Monitored
     -- instead as a non-blocking DQ rule — see dq/gold_open_order_facts.yml.
   ),
   column_descriptions (
-    ORDER_KEY = 'Unique open-order / repair-job key',
+    WORK_ORDER_ID = 'Unique open-order / repair-job key',
     ORDER_DATE = 'Date the order was opened (cast to TIMESTAMP for metric ts use)',
     ORDER_STATUS = 'Order status (open / closed / ...)',
     ORDER_TYPE = 'Order type (repair / modernization / ...)',
@@ -32,7 +32,7 @@ MODEL (
 );
 
 SELECT
-  oo.ORDER_KEY::VARCHAR AS ORDER_KEY,
+  oo.ORDER_KEY::VARCHAR AS WORK_ORDER_ID,
   oo.ORDER_DATE::TIMESTAMP AS ORDER_DATE,
   oo.ORDER_STATUS::VARCHAR AS ORDER_STATUS,
   oo.ORDER_TYPE::VARCHAR AS ORDER_TYPE,

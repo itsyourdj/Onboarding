@@ -45,8 +45,8 @@ MODEL (
     DISPATCHED_AT = 'Dispatch timestamp for this callback',
     ARRIVED_AT = 'On-site arrival timestamp',
     CLOSED_AT = 'Callback close timestamp',
-    RESPONSE_TIME_HOURS = 'Hours between dispatch and on-site arrival — real SLA response-time measure',
-    RESOLUTION_TIME_HOURS = 'Hours between dispatch and callback close — real SLA resolution-time measure'
+    RESPONSE_TIME_MINUTES = 'Minutes between dispatch and on-site arrival — real SLA response-time measure',
+    RESOLUTION_TIME_MINUTES = 'Minutes between dispatch and callback close — real SLA resolution-time measure'
   )
 );
 
@@ -72,8 +72,8 @@ SELECT
   cb.NAA_DISPATCHED_DATE::TIMESTAMP AS DISPATCHED_AT,
   cb.ARRIVED_SITE::TIMESTAMP AS ARRIVED_AT,
   cb.CLOSED_ON::TIMESTAMP AS CLOSED_AT,
-  DATEDIFF('hour', cb.NAA_DISPATCHED_DATE, cb.ARRIVED_SITE)::DECIMAL AS RESPONSE_TIME_HOURS,
-  DATEDIFF('hour', cb.NAA_DISPATCHED_DATE, cb.CLOSED_ON)::DECIMAL AS RESOLUTION_TIME_HOURS
+  DATEDIFF('minute', cb.NAA_DISPATCHED_DATE, cb.ARRIVED_SITE)::DECIMAL AS RESPONSE_TIME_MINUTES,
+  DATEDIFF('minute', cb.NAA_DISPATCHED_DATE, cb.CLOSED_ON)::DECIMAL AS RESOLUTION_TIME_MINUTES
 FROM "SSD_NAA_PROD"."RL_AMERICA"."FLAT_CALLBACK_EVENT" AS cb
 LEFT JOIN "MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_UNIT_MASTER" AS u
   ON cb.UNIT_ID = u.UNIT_ID

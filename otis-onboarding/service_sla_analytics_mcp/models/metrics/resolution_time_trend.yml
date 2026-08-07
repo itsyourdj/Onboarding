@@ -4,7 +4,7 @@
 # column only cast to TIMESTAMP with no time component).
 kind: metric
 name: resolution_time_trend
-measure: callbacks.avg_resolution_time_hours
+measure: callbacks.avg_resolution_time_minutes
 ts: callbacks.CALLBACK_DATE_TIME
 granularity: day
 
@@ -13,4 +13,4 @@ dimensions:
   - callbacks.REGION_DESC
   - callbacks.GBO
 
-description: Average hours between dispatch and callback close, over time — real SLA resolution-time measure
+description: Average minutes between dispatch and callback close, over time — real SLA resolution-time measure

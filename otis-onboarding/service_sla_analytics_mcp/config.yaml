@@ -3,7 +3,7 @@ name: service-sla-analytics
 display_name: Service SLA Analytics
 description: Track SLA / response-time-adjacent service performance for elevator/escalator service jobs so ops and field leaders can spot service-quality issues early Created by Help of MCP.
 discoverable: true
-version: 0.1.0
+version: 0.2.0
 alignment: consumer_aligned
 domain: service
 tags:
@@ -30,7 +30,12 @@ after_authorize: "plugins.auth_ext:resolve_user_groups"
 model_defaults:
   dialect: "snowflake"
   start: "2020-01-01"
-  cron: "0 5 * * *"
+  cron: "30 6 * * *"
+
+issue_tracker:
+  provider: jira
+  url: https://rubikai.atlassian.net/browse/CTA-700
+
 
 notification_targets:
   - type: teams_webhook
@@ -65,6 +70,3 @@ linter:
     - ambiguousorinvalidcolumn
     - invalidselectstarexpansion
     - noambiguousprojections
-
-ignore_patterns:
-  - "docs/**"

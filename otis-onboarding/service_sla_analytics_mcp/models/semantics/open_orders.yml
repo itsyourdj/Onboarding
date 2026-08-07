@@ -12,7 +12,7 @@ ai_context:
     - "repair jobs"
 
 dimensions:
-  - ORDER_KEY
+  - WORK_ORDER_ID
   - ORDER_DATE
   - ORDER_STATUS
   - ORDER_TYPE
@@ -38,7 +38,7 @@ dimensions:
 measures:
   - name: open_order_count
     type: count
-    expression: "{open_orders.ORDER_KEY}"
+    expression: "{open_orders.WORK_ORDER_ID}"
     description: "Count of open orders / repair jobs"
     behavior:
       type: flow

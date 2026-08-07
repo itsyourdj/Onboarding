@@ -4,7 +4,7 @@
 # column only cast to TIMESTAMP with no time component).
 kind: metric
 name: response_time_trend
-measure: callbacks.avg_response_time_hours
+measure: callbacks.avg_response_time_minutes
 ts: callbacks.CALLBACK_DATE_TIME
 granularity: day
 
@@ -13,4 +13,4 @@ dimensions:
   - callbacks.REGION_DESC
   - callbacks.GBO
 
-description: Average hours between dispatch and on-site arrival, over time — real SLA response-time measure
+description: Average minutes between dispatch and on-site arrival, over time — real SLA response-time measure

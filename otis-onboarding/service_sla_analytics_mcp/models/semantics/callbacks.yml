@@ -6,7 +6,7 @@ depends_on: analytics.gold_callback_facts
 ai_context:
   instructions:
     - "Use this semantic model for questions about service callbacks/incidents on elevator and escalator units. One row represents one callback event."
-    - "Use total_callbacks for volume questions. Use avg_response_time_hours / avg_resolution_time_hours for real SLA timing (from dispatch->arrival and dispatch->close timestamps, discovered 2026-07-29). Use trouble_callback_rate / entrapment_rate / out_of_service_rate / first_time_fix_rate as additional quality-proxy measures."
+    - "Use total_callbacks for volume questions. Use avg_response_time_minutes / avg_resolution_time_minutes for real SLA timing (from dispatch->arrival and dispatch->close timestamps, discovered 2026-07-29). Use trouble_callback_rate / entrapment_rate / out_of_service_rate / first_time_fix_rate as additional quality-proxy measures."
   synonyms:
     - "callbacks"
     - "service calls"
@@ -22,7 +22,7 @@ ai_context:
     - description: "What is our average response time and resolution time?"
       format: sql
       query: |
-        SELECT MEASURE(callbacks.avg_response_time_hours), MEASURE(callbacks.avg_resolution_time_hours)
+        SELECT MEASURE(callbacks.avg_response_time_minutes), MEASURE(callbacks.avg_resolution_time_minutes)
         FROM callbacks;
     - description: "Which technician handled the most callbacks?"
       format: sql
@@ -97,8 +97,8 @@ dimensions:
   - DISPATCHED_AT
   - ARRIVED_AT
   - CLOSED_AT
-  - RESPONSE_TIME_HOURS
-  - RESOLUTION_TIME_HOURS
+  - RESPONSE_TIME_MINUTES
+  - RESOLUTION_TIME_MINUTES
 
 measures:
   - name: total_callbacks
@@ -186,10 +186,10 @@ measures:
       synonyms:
         - "FTFR"
 
-  - name: avg_response_time_hours
+  - name: avg_response_time_minutes
     type: avg
-    expression: "{callbacks.RESPONSE_TIME_HOURS}"
-    description: "Average hours between dispatch and on-site arrival. Real SLA response-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/ARRIVED_SITE columns not originally in the design spec)."
+    expression: "{callbacks.RESPONSE_TIME_MINUTES}"
+    description: "Average minutes between dispatch and on-site arrival. Real SLA response-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/ARRIVED_SITE columns not originally in the design spec)."
     ai_context:
       synonyms:
         - "response time"
@@ -197,10 +197,10 @@ measures:
       caveats:
         - "NULL when dispatch or arrival timestamp is missing (~11% of rows). A small number of rows show a negative duration (~-1 hour), likely clock-rounding artifacts — monitored via DQ, not filtered out."
 
-  - name: avg_resolution_time_hours
+  - name: avg_resolution_time_minutes
     type: avg
-    expression: "{callbacks.RESOLUTION_TIME_HOURS}"
-    description: "Average hours between dispatch and callback close. Real SLA resolution-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/CLOSED_ON columns not originally in the design spec)."
+    expression: "{callbacks.RESOLUTION_TIME_MINUTES}"
+    description: "Average minutes between dispatch and callback close. Real SLA resolution-time measure (discovered 2026-07-29 via NAA_DISPATCHED_DATE/CLOSED_ON columns not originally in the design spec)."
     ai_context:
       synonyms:
         - "resolution time"

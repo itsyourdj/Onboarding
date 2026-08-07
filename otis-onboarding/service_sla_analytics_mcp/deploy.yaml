@@ -23,7 +23,7 @@ spec:
     type: schedule
     schedule:
       crons:
-        - "30 11 * * *"
+        - "0 12 * * *"
       timezone: "Asia/Kolkata"
       endOn: "2027-01-01T00:00:00Z"
       concurrencyPolicy: Forbid

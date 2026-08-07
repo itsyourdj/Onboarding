@@ -69,5 +69,5 @@ test_gold_callback_facts_basic:
           REGION_DESC: "Northeast"
           SALES_SEGMENT: "Enterprise"
           TECHNICIAN_ID: "TECH100"
-          RESPONSE_TIME_HOURS: 1.0
-          RESOLUTION_TIME_HOURS: 3.0
+          RESPONSE_TIME_MINUTES: 90.0
+          RESOLUTION_TIME_MINUTES: 180.0

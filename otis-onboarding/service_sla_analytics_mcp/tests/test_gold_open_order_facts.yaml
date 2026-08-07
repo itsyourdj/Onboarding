@@ -35,7 +35,7 @@ test_gold_open_order_facts_basic:
     query:
       partial: true
       rows:
-        - ORDER_KEY: "ORD100"
+        - WORK_ORDER_ID: "ORD100"
           UNIT_ID: "UNIT_000001"
           JOB_REVENUE: 1000.00
           JOB_COST: 600.00

@@ -6,7 +6,7 @@ depends_on: analytics.gold_open_order_facts
 # Profiled columns: grain key (PK) + all FKs + all numeric columns.
 # ORDER_DATE (time) is intentionally excluded; no boolean columns exist here.
 profiles:
-  - ORDER_KEY
+  - WORK_ORDER_ID
   - UNIT_ID
   - CONTRACT_ID
   - JOB_REVENUE
@@ -19,7 +19,7 @@ rules:
       name: order_unit_required
       dimension: completeness
 
-  - duplicate_count(ORDER_KEY) = 0:
+  - duplicate_count(WORK_ORDER_ID) = 0:
       name: unique_order_keys
       dimension: uniqueness
 
@@ -32,7 +32,7 @@ rules:
       name: orphaned_order_contracts
       dimension: consistency
       fail query: |
-        SELECT oo.ORDER_KEY
+        SELECT oo.WORK_ORDER_ID
         FROM analytics.gold_open_order_facts AS oo
         LEFT JOIN "MDM_NAA_PROD"."MDM_OUTBOUND"."GLOBAL_CONTRACT_MASTER" AS ct
           ON oo.CONTRACT_ID = ct.CONTRACT_ID

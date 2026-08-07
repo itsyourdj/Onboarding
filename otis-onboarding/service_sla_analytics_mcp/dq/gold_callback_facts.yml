@@ -12,8 +12,8 @@ profiles:
   - CONTRACT_ID
   - CUSTOMER_ID
   - TECHNICIAN_ID
-  - RESPONSE_TIME_HOURS
-  - RESOLUTION_TIME_HOURS
+  - RESPONSE_TIME_MINUTES
+  - RESOLUTION_TIME_MINUTES
 
 rules:
   - missing_count(UNIT_ID) = 0:
@@ -68,6 +68,6 @@ rules:
       dimension: accuracy
       fail query: |
         SELECT * FROM analytics.gold_callback_facts
-        WHERE RESPONSE_TIME_HOURS < 0 OR RESOLUTION_TIME_HOURS < 0
+        WHERE RESPONSE_TIME_MINUTES < 0 OR RESOLUTION_TIME_MINUTES < 0
       samples limit: 20
-      description: "[Estimated] A small number of rows show negative response/resolution time (~-1 hour observed), likely clock-rounding artifacts in the source dispatch/arrival timestamps. Monitored, not blocking."
+      description: "[Estimated] A small number of rows show negative response/resolution time (~-60 minutes observed), likely clock-rounding artifacts in the source dispatch/arrival timestamps. Monitored, not blocking."

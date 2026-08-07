@@ -13,7 +13,6 @@ profiles:
   - MODIFYDATE
 
 rules:
-
   # ── Completeness ──────────────────────────────────────────────────────────────
   - missing_count(CUSTOMERNUMBER) = 0:
       name: every_invoice_has_a_customer
